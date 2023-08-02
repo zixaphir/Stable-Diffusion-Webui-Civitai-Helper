@@ -337,27 +337,23 @@ function setupCardListeners(tab, extra_tabs) {
             subtree: false,
         };
 
-        for (let el of extra_tab_els) {
-            let observer = new MutationObserver((function(records, observer) {
-                const cards = [];
-                for (const record of records) {
-                    for (const addedNode of record.addedNodes) {
-                        if (addedNode.classList.contains("card")) {
-                            cards.push(addedNode);
-                        }
-                    }
+        let prefix_length = tab.length + 1;
+        for (const el of extra_tab_els) {
+            let model_type = el.id.slice(prefix_length, -6);
+            const processCards = () => {
+                const cards = el.querySelectorAll('.card');
+                for (let card of cards) {
+                    processSingleCard(tab, getShortModelTypeFromFull(model_type), card);
                 }
-            }), observerOptions);
-
-            const cards = el.querySelectorAll('.card');
-            for (let card of cards) {
-                let model_type = el.id.split("_")[1];
-                if (model_type == 'textual') {
-                    model_type = 'textual_inversion';
-                }
-                model_type = getShortModelTypeFromFull(model_type);
-                processSingleCard(tab, model_type, card);
             }
+
+            let observer = new MutationObserver(function(records, observer) {
+                processCards();
+            });
+
+            processCards();
+
+            observer.observe(el, observerOptions);
         }
     });
 }
@@ -373,8 +369,10 @@ function waitForExtraTabs(tab, extra_tabs) {
             if (extra_tab_el == null) {
 
                 // XXX lycoris models do not have their own tab in sdwebui 1.5
-                // most of the time, it should be added by the time this check
-                // rolls around anyways if an extension added it.
+                // most of the time. In the case that there is a LyCoris tab,
+                // it would have been added at the same time as the others,
+                // making it almost impossible to be null by the time we're at
+                // this point in the code if the other tabs are loaded.
                 if (extra_tab == 'lycoris') { continue; }
 
                 return null;
