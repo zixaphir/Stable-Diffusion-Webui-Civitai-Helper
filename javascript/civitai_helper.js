@@ -601,10 +601,10 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
                 ul_node.removeChild(brtag);
             }
 
-        }
+            //just reset and remove nodes, do nothing else
+            return;
 
-        //just reset and remove nodes, do nothing else
-        return;
+        }
 
     } else {
         // full preview mode
