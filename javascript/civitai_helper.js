@@ -113,7 +113,9 @@ function getActiveTabType() {
     return null;
 }
 
-
+function getExtraTabs(prefix) {
+    return gradioApp().getElementById(prefix + "_extra_tabs");
+}
 
 function getActivePrompt() {
     const currentTab = get_uiCurrentTabContent();
@@ -323,42 +325,24 @@ function ch_dl_model_new_version(event, model_path, version_id, download_url){
     event.preventDefault();
 }
 
-
-function setupCardListeners(tab, extra_tabs) {
-    waitForExtraTabs(tab, extra_tabs).then(extra_tab_els => {
-        const observerOptions = {
-            childList: true,
-            subtree: false,
-        };
-
-        let prefix_length = tab.length + 1;
-        for (const el of extra_tab_els) {
-            let model_type = el.id.slice(prefix_length, -6);
-            const processCards = () => {
-                const cards = el.querySelectorAll('.card');
-                for (let card of cards) {
-                    processSingleCard(tab, getShortModelTypeFromFull(model_type), card);
-                }
-            }
-
-            let observer = new MutationObserver(function(records, observer) {
-                processCards();
-            });
-
-            processCards();
-
-            observer.observe(el, observerOptions);
+function processCards(tab, extra_tab_els) {
+    const prefix_length = tab.length + 1;
+    for (const el of extra_tab_els) {
+        const model_type = el.id.slice(prefix_length, -6);
+        const cards = el.querySelectorAll('.card');
+        for (const card of cards) {
+            processSingleCard(tab, getShortModelTypeFromFull(model_type), card);
         }
-    });
+    }
 }
 
 
 function waitForExtraTabs(tab, extra_tabs) {
     function findTabs() {
         const tab_elements = [];
-        for (let extra_tab of extra_tabs) {
-            let id = tab + "_" + extra_tab + "_cards";
-            let extra_tab_el = document.getElementById(id);
+        for (const extra_tab of extra_tabs) {
+            const id = tab + "_" + extra_tab + "_cards";
+            const extra_tab_el = document.getElementById(id);
 
             if (extra_tab_el == null) {
 
@@ -377,30 +361,40 @@ function waitForExtraTabs(tab, extra_tabs) {
         return tab_elements;
     }
 
-    return new Promise(resolve => {
-        const tab_elements = findTabs(tab, extra_tabs);
-        if (tab_elements != null) {
-            return resolve(tab_elements);
-        }
+    const tab_elements = findTabs(tab, extra_tabs);
+    if (tab_elements) {
+        processCards(tab, tab_elements);
+    }
 
-        const observer = new MutationObserver(() => {
-            const tab_elements = findTabs(tab, extra_tabs);
-            if (tab_elements != null) {
-                observer.disconnect();
-                return resolve(tab_elements);
+    const observer = new MutationObserver(records => {
+        let tab_elements;
+        for (const record of records) {
+            if (record.type != "childList") {
+                continue;
             }
-        });
 
-        observer.observe(document.body, {
-            subtree: true,
-            childList: true,
-        });
+            tab_elements = findTabs(tab, extra_tabs);
+            if (!tab_elements) {
+                return;
+            }
+
+            processCards(tab, tab_elements);
+            return;
+        }
     });
+
+    const extra_networks = document.getElementById(tab + "_extra_tabs");
+    const options = {
+        subtree: true,
+        childList: true,
+    };
+
+    observer.observe(extra_networks, options);
 }
 
 
 function waitForEditor(page, type, name) {
-    let id = page + '_' + type + '_edit_user_metadata';
+    const id = page + '_' + type + '_edit_user_metadata';
 
     return new Promise(resolve => {
         let name_field;
@@ -424,7 +418,7 @@ function waitForEditor(page, type, name) {
         }
 
         const observer = new MutationObserver(() => {
-            let editor = document.getElementById(id);
+            const editor = document.getElementById(id);
             let name_field;
             if (editor != null) {
                 name_field = editor.querySelector('.extra-network-name');
@@ -681,6 +675,7 @@ onUiLoaded(() => {
     // then, python side gonna open url and update prompt text box, without telling js side.
     function update_card_for_civitai(){
         replace_preview_text = getTranslation("replace preview");
+
         if (!replace_preview_text) {
             replace_preview_text = "replace preview";
         }
@@ -701,18 +696,17 @@ onUiLoaded(() => {
                 continue;
             }
 
+
             //find out current selected model type tab
-            let active_extra_tab_type = "";
-            let extra_tabs = gradioApp().getElementById(tab_prefix+"_extra_tabs");
-            if (!extra_tabs) {console.log("can not find extra_tabs: " + tab_prefix+"_extra_tabs");}
+            const extra_tabs = getExtraTabs(tab_prefix);
 
             //get active extratab
+            const re = new RegExp(tab_prefix + "_(.+)_cards$");
             const active_extra_tab = Array.from(get_uiCurrentTabContent().querySelectorAll('.extra-network-cards'))
                 .find(el => el.closest('.tabitem').style.display === 'block')
-                ?.id.match(/^(txt2img|img2img)_(.+)_cards$/)[2];
-            console.log("found active tab: " + active_extra_tab);
+                ?.id.match(re)[1];
 
-            active_extra_tab_type = getShortModelTypeFromFull(active_extra_tab);
+            const active_extra_tab_type = getShortModelTypeFromFull(active_extra_tab);
 
             for (const js_model_type of model_type_list) {
                 //get model_type for python side
@@ -742,7 +736,7 @@ onUiLoaded(() => {
 
                 // get all card nodes
                 cards = extra_network_node.querySelectorAll(".card");
-                for (let card of cards) {
+                for (const card of cards) {
                     processSingleCard(active_tab_type, active_extra_tab_type, card);
                 }
 
@@ -752,15 +746,13 @@ onUiLoaded(() => {
 
     }
 
-    let tab_id = "";
     let extra_tab = null;
     let extra_network_refresh_btn = null;
     let extra_networks_btn = null;
 
     //add refresh button to extra network's toolbar
-    for (let prefix of tab_prefix_list) {
-        tab_id = prefix + "_extra_tabs";
-        extra_tab = gradioApp().getElementById(tab_id);
+    for (const prefix of tab_prefix_list) {
+        extra_tab = getExtraTabs(prefix);
 
         //get toolbar
         //get Refresh button
@@ -768,12 +760,12 @@ onUiLoaded(() => {
         extra_networks_btn = gradioApp().getElementById(prefix + "_extra_networks");
 
         if (!extra_network_refresh_btn){
-            console.log("can not get extra network refresh button for " + tab_id);
+            console.log("can not get extra network refresh button for " + prefix);
             continue;
         }
 
         let extraNetworksClick = e => {
-            setupCardListeners(prefix, model_type_list);
+            waitForExtraTabs(prefix, model_type_list);
             extra_networks_btn.removeEventListener("click", extraNetworksClick);
         };
 
