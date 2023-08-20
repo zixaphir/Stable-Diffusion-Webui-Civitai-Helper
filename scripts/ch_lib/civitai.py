@@ -70,12 +70,25 @@ def get_model_info_by_hash(hash:str):
         util.printD("error, content from civitai is None")
         return
     
+    util.printD("Fetching Parent Model Information")
+    parent_model = get_model_info_by_id(content['modelId'])
+
+    # this is VERY un-safe, as CivitAI returns full HTML in this, and the
+    # version's, description, but we haven't been filtering it so far, so
+    # I guess we'll get to it later...
+    content['model']['description'] = parent_model['description']
+    content['model']['tags'] = parent_model['tags']
+    content['model']['allowNoCredit'] = parent_model['allowNoCredit']
+    content['model']['allowCommercialUse'] = parent_model['allowCommercialUse']
+    content['model']['allowDerivatives'] = parent_model['allowDerivatives']
+    content['model']['allowDifferentLicense'] = parent_model['allowDifferentLicense']
+
     return content
 
 
 
 def get_model_info_by_id(id:str) -> dict:
-    util.printD("Request model info from civitai")
+    util.printD("Request model info from civitai: "+str(id))
 
     if not id:
         util.printD("id is empty")
@@ -356,8 +369,8 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, skip_nsfw_
                 if model_info["images"]:
                     for img_dict in model_info["images"]:
                         if "nsfw" in img_dict.keys():
-                            if img_dict["nsfw"]:
-                                util.printD("This image is NSFW")
+                            if img_dict["nsfw"] != "" and img_dict["nsfw"] != "None":
+                                util.printD("This image is NSFW: " + str(img_dict["nsfw"]))
                                 if skip_nsfw_preview:
                                     util.printD("Skip NSFW image")
                                     continue
