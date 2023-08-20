@@ -1,3 +1,5 @@
+**[Contributors](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/graphs/contributors)**
+
 ### Language
 [中文](README.cn.md)   
 [日本語](README.jp.md)  
@@ -20,7 +22,7 @@ The rest of this document is unchanged from its original version at https://gith
 # Civitai Helper
 Stable Diffusion Webui Extension for Civitai, to handle your models much more easily.  
 
-Civitai: [Civitai Url](https://civitai.com/models/16768/civitai-helper-sd-webui-civitai-extension)  
+Civitai: ![Civitai Url](https://civitai.com/models/16768/civitai-helper-sd-webui-civitai-extension)  
 
 # Features
 * Scans all models to download model information and preview images from Civitai.  
