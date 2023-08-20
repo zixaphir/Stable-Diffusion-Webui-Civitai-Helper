@@ -36,9 +36,13 @@ def get_full_size_image_url(image_url, width):
 # some model metadata is stored in a "parent" context
 def append_parent_model_metadata(content):
     util.printD("Fetching Parent Model Information")
-    parent_model = get_model_info_by_id(content['modelId'])
+    parent_model = get_model_info_by_id(content["modelId"])
 
-    metadatas = ['description', 'tags', 'allowNoCredit', 'allowCommercialUse', 'allowDerivatives', 'allowDifferentLicense']
+    metadatas = ["description", "tags", "allowNoCredit", "allowCommercialUse", "allowDerivatives", "allowDifferentLicense"]
+
+    # Preserve version info where it exists.
+    if content["description"] != parent_model["description"]:
+        content["version info"] = content["description"]
 
     for metadata in metadatas:
         content[metadata] = parent_model[metadata]
@@ -119,40 +123,49 @@ def get_model_info_by_id(id:str) -> dict:
         util.printD("error, content from civitai is None")
         return
 
-    regexp = '<[^<]+?>' # not super secure but should strip unneeded HTML.
+    regexp = "<[^<]+?>" # not super secure but should strip unneeded HTML.
 
     try:
-        data = content['description']
-        data = re.sub('<(p|br)>', '\n\n', data)
-        data = re.sub(regexp, '', data)
-        content['description'] = data
+        data = content["description"]
+        data = re.sub("<(p|br)>", "\n\n", data)
+
+        while data[0:2] == "\n\n":
+            data = data[2:]
+        data = re.sub(regexp, "", data)
+        content["description"] = data
 
     except Exception as e:
         util.printD(e)
-
+        util.printD(e.message)
+        util.printD(e.args)
 
     try:
-        data = content['allowCommericialUse']
-        data = re.sub(regexp, '', data)
-        content['description'] = data
+        data = content["allowCommercialUse"]
+        data = re.sub(regexp, "", data)
+        content["allowCommericialUse"] = data
 
     except Exception as e:
         util.printD(e)
+        util.printD(e.message)
+        util.printD(e.args)
 
 
     try:
-        tags = content['tags']
+        tags = content["tags"]
         data = []
         for tag in tags:
             try:
-                data.append(re.sub(regexp, '', tag))
+                data.append(re.sub(regexp, "", tag))
             except:
                 util.printD(f"Failed to process tag: {tag}.")
 
-        content['tags'] = data
+        content["tags"] = data
 
     except Exception as e:
+        content["tags"] = ""
         util.printD(e)
+        util.printD(e.message)
+        util.printD(e.args)
 
 
     return content

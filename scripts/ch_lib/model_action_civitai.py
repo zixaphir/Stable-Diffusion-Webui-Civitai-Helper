@@ -2,6 +2,7 @@
 # handle msg between js and python side
 import os
 import time
+import re
 from . import util
 from . import model
 from . import civitai
@@ -51,6 +52,8 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
                     # find a model
                     # get info file
                     info_file = base + civitai.suffix + model.info_ext
+                    sd15_file = base + model.sd15_ext
+
                     # check info file
                     if not os.path.isfile(info_file):
                         util.printD("Creating model info for: " + filename)
@@ -74,8 +77,9 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
                             util.printD(output)
                             return output+", check console log for detail"
 
-                        # write model info to file
+                        # write model info to files
                         model.write_model_info(info_file, model_info)
+                        write_sd15_model_info(sd15_file, model_info)
 
                     # set model_count
                     model_count = model_count+1
@@ -93,6 +97,55 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
 
     return output
 
+def get_data_safe(data, key, default_value):
+    try:
+        return data[key]
+    except:
+        return default_value
+
+def write_sd15_model_info(path, model_info):
+    if os.path.isfile(path):
+        util.printD(f"File exists: {path}.")
+        return # Do not overwrite user-created info files!
+
+    data = {}
+
+    data["description"] = get_data_safe(model_info, "description", "")
+
+    base_model = get_data_safe(model_info, "baseModel", None)
+    if base_model:
+        sd_version = base_model[3]
+
+        if sd_version == '1':
+            sd_version = 'SD1'
+        elif sd_version ==  '2':
+            sd_version = 'SD2'
+        elif sd_version == 'L':
+            sd_version = 'SDXL'
+        else:
+            sd_version = 'Unknown'
+    else:
+        sd_version = 'Unknown'
+
+    data["sd version"] = sd_version
+
+    # XXX "trained words" usage is inconsistent among model authors.
+    # Some use each entry as an individual activator, while others
+    # use them as entire prompts
+    activator = get_data_safe(model_info, "trainedWords", [])
+    if (activator and activator[0]):
+        if "," in activator[0]: # assume trainedWords is a prompt list
+            data["activation text"] = "\n".join(activator)
+        else: # assume trainedWords are single keywords
+            data["activation text"] = ", ".join(activator)
+
+
+    data["preferred weight"] = 0
+    version_info = get_data_safe(model_info, "version info", "")
+    if version_info != None:
+        data["notes"] = version_info
+
+    model.write_model_info(path, data)
 
 
 # Get model info by model type, name and url
@@ -123,6 +176,7 @@ def get_model_info_by_input(model_type, model_name, model_url_or_id, max_size_pr
     # get info file path
     base, ext = os.path.splitext(model_path)
     info_file = base + civitai.suffix + model.info_ext
+    sd15_file = base + model.sd15_ext
 
     # get model info    
     #we call it model_info, but in civitai, it is actually version info
@@ -133,8 +187,9 @@ def get_model_info_by_input(model_type, model_name, model_url_or_id, max_size_pr
         util.printD(output)
         return output
     
-    # write model info to file
+    # write model info to files
     model.write_model_info(info_file, model_info)
+    write_sd15_model_info(sd15_file, model_info)
 
     util.printD("Saved model info to: "+ info_file)
 
@@ -501,7 +556,10 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
     # write version info to file
     base, ext = os.path.splitext(filepath)
     info_file = base + civitai.suffix + model.info_ext
+    sd15_file = base + model.sd15_ext
+
     model.write_model_info(info_file, version_info)
+    write_sd15_model_info(sd15_file, model_info)
 
     # then, get preview image
     civitai.get_preview_image_by_model_path(filepath, max_size_preview, skip_nsfw_preview)
