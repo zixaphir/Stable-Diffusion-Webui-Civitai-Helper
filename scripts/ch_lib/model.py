@@ -22,6 +22,7 @@ folders = {
 
 exts = (".bin", ".pt", ".safetensors", ".ckpt")
 info_ext = ".info"
+sd15_ext = ".json"
 vae_suffix = ".vae"
 
 
