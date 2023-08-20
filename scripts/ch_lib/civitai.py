@@ -2,7 +2,6 @@
 # handle msg between js and python side
 import os
 import time
-import html
 import json
 import re
 import requests
