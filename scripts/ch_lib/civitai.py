@@ -135,9 +135,7 @@ def get_model_info_by_id(id:str) -> dict:
         content["description"] = data
 
     except Exception as e:
-        util.printD(e)
-        util.printD(e.message)
-        util.printD(e.args)
+        util.printD(str(e))
 
     try:
         data = content["allowCommercialUse"]
@@ -145,9 +143,7 @@ def get_model_info_by_id(id:str) -> dict:
         content["allowCommericialUse"] = data
 
     except Exception as e:
-        util.printD(e)
-        util.printD(e.message)
-        util.printD(e.args)
+        util.printD(str(e))
 
 
     try:
@@ -162,10 +158,9 @@ def get_model_info_by_id(id:str) -> dict:
         content["tags"] = data
 
     except Exception as e:
+        util.printD(str(e))
+
         content["tags"] = ""
-        util.printD(e)
-        util.printD(e.message)
-        util.printD(e.args)
 
 
     return content
