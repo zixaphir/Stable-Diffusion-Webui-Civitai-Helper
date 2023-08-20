@@ -2,6 +2,7 @@
 # handle msg between js and python side
 import os
 import time
+import html
 import json
 import re
 import requests
@@ -27,12 +28,23 @@ model_type_dict = {
 }
 
 
-
 # get image with full size
 # width is in number, not string
 # return: url str
 def get_full_size_image_url(image_url, width):
     return re.sub('/width=\d+/', '/width=' + str(width) + '/', image_url)
+
+# some model metadata is stored in a "parent" context
+def append_parent_model_metadata(content):
+    util.printD("Fetching Parent Model Information")
+    parent_model = get_model_info_by_id(content['modelId'])
+
+    metadatas = ['description', 'tags', 'allowNoCredit', 'allowCommercialUse', 'allowDerivatives', 'allowDifferentLicense']
+
+    for metadata in metadatas:
+        content[metadata] = parent_model[metadata]
+
+    return content
 
 
 # use this sha256 to get model info from civitai
@@ -69,22 +81,10 @@ def get_model_info_by_hash(hash:str):
     if not content:
         util.printD("error, content from civitai is None")
         return
-    
-    util.printD("Fetching Parent Model Information")
-    parent_model = get_model_info_by_id(content['modelId'])
 
-    # this is VERY un-safe, as CivitAI returns full HTML in this, and the
-    # version's, description, but we haven't been filtering it so far, so
-    # I guess we'll get to it later...
-    content['model']['description'] = parent_model['description']
-    content['model']['tags'] = parent_model['tags']
-    content['model']['allowNoCredit'] = parent_model['allowNoCredit']
-    content['model']['allowCommercialUse'] = parent_model['allowCommercialUse']
-    content['model']['allowDerivatives'] = parent_model['allowDerivatives']
-    content['model']['allowDifferentLicense'] = parent_model['allowDifferentLicense']
+    content = append_parent_model_metadata(content)
 
     return content
-
 
 
 def get_model_info_by_id(id:str) -> dict:
@@ -119,7 +119,43 @@ def get_model_info_by_id(id:str) -> dict:
     if not content:
         util.printD("error, content from civitai is None")
         return
-    
+
+    regexp = '<[^<]+?>' # not super secure but should strip unneeded HTML.
+
+    try:
+        data = content['description']
+        data = re.sub('<(p|br)>', '\n\n', data)
+        data = re.sub(regexp, '', data)
+        content['description'] = data
+
+    except Exception as e:
+        util.printD(e)
+
+
+    try:
+        data = content['allowCommericialUse']
+        data = re.sub(regexp, '', data)
+        content['description'] = data
+
+    except Exception as e:
+        util.printD(e)
+
+
+    try:
+        tags = content['tags']
+        data = []
+        for tag in tags:
+            try:
+                data.append(re.sub(regexp, '', tag))
+            except:
+                util.printD(f"Failed to process tag: {tag}.")
+
+        content['tags'] = data
+
+    except Exception as e:
+        util.printD(e)
+
+
     return content
 
 
@@ -155,6 +191,8 @@ def get_version_info_by_version_id(id:str) -> dict:
     if not content:
         util.printD("error, content from civitai is None")
         return
+
+    content = append_parent_model_metadata(content)
     
     return content
 
@@ -225,7 +263,6 @@ def load_model_info_by_search_term(model_type, search_term):
     else:
         model_folders = [model.folders[model_type]]
 
-    #model_folder = model.folders[model_type]
     for model_folder in model_folders:
         model_info_filename = model_info_base + suffix + model.info_ext
         model_info_filepath = os.path.join(model_folder, model_info_filename)
