@@ -90,6 +90,18 @@ def get_model_info_by_hash(hash:str):
     return content
 
 
+def trim_html(s):
+    s = re.sub("<(p|br)>", "\n\n", s)
+
+    # not super secure but should strip unneeded HTML.
+    s = re.sub("<[^<]+?>", "", s)
+
+    while s[0:2] == "\n\n":
+        s = s[2:]
+
+    return s
+
+
 def get_model_info_by_id(id:str) -> dict:
     util.printD("Request model info from civitai: "+str(id))
 
@@ -123,24 +135,20 @@ def get_model_info_by_id(id:str) -> dict:
         util.printD("error, content from civitai is None")
         return
 
-    regexp = "<[^<]+?>" # not super secure but should strip unneeded HTML.
-
     try:
-        data = content["description"]
-        data = re.sub("<(p|br)>", "\n\n", data)
-
-        while data[0:2] == "\n\n":
-            data = data[2:]
-        data = re.sub(regexp, "", data)
-        content["description"] = data
+        content["description"] = trim_html(content["description"])
 
     except Exception as e:
         util.printD(str(e))
 
     try:
-        data = content["allowCommercialUse"]
-        data = re.sub(regexp, "", data)
-        content["allowCommericialUse"] = data
+        content["version info"] = trim_html(content["version info"])
+
+    except Exception as e:
+        util.printD(str(e))
+
+    try:
+        content["allowCommericialUse"] = trim_html(str(content["allowCommercialUse"]))
 
     except Exception as e:
         util.printD(str(e))
@@ -151,7 +159,7 @@ def get_model_info_by_id(id:str) -> dict:
         data = []
         for tag in tags:
             try:
-                data.append(re.sub(regexp, "", tag))
+                data.append(trim_html(tag))
             except:
                 util.printD(f"Failed to process tag: {tag}.")
 

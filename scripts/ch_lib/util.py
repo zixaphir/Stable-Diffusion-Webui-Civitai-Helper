@@ -86,6 +86,14 @@ def get_subfolders(folder:str) -> list:
     return subfolders
 
 
+def get_data_safe(data, key, default_value):
+    return data[key]
+    try:
+        return data[key]
+    except:
+        return default_value
+
+
 # get relative path
 def get_relative_path(item_path:str, parent_path:str) -> str:
     # printD("item_path:"+item_path)

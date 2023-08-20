@@ -97,12 +97,6 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
 
     return output
 
-def get_data_safe(data, key, default_value):
-    try:
-        return data[key]
-    except:
-        return default_value
-
 # SD1.5 Webui added saving model information to JSON files.
 # Much of this extension's metadata management is replicated
 # by this new functionality, including automatically adding
@@ -111,6 +105,7 @@ def get_data_safe(data, key, default_value):
 # simply read a model's description.
 # So why not populate it with useful information?
 def write_sd15_model_info(path, model_info):
+    get_data_safe = util.get_data_safe
 
     # Do not overwrite user-created files!
     # TODO: maybe populate empty fields in existing files?
@@ -148,9 +143,11 @@ def write_sd15_model_info(path, model_info):
     # use them as entire prompts
     activator = get_data_safe(model_info, "trainedWords", [])
     if (activator and activator[0]):
-        if "," in activator[0]: # assume trainedWords is a prompt list
+        if "," in activator[0]:
+            # assume trainedWords is a prompt list
             data["activation text"] = "\n".join(activator)
-        else: # assume trainedWords are single keywords
+        else:
+            # assume trainedWords are single keywords
             data["activation text"] = ", ".join(activator)
 
     # Sadly, Civitai does not provide default weight information,
@@ -580,7 +577,7 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
     sd15_file = base + model.sd15_ext
 
     model.write_model_info(info_file, version_info)
-    write_sd15_model_info(sd15_file, model_info)
+    write_sd15_model_info(sd15_file, version_info)
 
     # then, get preview image
     civitai.get_preview_image_by_model_path(filepath, max_size_preview, skip_nsfw_preview)
