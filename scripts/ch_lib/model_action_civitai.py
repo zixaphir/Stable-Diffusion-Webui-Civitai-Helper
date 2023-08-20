@@ -498,9 +498,6 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
         util.printD(output)
         return output
 
-    # some metadata is stored in a "parent" context
-    civitai.append_parent_model_metadata(version_info)
-
     # write version info to file
     base, ext = os.path.splitext(filepath)
     info_file = base + civitai.suffix + model.info_ext
