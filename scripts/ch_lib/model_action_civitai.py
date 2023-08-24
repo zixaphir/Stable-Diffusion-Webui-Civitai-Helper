@@ -97,21 +97,30 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
 
     return output
 
-def get_data_safe(data, key, default_value):
-    try:
-        return data[key]
-    except:
-        return default_value
-
+# SD1.5 Webui added saving model information to JSON files.
+# Much of this extension's metadata management is replicated
+# by this new functionality, including automatically adding
+# activator keywords to the prompt. It also provides a much
+# cleaner UI than civitai (not a high bar to clear) to
+# simply read a model's description.
+# So why not populate it with useful information?
 def write_sd15_model_info(path, model_info):
+    get_data_safe = util.get_data_safe
+
+    # Do not overwrite user-created files!
+    # TODO: maybe populate empty fields in existing files?
     if os.path.isfile(path):
         util.printD(f"File exists: {path}.")
-        return # Do not overwrite user-created info files!
+        return
 
     data = {}
 
     data["description"] = get_data_safe(model_info, "description", "")
 
+    # AFAIK civitai model versions are currently:
+    #   SD 1.4, SD 1.5, SD 2.0, SD 2.0 786, SD 2.1, SD 2.1 786
+    #   SD 2.1 Unclip, SDXL 0.9, SDXL 1.0, and Other.
+    # Conveniently, the 4th character is all we need for webui.
     base_model = get_data_safe(model_info, "baseModel", None)
     if base_model:
         sd_version = base_model[3]
@@ -134,13 +143,22 @@ def write_sd15_model_info(path, model_info):
     # use them as entire prompts
     activator = get_data_safe(model_info, "trainedWords", [])
     if (activator and activator[0]):
-        if "," in activator[0]: # assume trainedWords is a prompt list
+        if "," in activator[0]:
+            # assume trainedWords is a prompt list
             data["activation text"] = "\n".join(activator)
-        else: # assume trainedWords are single keywords
+        else:
+            # assume trainedWords are single keywords
             data["activation text"] = ", ".join(activator)
 
-
+    # Sadly, Civitai does not provide default weight information,
+    # So 0 disables this functionality on webui's end
+    # (Tho 1 would also work?)
     data["preferred weight"] = 0
+
+    # I suppose notes are more for user notes, but populating it
+    # with potentially useful information about this particular
+    # version of the model is fine too, right? The user can
+    # always replace these if they're unneeded or add to them
     version_info = get_data_safe(model_info, "version info", "")
     if version_info != None:
         data["notes"] = version_info
@@ -559,7 +577,7 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
     sd15_file = base + model.sd15_ext
 
     model.write_model_info(info_file, version_info)
-    write_sd15_model_info(sd15_file, model_info)
+    write_sd15_model_info(sd15_file, version_info)
 
     # then, get preview image
     civitai.get_preview_image_by_model_path(filepath, max_size_preview, skip_nsfw_preview)
