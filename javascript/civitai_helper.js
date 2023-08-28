@@ -343,12 +343,19 @@ function processCards(tab, extra_tab_els) {
 }
 
 
+function getModelCardsEl(prefix, model_type) {
+    const id = prefix + "_" + model_type + "_cards";
+    const gradio = gradioApp();
+    return gradio.getElementById(id) || gradio.getElementById(id + "_html");
+}
+
+
 function waitForExtraTabs(tab, extra_tabs) {
     function findTabs() {
         const tab_elements = [];
         for (const extra_tab of extra_tabs) {
             const id = tab + "_" + extra_tab + "_cards";
-            const extra_tab_el = document.getElementById(id);
+            const extra_tab_el = getModelCardsEl(tab, extra_tab);
 
             if (extra_tab_el == null) {
 
@@ -389,8 +396,8 @@ function waitForExtraTabs(tab, extra_tabs) {
         }
     });
 
-    const extra_networks = document.getElementById(tab + "_extra_tabs");
-    console.log("extra_networks: ", extra_networks);
+    const extra_networks = getExtraTabs(tab);
+
     const options = {
         subtree: true,
         childList: true,
@@ -406,9 +413,11 @@ function waitForEditor(page, type, name) {
 
     return new Promise(resolve => {
         let name_field;
-        let editor = document.getElementById(id);
+        const gradio = gradioApp();
 
-        let popup = document.querySelector(".global-popup");
+        const editor = gradio.getElementById(id);
+        const popup = gradio.querySelector(".global-popup");
+
         if (popup != null) {
             // hide the editor window so it doesn't get in the user's
             // way while we wait for the replace preview functionality
@@ -426,7 +435,7 @@ function waitForEditor(page, type, name) {
         }
 
         const observer = new MutationObserver(() => {
-            const editor = document.getElementById(id);
+            const editor = gradioApp().getElementById(id);
             let name_field;
             if (editor != null) {
                 name_field = editor.querySelector('.extra-network-name');
@@ -476,10 +485,10 @@ function getLongModelTypeFromShort(model_type_short) {
 
 
 function isThumbMode(extra_network_node) {
-    if (extra_network_node.className == "extra-network-thumbs") {
-        console.log(extra_network_id + " is in thumbnail mode");
+    if (extra_network_node?.className == "extra-network-thumbs") {
         return true;
     }
+    return false;
 }
 
 
@@ -502,8 +511,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     let btn_thumb_backgroundImage = "none";
     let btn_thumb_background = "rgba(0, 0, 0, 0.8)";
 
-    let extra_network_id = active_tab_type + "_" + js_model_type + "_cards";
-    let is_thumb_mode = isThumbMode(gradioApp().getElementById(extra_network_id));
+    let is_thumb_mode = isThumbMode(getModelCardsEl(active_tab_type, js_model_type));
 
     //metadata_buttoncard
     metadata_button = card.querySelector(".metadata-button");
@@ -566,7 +574,6 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         } else {
             let ch_btn_txts = ['🌐', '💡', '🏷️'];
 
-            // console.log("remove existed buttons");
             // remove existed buttons
             //reset
             ul_node.style.background = null;
@@ -733,12 +740,11 @@ onUiLoaded(() => {
 
     //get gradio version
     const gradio_ver = ch_gradio_version();
-    console.log("gradio_ver:" + gradio_ver);
+    console.log("Running Stable-Diffusion-Webui-Civitai-Helper on Gradio Version: " + gradio_ver);
 
     // get all extra network tabs
     const tab_prefix_list = ["txt2img", "img2img"];
     const model_type_list = ["textual_inversion", "hypernetworks", "checkpoints", "lora", "lycoris"];
-    const cardid_suffix = "cards";
 
     // update extra network tab pages' cards
     // * replace "replace preview" text button into an icon
@@ -773,7 +779,7 @@ onUiLoaded(() => {
             const extra_tabs = getExtraTabs(tab_prefix);
 
             //get active extratab
-            const re = new RegExp(tab_prefix + "_(.+)_cards$");
+            const re = new RegExp(tab_prefix + "_(.+)_cards");
             const active_extra_tab = Array.from(get_uiCurrentTabContent().querySelectorAll('.extra-network-cards,.extra-network-thumbs'))
                 .find(el => el.closest('.tabitem').style.display === 'block')
                 ?.id.match(re)[1];
@@ -795,22 +801,14 @@ onUiLoaded(() => {
                     continue;
                 }
 
-                console.log("handle active extra tab");
+                //console.log("handle active extra tab");
+                extra_network_id = tab_prefix + "_" + js_model_type + "_cards";
 
-
-                extra_network_id = tab_prefix + "_" + js_model_type + "_" + cardid_suffix;
                 // console.log("searching extra_network_node: " + extra_network_id);
-                extra_network_node = gradioApp().getElementById(extra_network_id);
+                extra_network_node = getModelCardsEl(tab_prefix, js_model_type);
 
-                // check if extr network is under thumbnail mode
+                // check if extra network is under thumbnail mode
                 // XXX thumbnail mode removed in sd-webui v1.5.0
-                is_thumb_mode = false;
-                if (!extra_network_node) {
-                    console.log("can not find extra_network_node: " + extra_network_id);
-                    continue;
-                }
-                // console.log("find extra_network_node: " + extra_network_id);
-
                 is_thumb_mode = isThumbMode(extra_network_node);
 
                 // get all card nodes
@@ -825,44 +823,52 @@ onUiLoaded(() => {
 
     }
 
-    let extra_tab = null;
-    let extra_toolbar = null;
+    /*
     let extra_network_refresh_btn = null;
+    */
     let extra_networks_btn = null;
 
     //add refresh button to extra network's toolbar
     for (const prefix of tab_prefix_list) {
-        extra_tab = getExtraTabs(prefix);
-
-        //get toolbar
-        //get Refresh button
-        extra_network_refresh_btn = gradioApp().getElementById(prefix + "_extra_refresh");
+        // load extra networks button
         extra_networks_btn = gradioApp().getElementById(prefix + "_extra_networks");
 
-        if (!extra_network_refresh_btn){
-            console.log("can not get extra network refresh button for " + prefix);
+
+        // pre-1.6
+        if (extra_networks_btn) {
+            function extraNetworksClick(e) {
+                waitForExtraTabs(prefix, model_type_list);
+                extra_networks_btn.removeEventListener("click", extraNetworksClick);
+            }
+
+            // add listener to extra_networks_btn
+            extra_networks_btn.addEventListener('click', extraNetworksClick);
             continue;
+
         }
+
+        // 1.6 and higher
+        const extra_tab = getExtraTabs(prefix);
+        const headers = extra_tab.firstChild.children;
+
+        for (const header of headers) {
+            const model_type = header.textContent.trim().replace(" ", "_").toLowerCase();
+
+            function extraNetworksClick(e) {
+                waitForExtraTabs(prefix, [model_type]);
+                header.removeEventListener("click", extraNetworksClick);
+            }
+
+            header.addEventListener('click', extraNetworksClick);
+        }
+
+        //get toolbar
+        extra_networks_btn = gradioApp().getElementById(prefix + "_extra_networks");
 
         function extraNetworksClick(e) {
             waitForExtraTabs(prefix, model_type_list);
             extra_networks_btn.removeEventListener("click", extraNetworksClick);
         }
-
-        // add listener to extra_networks_btn
-        extra_networks_btn.addEventListener('click', extraNetworksClick);
-
-        // add refresh button to toolbar
-        const ch_refresh = document.createElement("button");
-        ch_refresh.textContent = "🔁";
-        ch_refresh.title = "Refresh Civitai Helper's additional buttons";
-        ch_refresh.className = "lg secondary gradio-button";
-        ch_refresh.style.fontSize = "200%";
-        ch_refresh.onclick = update_card_for_civitai;
-
-        extra_network_refresh_btn.parentNode.appendChild(ch_refresh);
-
-
 
     }
 
