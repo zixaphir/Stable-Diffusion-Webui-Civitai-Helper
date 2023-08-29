@@ -500,10 +500,10 @@ const createUI = (function() {
     use_preview_prompt_node.className = "usepreviewprompt";
     use_preview_prompt_node.title = "Use prompt from preview image";
 
-    assignStyle(replace_preview_btn,);
-    assignStyle(open_url_node,);
-    assignStyle(add_trigger_words_node,);
-    assignStyle(use_preview_prompt_node,);
+    assignStyle(replace_preview_btn);
+    assignStyle(open_url_node);
+    assignStyle(add_trigger_words_node);
+    assignStyle(use_preview_prompt_node);
 
     //add to card
     appendChildren(ul_node, [
@@ -532,7 +532,7 @@ const createUI = (function() {
 function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     let metadata_button = null;
     let additional_node = null;
-    let ul_node = null
+    let ul_node = null;
     let replace_preview_btn = null;
     let search_term_node = null;
     let search_term = "";
@@ -665,10 +665,6 @@ onUiLoaded(() => {
                 continue;
             }
 
-
-            //find out current selected model type tab
-            const extra_tabs = getExtraTabs(tab_prefix);
-
             //get active extratab
             const re = new RegExp(tab_prefix + "_(.+)_cards_html$");
             const active_extra_tab = Array.from(get_uiCurrentTabContent().querySelectorAll('.extra-network-cards'))
@@ -706,9 +702,6 @@ onUiLoaded(() => {
 
     }
 
-    let extra_tab = null;
-    let extra_networks_btn = null;
-
     //add refresh button to extra network's toolbar
     for (const prefix of tab_prefix_list) {
         const extra_tab = getExtraTabs(prefix);
@@ -720,7 +713,7 @@ onUiLoaded(() => {
             let extraNetworksClick = e => {
                 waitForExtraTabs(prefix, [model_type]);
                 header.removeEventListener("click", extraNetworksClick);
-            }
+            };
 
             header.addEventListener('click', extraNetworksClick);
         }
