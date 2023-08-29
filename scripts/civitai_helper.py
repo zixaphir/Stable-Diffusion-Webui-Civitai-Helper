@@ -95,6 +95,7 @@ def on_ui_tabs():
         skip_nsfw_preview = setting.data["model"]["skip_nsfw_preview"]
         open_url_with_js = setting.data["general"]["open_url_with_js"]
         always_display = setting.data["general"]["always_display"]
+        show_btn_on_thumb = setting.data["general"]["show_btn_on_thumb"]
         proxy = setting.data["general"]["proxy"]
 
         model_types = list(model.folders.keys())
@@ -165,6 +166,7 @@ def on_ui_tabs():
                 with gr.Row():
                     open_url_with_js_ckb = gr.Checkbox(label="Open Url At Client Side", value=open_url_with_js, elem_id="ch_open_url_with_js_ckb")
                     always_display_ckb = gr.Checkbox(label="Always Display Buttons", value=always_display, elem_id="ch_always_display_ckb")
+                    show_btn_on_thumb_ckb = gr.Checkbox(label="Show Button On Thumb Mode", value=show_btn_on_thumb, elem_id="ch_show_btn_on_thumb_ckb")
 
                 proxy_txtbox = gr.Textbox(label="Proxy", interactive=True, lines=1, value=proxy, info="format: http://127.0.0.1:port")
 
@@ -202,7 +204,7 @@ def on_ui_tabs():
         check_models_new_version_btn.click(model_action_civitai.check_models_new_version_to_md, inputs=model_types_ckbg, outputs=check_models_new_version_log_md)
 
         # Other Setting
-        save_setting_btn.click(setting.save_from_input, inputs=[max_size_preview_ckb, skip_nsfw_preview_ckb, open_url_with_js_ckb, always_display_ckb, proxy_txtbox], outputs=general_log_md)
+        save_setting_btn.click(setting.save_from_input, inputs=[max_size_preview_ckb, skip_nsfw_preview_ckb, open_url_with_js_ckb, always_display_ckb, show_btn_on_thumb_ckb, proxy_txtbox], outputs=general_log_md)
 
         # js action
         js_open_url_btn.click(js_action_civitai.open_model_url, inputs=[js_msg_txtbox, open_url_with_js_ckb], outputs=py_msg_txtbox)
