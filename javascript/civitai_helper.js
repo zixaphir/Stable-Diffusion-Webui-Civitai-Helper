@@ -12,22 +12,23 @@ function ch_convert_file_path_to_url(path){
 }
 
 function ch_img_node_str(path) {
-    return `<img src='${ch_convert_file_path_to_url(path)}' style="width:24px"/>`;
+    return `<img src='${ch_convert_file_path_to_url(path)}' style="width:24px">`;
 }
 
 function ch_gradio_version() {
     let foot = gradioApp().getElementById("footer");
-    if (!foot){return null;}
-
-    let versions = foot.querySelector(".versions");
-    if (!versions){return null;}
-
-    if (versions.textContent.indexOf("gradio: 3.16.2")>0) {
-        return "3.16.2";
-    } else {
-        return "3.23.0";
+    if (!foot) {
+        return null;
     }
 
+    let versions = foot.querySelector(".versions");
+    if (!versions) {
+        return null;
+    }
+
+    let version = versions.textContent.match(/gradio: +([\d.]+)/i)[1];
+
+    return version || "unknown";
 }
 
 
@@ -150,22 +151,14 @@ async function open_model_url(event, model_type, search_term){
         return;
     }
 
-
     //msg to python side
-    let msg = {
-        action: "",
-        model_type: "",
-        search_term: "",
+    const msg = {
+        action: "open_url",
+        model_type: model_type,
+        search_term: search_term,
         prompt: "",
         neg_prompt: "",
     };
-
-
-    msg.action = "open_url";
-    msg.model_type = model_type;
-    msg.search_term = search_term;
-    msg.prompt = "";
-    msg.neg_prompt = "";
 
     // fill to msg box
     send_ch_py_msg(msg);
@@ -210,23 +203,17 @@ function add_trigger_words(event, model_type, search_term){
     }
 
 
+    // get active prompt
+    const act_prompt = getActivePrompt();
+
     //msg to python side
-    let msg = {
-        action: "",
-        model_type: "",
-        search_term: "",
-        prompt: "",
+    const msg = {
+        action: "add_trigger_words",
+        model_type: model_type,
+        search_term: search_term,
+        prompt: act_prompt.value,
         neg_prompt: "",
     };
-
-    msg.action = "add_trigger_words";
-    msg.model_type = model_type;
-    msg.search_term = search_term;
-    msg.neg_prompt = "";
-
-    // get active prompt
-    let act_prompt = getActivePrompt();
-    msg.prompt = act_prompt.value;
 
     // fill to msg box
     send_ch_py_msg(msg);
@@ -245,31 +232,23 @@ function use_preview_prompt(event, model_type, search_term){
     console.log("start use_preview_prompt");
 
     //get hidden components of extension
-    let js_use_preview_prompt_btn = gradioApp().getElementById("ch_js_use_preview_prompt_btn");
+    const js_use_preview_prompt_btn = gradioApp().getElementById("ch_js_use_preview_prompt_btn");
     if (!js_use_preview_prompt_btn) {
         return;
     }
 
+    // get active prompts
+    const act_prompt = getActivePrompt();
+    const neg_prompt = getActiveNegativePrompt();
+
     //msg to python side
-    let msg = {
-        action: "",
-        model_type: "",
-        search_term: "",
-        prompt: "",
-        neg_prompt: "",
+    const msg = {
+        action: "use_preview_prompt",
+        model_type: model_type,
+        search_term: search_term,
+        prompt: act_prompt.value,
+        neg_prompt: neg_prompt.value,
     };
-
-    msg.action = "use_preview_prompt";
-    msg.model_type = model_type;
-    msg.search_term = search_term;
-
-    // get active prompt
-    let act_prompt = getActivePrompt();
-    msg.prompt = act_prompt.value;
-
-    // get active neg prompt
-    let neg_prompt = getActiveNegativePrompt();
-    msg.neg_prompt = neg_prompt.value;
 
     // fill to msg box
     send_ch_py_msg(msg);
@@ -289,29 +268,24 @@ function ch_dl_model_new_version(event, model_path, version_id, download_url){
     console.log("start ch_dl_model_new_version");
 
     // must confirm before downloading
-    let dl_confirm = "\nConfirm to download.\n\nCheck Download Model Section's log and console log for detail.";
+    const dl_confirm = "\nConfirm to download.\n\nCheck Download Model Section's log and console log for detail.";
     if (!confirm(dl_confirm)) {
         return;
     }
 
     //get hidden components of extension
-    let js_dl_model_new_version_btn = gradioApp().getElementById("ch_js_dl_model_new_version_btn");
+    const js_dl_model_new_version_btn = gradioApp().getElementById("ch_js_dl_model_new_version_btn");
     if (!js_dl_model_new_version_btn) {
         return;
     }
 
     //msg to python side
-    let msg = {
-        action: "",
-        model_path: "",
-        version_id: "",
-        download_url: "",
+    const msg = {
+        action: "dl_model_new_version",
+        model_path: model_path,
+        version_id: version_id,
+        download_url: download_url,
     };
-
-    msg.action = "dl_model_new_version";
-    msg.model_path = model_path;
-    msg.version_id = version_id;
-    msg.download_url = download_url;
 
     // fill to msg box
     send_ch_py_msg(msg);
@@ -491,64 +465,57 @@ const createUI = (function() {
         el.style.margin = btn_margin;
     };
 
-    let ul_node;
-    let ul_node_tm;
+    const ul_node = document.createElement('ul');
 
-    { // shitty lexical scope hack to avoid accidental closure inheritence.
+    const appendChildren = function(parent, els) {
+        for (const el of els) {
+            parent.appendChild(el);
+        }
+    };
 
-        let appendChildren = function(parent, els) {
-            for (const el of els) {
-                parent.appendChild(el);
-            }
-        };
+    // default mode
+    let replace_preview_btn;
+    let open_url_node;
+    let add_trigger_words_node;
+    let use_preview_prompt_node;
 
-        // default mode
-        let replace_preview_btn;
-        let open_url_node;
-        let add_trigger_words_node;
-        let use_preview_prompt_node;
+    const template = document.createElement("a");
+    template.href = "#";
 
-        let template = document.createElement("a");
-        template.href = "#";
+    replace_preview_btn = template.cloneNode();
+    replace_preview_btn.textContent = buttons.replace_preview;
 
-        ul_node = document.createElement('ul');
+    open_url_node = template.cloneNode();
+    open_url_node.textContent = buttons.open_url;
+    open_url_node.className = "openurl";
+    open_url_node.title = "Open this model's civitai url";
 
-        replace_preview_btn = template.cloneNode();
-        replace_preview_btn.textContent = buttons.replace_preview;
+    add_trigger_words_node = template.cloneNode();
+    add_trigger_words_node.textContent = buttons.add_trigger_words;
+    add_trigger_words_node.className = "addtriggerwords";
+    add_trigger_words_node.title = "Add trigger words to prompt";
 
-        open_url_node = template.cloneNode();
-        open_url_node.textContent = buttons.open_url;
-        open_url_node.className = "openurl";
-        open_url_node.title = "Open this model's civitai url";
+    use_preview_prompt_node = template.cloneNode();
+    use_preview_prompt_node.textContent = buttons.use_preview_prompt;
+    use_preview_prompt_node.className = "usepreviewprompt";
+    use_preview_prompt_node.title = "Use prompt from preview image";
 
-        add_trigger_words_node = template.cloneNode();
-        add_trigger_words_node.textContent = buttons.add_trigger_words;
-        add_trigger_words_node.className = "addtriggerwords";
-        add_trigger_words_node.title = "Add trigger words to prompt";
+    assignStyle(replace_preview_btn,);
+    assignStyle(open_url_node,);
+    assignStyle(add_trigger_words_node,);
+    assignStyle(use_preview_prompt_node,);
 
-        use_preview_prompt_node = template.cloneNode();
-        use_preview_prompt_node.textContent = buttons.use_preview_prompt;
-        use_preview_prompt_node.className = "usepreviewprompt";
-        use_preview_prompt_node.title = "Use prompt from preview image";
+    //add to card
+    appendChildren(ul_node, [
+        replace_preview_btn,
+        open_url_node,
+        add_trigger_words_node,
+        use_preview_prompt_node
+    ]);
 
-        assignStyle(replace_preview_btn,);
-        assignStyle(open_url_node,);
-        assignStyle(add_trigger_words_node,);
-        assignStyle(use_preview_prompt_node,);
-
-        //add to card
-        appendChildren(ul_node, [
-            replace_preview_btn,
-            open_url_node,
-            add_trigger_words_node,
-            use_preview_prompt_node
-        ]);
-
-    }
-
-    let createUI = function() {
-        let el = ul_node.cloneNode(true);
-        let children = el.children;
+    const createUI = function() {
+        const el = ul_node.cloneNode(true);
+        const children = el.children;
 
         return {
             ul:                    el,
@@ -558,8 +525,6 @@ const createUI = (function() {
             use_preview_prompt:    children[3],
         };
     };
-
-    createUI.assignStyle = assignStyle;
 
     return createUI;
 })();
