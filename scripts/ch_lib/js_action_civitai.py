@@ -99,8 +99,17 @@ def add_trigger_words(msg):
     
     # get ful trigger words
     trigger_words = ""
+    prompt_list = None
     for word in trainedWords:
-        trigger_words = trigger_words + word + ", "
+        if prompt_list is None:
+            if ',' in word:
+                prompt_list = True
+            else:
+                prompt_list = False
+        if prompt_list:
+            trigger_words = trigger_words + word + "\n"
+        else:
+            trigger_words = trigger_words + word + ", "
 
     new_prompt = prompt + " " + trigger_words
     util.printD("trigger_words: " + trigger_words)
