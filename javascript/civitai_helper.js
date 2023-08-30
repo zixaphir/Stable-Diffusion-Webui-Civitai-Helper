@@ -345,8 +345,7 @@ function processCards(tab, extra_tab_els) {
 
 function getModelCardsEl(prefix, model_type) {
     const id = prefix + "_" + model_type + "_cards";
-    const gradio = gradioApp();
-    return gradio.getElementById(id) || gradio.getElementById(id + "_html");
+    return gradioApp().getElementById(id);
 }
 
 
