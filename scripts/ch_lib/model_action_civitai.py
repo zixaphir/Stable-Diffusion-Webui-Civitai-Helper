@@ -145,7 +145,10 @@ def write_sd15_model_info(path, model_info):
     if (activator and activator[0]):
         if "," in activator[0]:
             # assume trainedWords is a prompt list
-            data["activation text"] = "\n".join(activator)
+            # XXX webui does not support newlines in activator text
+            # so this is the best hinting I can give the user at the
+            # moment that these are mutually-exclusive prompts.
+            data["activation text"] = " || ".join(activator)
         else:
             # assume trainedWords are single keywords
             data["activation text"] = ", ".join(activator)
