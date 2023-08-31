@@ -1,6 +1,16 @@
-## 关于Civitai Helper2: Model Info Helper
-Civitai助手2将改名为**Model Info助手**。目前还在缓慢开发中。你可以查看它的UI演示视频，了解它会是什么样子:    
-[https://youtu.be/mPcKwQDDH8s](https://youtu.be/mPcKwQDDH8s)  
+# 这份文件已由ChatGPT从英语翻译而来。
+
+**[贡献者](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/graphs/contributors)**
+
+##关于Civitai助手
+这个扩展提供了从Civitai下载模型和模型元数据的能力。您可以轻松获得托管在Civitai上的模型的激活关键词、模型描述、版本信息以及模型预览等数据，而无需离开稳定的扩散WebUI。
+
+##关于Civitai助手的这个版本
+这是我个人版本的Stable-Diffusion-Webui-Civitai-Helper。我完全是因为我使用的版本在SD-webui v1.5发布时崩溃了，我需要它能够正常工作，所以开始了这个项目。从那时起，我添加了我想要的功能，并尽力维护与较旧版本的sd-webui的兼容性，但我不使用较旧版本，因此不会在较旧版本上进行测试。
+
+我打算尽我所能使其保持正常运行，但这只是一个业余项目，我远没有其他更有经验的扩展开发者那么娴熟。我可能会长时间离开，如果失去兴趣甚至可能永远离开。我容易犯错，也可能会出现错误和漏洞。
+
+如果有更有兴趣的人决定接手开发，我将乐意放弃对这个项目的控制，并尝试将我的更改推送到他们的项目中，如果有需要的话。
 
 
 # Civitai Helper

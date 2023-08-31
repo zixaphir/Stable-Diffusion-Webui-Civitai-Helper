@@ -1,23 +1,19 @@
 **[Contributors](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/graphs/contributors)**
 
 ### Language
-[中文](README.cn.md)   
-[日本語](README.jp.md)  
+[中文(ChatGPT)](README.cn.md)
+[日本語(ChatGPT)](README.jp.md)
 [한국어(ChatGPT)](README.kr.md)  
+
+## About Civitai Helper
+This extension provides the ability to download models and model metadata from Civitai. Data such as activation keywords, model description, version information, and model previews for models hosted on Civitai can be at your fingertips without having to navigate away from stable diffusion webui.
 
 ## About This Version of Civitai Helper
 This is my personal version of Stable-Diffusion-Webui-Civitai-Helper. I started it entirely because the version I was using broke when SD-webui v1.5 came out and I needed it to work. Since then, I have added functionality that I wanted and have made best-effort attempts to maintain compatibility with older versions of sd-webui, but I do not use older versions and therefore do not test on older versions.
 
-I am providing my changes in hopes that they will be useful to others, but I have no intention of being a full-time maintainer of an active project. I fully intend to dip out for long periods at a time, possibly forever if I lose interest. I am prone to errors and bugs are to be expected.
+I intend to keep this working for as long as I am able, but this is simply a hobby project and I am nowhere near as skilled as other extension developers with more experience. I am likely to dip out for long periods at a time, possibly forever if I lose interest. I am prone to errors and bugs are to be expected.
 
-Some of the features I have added:
-* Support for sd-webui v1.5
-* Mutation Observers for model cards so that UI added by this script will be added automatically without having to click a button
-* Populating sd-webui v1.5's model metadata when downloading model data from civitai. This means the model description and version information will be available from the webui without having to navigate to a separate page.
-
-If the original maintainers of Civitai Helper ever return to working on it, or another interested party picks up development, I will happily attempt to push my changes to their projects if they are wanted. For now, development looks spread out over several interested parties and I have no idea which is the "canonical" branch.
-
-The rest of this document is unchanged from its original version at https://github.com/butaixianran/Stable-Diffusion-Webui-Civitai-Helper/blob/main/README.md
+If a more interested part decides to pick up development, I will happily cede control of this project and attempt to push my changes to their projects if they are wanted.
 
 # Civitai Helper
 Stable Diffusion Webui Extension for Civitai, to handle your models much more easily.  
@@ -252,6 +248,16 @@ Since v1.5.5, we've already optimized the SHA256 function to the top. So the onl
 
 
 # Change Log
+## v1.7.0
+* Added compatibility with Stable Diffusion WebUI v1.5.0-v1.6.0.
+* Downloading metadata from Civitai should now include more exhaustive data, including correct description and tags.
+* NSFW preview detection should be accurate.
+* Native and Extension LyCoris support should function.
+* Buttons added by this extension no longer require a separate button to add to UI.
+* Extension populates Stable Diffusion WebUI's new metadata editor with description, Checkpoint model version, version information, and activation prompt(s).
+  * This should allow simply clicking a card to add model activation prompts.
+* Model Download UI requires fewer clicks to download a model.
+
 ## v1.6.4
 * Add "Download All files" checkbox for downloading model section. Uncheck means only download 1 file.
 
