@@ -97,19 +97,11 @@ def add_trigger_words(msg):
         util.printD(f"trainedWords from info file for {model_type} {search_term} is empty")
         return [prompt, prompt]
     
-    # get ful trigger words
-    trigger_words = ""
-    prompt_list = None
-    for word in trainedWords:
-        if prompt_list is None:
-            if ',' in word:
-                prompt_list = True
-            else:
-                prompt_list = False
-        if prompt_list:
-            trigger_words = trigger_words + word + "\n"
-        else:
-            trigger_words = trigger_words + word + ", "
+    # guess if trained words are a list of words or list of prompts
+    prompt_list = (',' in trainedWords[0])
+
+    # if a list of prompts, join with a newline, else a comma and a space
+    trigger_words = ("\n" if prompt_list else ", ").join(trainedWords)
 
     new_prompt = prompt + " " + trigger_words
     util.printD("trigger_words: " + trigger_words)
