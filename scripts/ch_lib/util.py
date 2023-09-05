@@ -88,7 +88,7 @@ def get_subfolders(folder:str) -> list:
 
 def get_data_safe(data, key, default_value):
     try:
-        return get(data, key, default_value)
+        return data.get(key, default_value)
     except:
         return default_value
 
