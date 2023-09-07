@@ -105,8 +105,6 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
 # simply read a model's description.
 # So why not populate it with useful information?
 def write_sd15_model_info(path, model_info):
-    get_data_safe = util.get_data_safe
-
     # Do not overwrite user-created files!
     # TODO: maybe populate empty fields in existing files?
     if os.path.isfile(path):
@@ -115,13 +113,13 @@ def write_sd15_model_info(path, model_info):
 
     data = {}
 
-    data["description"] = get_data_safe(model_info, "description", "")
+    data["description"] = model_info.get("description", "")
 
     # AFAIK civitai model versions are currently:
     #   SD 1.4, SD 1.5, SD 2.0, SD 2.0 786, SD 2.1, SD 2.1 786
     #   SD 2.1 Unclip, SDXL 0.9, SDXL 1.0, and Other.
     # Conveniently, the 4th character is all we need for webui.
-    base_model = get_data_safe(model_info, "baseModel", None)
+    base_model = model_info.get("baseModel", None)
     if base_model:
         sd_version = base_model[3]
 
@@ -141,7 +139,7 @@ def write_sd15_model_info(path, model_info):
     # XXX "trained words" usage is inconsistent among model authors.
     # Some use each entry as an individual activator, while others
     # use them as entire prompts
-    activator = get_data_safe(model_info, "trainedWords", [])
+    activator = model_info.get("trainedWords", [])
     if (activator and activator[0]):
         if "," in activator[0]:
             # assume trainedWords is a prompt list
@@ -162,7 +160,7 @@ def write_sd15_model_info(path, model_info):
     # with potentially useful information about this particular
     # version of the model is fine too, right? The user can
     # always replace these if they're unneeded or add to them
-    version_info = get_data_safe(model_info, "version info", "")
+    version_info = model_info.get("version info", "")
     if version_info != None:
         data["notes"] = version_info
 
