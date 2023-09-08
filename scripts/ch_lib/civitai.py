@@ -7,7 +7,6 @@ import re
 import requests
 from . import util
 from . import model
-from . import setting
 
 suffix = ".civitai"
 

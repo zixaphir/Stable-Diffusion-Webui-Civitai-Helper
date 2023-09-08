@@ -7,16 +7,8 @@
 import modules.scripts as scripts
 import gradio as gr
 import os
-import webbrowser
-import requests
-import random
-import hashlib
-import json
-import shutil
-import re
 import modules
 from modules import script_callbacks
-from modules import shared
 from scripts.ch_lib import model
 from scripts.ch_lib import js_action_civitai
 from scripts.ch_lib import model_action_civitai
