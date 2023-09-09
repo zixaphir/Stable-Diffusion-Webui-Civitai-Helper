@@ -1,6 +1,7 @@
 # -*- coding: UTF-8 -*-
 # handle msg between js and python side
 import os
+import fnmatch
 import time
 import json
 import re
@@ -284,7 +285,7 @@ def load_model_info_by_search_term(model_type, search_term):
         found = os.path.isfile(model_info_filepath)
 
         if found:
-            break;
+            break
 
     if not found:
         util.printD("Can not find model info file: " + model_info_filepath)
@@ -301,6 +302,7 @@ def load_model_info_by_search_term(model_type, search_term):
 # parameter: filter - dict, which kind of model you need
 # return: model name list
 def get_model_names_by_type_and_filter(model_type:str, filter:dict) -> list:
+
     
     if model_type == "lora" and model.folders['lycoris']:
         model_folders = [model.folders[model_type], model.folders['lycoris']]
@@ -389,9 +391,29 @@ def get_model_id_from_url(url:str) -> str:
     return id
 
 
+# Extensions from `find_preview` method in webui `modules/ui_extra_networks.py`
+re_pattern = re.compile(r"\.(png|jpg|jpeg|webp)$")
+
+def preview_exists(model_path):
+    """ Search for existing preview image by finding known filename mutations """
+
+    dir_name = os.path.dirname(model_path)
+
+    root = os.path.splitext(model_path)[0]
+    base = os.path.basename(root)
+
+    for file in os.listdir(dir_name):
+        if fnmatch.fnmatch(file, f"{base}.*"):
+            if re_pattern.search(file) is not None:
+                return True
+
+    return False
+
+
 # get preview image by model path
 # image will be saved to file, so no return
 def get_preview_image_by_model_path(model_path:str, max_size_preview, skip_nsfw_preview):
+    util.printD("Downloading model image.")
     if not model_path:
         util.printD("model_path is empty")
         return
@@ -401,42 +423,44 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, skip_nsfw_
         return
 
     base, ext = os.path.splitext(model_path)
-    first_preview = base+".png"
-    sec_preview = base+".preview.png"
+    preview = base+".preview.png"
     info_file = base + suffix + model.info_ext
 
-    # check preview image
-    if not os.path.isfile(sec_preview):
-        # need to download preview image
-        util.printD("Checking preview image for model: " + model_path)
-        # load model_info file
-        if os.path.isfile(info_file):
-            model_info = model.load_model_info(info_file)
-            if not model_info:
-                util.printD("Model Info is empty")
-                return
+    # need to download preview image
+    util.printD("Checking preview image for model: " + model_path)
 
-            if "images" in model_info.keys():
-                if model_info["images"]:
-                    for img_dict in model_info["images"]:
-                        if "nsfw" in img_dict.keys():
-                            if img_dict["nsfw"] != "" and img_dict["nsfw"] != "None":
-                                util.printD("This image is NSFW: " + str(img_dict["nsfw"]))
-                                if skip_nsfw_preview:
-                                    util.printD("Skip NSFW image")
-                                    continue
-                        
-                        if "url" in img_dict.keys():
-                            img_url = img_dict["url"]
-                            if max_size_preview:
-                                # use max width
-                                if "width" in img_dict.keys():
-                                    if img_dict["width"]:
-                                        img_url = get_full_size_image_url(img_url, img_dict["width"])
+    if preview_exists(model_path):
+        util.printD("Existing model image found. Skipping.")
+        return
 
-                            util.download_file(img_url, sec_preview)
-                            # we only need 1 preview image
-                            break
+    # load model_info file
+    if os.path.isfile(info_file):
+        model_info = model.load_model_info(info_file)
+        if not model_info:
+            util.printD("Model Info is empty")
+            return
+
+        if "images" in model_info.keys():
+            if model_info["images"]:
+                for img_dict in model_info["images"]:
+                    if "nsfw" in img_dict.keys():
+                        if img_dict["nsfw"] != "" and img_dict["nsfw"] != "None":
+                            util.printD("This image is NSFW: " + str(img_dict["nsfw"]))
+                            if skip_nsfw_preview:
+                                util.printD("Skip NSFW image")
+                                continue
+
+                    if "url" in img_dict.keys():
+                        img_url = img_dict["url"]
+                        if max_size_preview:
+                            # use max width
+                            if "width" in img_dict.keys():
+                                if img_dict["width"]:
+                                    img_url = get_full_size_image_url(img_url, img_dict["width"])
+
+                        util.download_file(img_url, preview)
+                        # we only need 1 preview image
+                        break
 
 
 
