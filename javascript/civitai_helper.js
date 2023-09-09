@@ -146,6 +146,7 @@ async function open_model_url(event, model_type, search_term){
     //get hidden components of extension
     let js_open_url_btn = gradioApp().getElementById("ch_js_open_url_btn");
     if (!js_open_url_btn) {
+        console.log("Failed to find js_open_url_btn");
         return;
     }
 
@@ -555,12 +556,6 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
 
     // check thumb mode
     if (is_thumb_mode) {
-        let ch_show_btn_on_thumb_ckb = gradioApp().querySelector("#ch_show_btn_on_thumb_ckb input");
-        let ch_show_btn_on_thumb = false;
-        if (ch_show_btn_on_thumb_ckb) {
-            ch_show_btn_on_thumb = ch_show_btn_on_thumb_ckb.checked;
-        }
-
         additional_node.style.display = null;
 
         if (!ul_node) {
@@ -568,7 +563,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
             return;
         }
 
-        if (ch_show_btn_on_thumb) {
+        if (opts["ch_show_btn_on_thumb"]) {
             ul_node.style.background = btn_thumb_background;
         } else {
             let ch_btn_txts = ['🌐', '💡', '🏷️'];
@@ -609,13 +604,8 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
 
     } else {
         // full preview mode
-        let ch_always_display_ckb = gradioApp().querySelector("#ch_always_display_ckb input");
-        let ch_always_display = false;
-        if (ch_always_display_ckb) {
-            ch_always_display = ch_always_display_ckb.checked;
-        }
 
-        if (ch_always_display) {
+        if (opts.ch_always_display) {
             additional_node.style.display = "block";
         } else {
             additional_node.style.display = null;

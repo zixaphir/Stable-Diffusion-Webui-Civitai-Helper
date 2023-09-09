@@ -4,6 +4,7 @@ import os
 import json
 import requests
 import webbrowser
+from modules.shared import opts
 from . import util
 from . import model
 from . import civitai
@@ -15,7 +16,7 @@ from . import downloader
 # get civitai's model url and open it in browser
 # parameter: model_type, search_term
 # output: python msg - will be sent to hidden textbox then picked by js side
-def open_model_url(msg, open_url_with_js):
+def open_model_url(msg):
     util.printD("Start open_model_url")
 
     output = ""
@@ -49,7 +50,7 @@ def open_model_url(msg, open_url_with_js):
         "url":""
     }
 
-    if not open_url_with_js:
+    if not opts.ch_open_url_with_js:
         util.printD("Open Url: " + url)
         # open url
         webbrowser.open_new_tab(url)
