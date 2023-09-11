@@ -107,7 +107,7 @@ def get_relative_path(item_path:str, parent_path:str) -> str:
     return relative
 
 
-whitelist = re.compile(r"</?(a|img|br|p|b|strong|i|h[0-9]?)[^>]*>")
+whitelist = re.compile(r"</?(a|img|br|p|b|strong|i|h[0-9]|code)[^>]*>")
 attrs = re.compile(r"""(?:href|src|target)=['"]?[^\s'"]*['"]?""")
 
 def safe_html_replace(match):

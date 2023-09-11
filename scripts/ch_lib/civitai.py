@@ -91,10 +91,34 @@ def get_model_info_by_hash(hash:str):
 
 
 def trim_html(s):
-    s = re.sub("<(p|br)>", "\n\n", s)
+    """ Remove any HTML for a given string and, if needed, replace it with
+        a comparable plain-text alternative.
+    """
 
-    # not super secure but should strip unneeded HTML.
-    s = re.sub("<[^<]+?>", "", s)
+    def sub_tag(m):
+        tag = m.group(1)
+        if tag == "p":
+            return "\n\n"
+        if tag == "br":
+            return "\n"
+        if tag == "li":
+            return "* "
+        if tag == "code":
+            return "`"
+        return ''
+
+    def sub_escaped(m):
+        escaped = m.group(1)
+        unescaped = {
+            "gt": ">",
+            "lt": "<",
+            "quot": '"',
+            "amp": "&"
+        }
+        return unescaped.get(escaped, "")
+
+    s = re.sub(r"</?([a-zA-Z]+)(?:[^>]+)?>", sub_tag, s)
+    s = re.sub(r"\&(gt|lt|quot|amp)\;", sub_escaped, s)
 
     while s[0:2] == "\n\n":
         s = s[2:]
@@ -103,6 +127,9 @@ def trim_html(s):
 
 
 def get_model_info_by_id(id:str) -> dict:
+    def process_key_error(note):
+        util.printD(f"Failed to process {note}. Continuing.")
+
     util.printD(f"Request model info from civitai: {id}")
 
     if not id:
@@ -126,7 +153,7 @@ def get_model_info_by_id(id:str) -> dict:
         content = r.json()
     except Exception as e:
         util.printD("Parse response json failed")
-        util.printD(str(e))
+        util.printD(f"{e}: {e.message}")
         util.printD("response:")
         util.printD(r.text)
         return
@@ -138,20 +165,20 @@ def get_model_info_by_id(id:str) -> dict:
     try:
         content["description"] = trim_html(content["description"])
 
-    except Exception as e:
-        util.printD(str(e))
+    except Exception:
+        process_key_error('description')
 
     try:
         content["version info"] = trim_html(content["version info"])
 
-    except Exception as e:
-        util.printD(str(e))
+    except Exception:
+        process_key_error('version info')
 
     try:
         content["allowCommericialUse"] = trim_html(str(content["allowCommercialUse"]))
 
-    except Exception as e:
-        util.printD(str(e))
+    except Exception:
+        process_key_error('commercial use guidelines')
 
 
     try:
