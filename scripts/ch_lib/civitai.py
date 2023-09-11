@@ -80,7 +80,7 @@ def get_model_info_by_hash(hash:str):
         util.printD("response:")
         util.printD(r.text)
         return
-    
+
     if not content:
         util.printD("error, content from civitai is None")
         return
@@ -157,7 +157,7 @@ def get_model_info_by_id(id:str) -> dict:
         util.printD("response:")
         util.printD(r.text)
         return
-    
+
     if not content:
         util.printD("error, content from civitai is None")
         return
@@ -166,18 +166,21 @@ def get_model_info_by_id(id:str) -> dict:
         content["description"] = trim_html(content["description"])
 
     except Exception:
+        content["description"] = ""
         process_key_error('description')
 
     try:
         content["version info"] = trim_html(content["version info"])
 
     except Exception:
+        content["version info"] = ""
         process_key_error('version info')
 
     try:
         content["allowCommericialUse"] = trim_html(str(content["allowCommercialUse"]))
 
     except Exception:
+        content["allowCommericialUse"] = ""
         process_key_error('commercial use guidelines')
 
 
@@ -193,9 +196,9 @@ def get_model_info_by_id(id:str) -> dict:
         content["tags"] = data
 
     except Exception as e:
-        util.printD(str(e))
-
         content["tags"] = ""
+        process_key_error('tags')
+
 
 
     return content
@@ -229,13 +232,13 @@ def get_version_info_by_version_id(id:str) -> dict:
         util.printD("response:")
         util.printD(r.text)
         return
-    
+
     if not content:
         util.printD("error, content from civitai is None")
         return
 
     content = append_parent_model_metadata(content)
-    
+
     return content
 
 
@@ -245,31 +248,31 @@ def get_version_info_by_model_id(id:str) -> dict:
     if not model_info:
         util.printD(f"Failed to get model info by id: {id}")
         return
-    
+
     # check content to get version id
     if "modelVersions" not in model_info.keys():
         util.printD("There is no modelVersions in this model_info")
         return
-    
+
     if not model_info["modelVersions"]:
         util.printD("modelVersions is None")
         return
-    
+
     if len(model_info["modelVersions"])==0:
         util.printD("modelVersions is Empty")
         return
-    
+
     def_version = model_info["modelVersions"][0]
     if not def_version:
         util.printD("default version is None")
         return
-    
+
     if "id" not in def_version.keys():
         util.printD("default version has no id")
         return
-    
+
     version_id = def_version["id"]
-    
+
     if not version_id:
         util.printD("default version's id is None")
         return
@@ -293,7 +296,7 @@ def load_model_info_by_search_term(model_type, search_term):
     if model_type not in model.folders.keys():
         util.printD(f"unknown model type: {model_type}")
         return
-    
+
     # search_term = f"{subfolderpath}{model name}{ext}"
     # And it always start with a / even when there is no sub folder
     base, ext = os.path.splitext(search_term)
@@ -318,7 +321,7 @@ def load_model_info_by_search_term(model_type, search_term):
     if not found:
         util.printD(f"Can not find model info file: {model_info_filepath}")
         return
-    
+
     return model.load_model_info(model_info_filepath)
 
 
@@ -331,7 +334,7 @@ def load_model_info_by_search_term(model_type, search_term):
 # return: model name list
 def get_model_names_by_type_and_filter(model_type:str, filter:dict) -> list:
 
-    
+
     if model_type == "lora" and model.folders['lycoris']:
         model_folders = [model.folders[model_type], model.folders['lycoris']]
     else:
@@ -388,7 +391,7 @@ def get_model_names_by_type_and_filter(model_type:str, filter:dict) -> list:
 
 def get_model_names_by_input(model_type, empty_info_only):
     return get_model_names_by_type_and_filter(model_type, {"empty_info_only":empty_info_only})
-    
+
 
 # get id from url
 def get_model_id_from_url(url:str) -> str:
@@ -403,12 +406,12 @@ def get_model_id_from_url(url:str) -> str:
         # is already an id
         id = str(url)
         return id
-    
+
     s = re.sub("\\?.+$", "", url).split("/")
     if len(s) < 2:
         util.printD("url is not valid")
         return ""
-    
+
     if s[-2].isnumeric():
         id  = s[-2]
     elif s[-1].isnumeric():
@@ -416,7 +419,7 @@ def get_model_id_from_url(url:str) -> str:
     else:
         util.printD("There is no model id in this url")
         return ""
-    
+
     return id
 
 
@@ -509,11 +512,11 @@ def search_local_model_info_by_version_id(folder:str, version_id:int) -> dict:
     if not os.path.isdir(folder):
         util.printD("folder is not a dir")
         return
-    
+
     if not version_id:
         util.printD("version_id is none")
         return
-    
+
     # search civitai model info file
     for filename in os.listdir(folder):
         # check ext
@@ -542,7 +545,7 @@ def search_local_model_info_by_version_id(folder:str, version_id:int) -> dict:
                 if str(id) == str(version_id):
                     # find the one
                     return model_info
-                    
+
 
     return
 
@@ -560,14 +563,14 @@ def check_model_new_version_by_path(model_path:str, delay:float=1) -> tuple:
     if not os.path.isfile(model_path):
         util.printD(f"model_path is not a file: {model_path}")
         return
-    
+
     # get model info file name
     base, ext = os.path.splitext(model_path)
     info_file = f"{base}{suffix}{model.info_ext}"
-    
+
     if not os.path.isfile(info_file):
         return
-    
+
     # get model info
     model_info_file = model.load_model_info(info_file)
     if not model_info_file:
@@ -575,44 +578,44 @@ def check_model_new_version_by_path(model_path:str, delay:float=1) -> tuple:
 
     if "id" not in model_info_file.keys():
         return
-    
+
     local_version_id = model_info_file["id"]
     if not local_version_id:
         return
 
     if "modelId" not in model_info_file.keys():
         return
-    
+
     model_id = model_info_file["modelId"]
     if not model_id:
         return
-    
+
     # get model info by id from civitai
     model_info = get_model_info_by_id(model_id)
-    # delay before next request, to prevent to be treat as DDoS 
+    # delay before next request, to prevent to be treat as DDoS
     util.printD(f"delay:{delay} second")
     time.sleep(delay)
 
     if not model_info:
         return
-    
+
     if "modelVersions" not in model_info.keys():
         return
-    
+
     modelVersions = model_info["modelVersions"]
     if not modelVersions:
         return
-    
+
     if not len(modelVersions):
         return
-    
+
     current_version = modelVersions[0]
     if not current_version:
         return
-    
+
     if "id" not in current_version.keys():
         return
-    
+
     current_version_id = current_version["id"]
     if not current_version_id:
         return
@@ -624,7 +627,7 @@ def check_model_new_version_by_path(model_path:str, delay:float=1) -> tuple:
     model_name = ""
     if "name" in model_info.keys():
         model_name = model_info["name"]
-    
+
     if not model_name:
         model_name = ""
 
@@ -632,21 +635,21 @@ def check_model_new_version_by_path(model_path:str, delay:float=1) -> tuple:
     new_version_name = ""
     if "name" in current_version.keys():
         new_version_name = current_version["name"]
-    
+
     if not new_version_name:
         new_version_name = ""
 
     description = ""
     if "description" in current_version.keys():
         description = current_version["description"]
-    
+
     if not description:
         description = ""
 
     downloadUrl = ""
     if "downloadUrl" in current_version.keys():
         downloadUrl = current_version["downloadUrl"]
-    
+
     if not downloadUrl:
         downloadUrl = ""
 
@@ -661,7 +664,7 @@ def check_model_new_version_by_path(model_path:str, delay:float=1) -> tuple:
                         img_url = ""
 
 
-    
+
     return (model_path, model_id, model_name, current_version_id, new_version_name, description, downloadUrl, img_url)
 
 
