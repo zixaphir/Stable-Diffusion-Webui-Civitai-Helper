@@ -103,7 +103,7 @@ def trim_html(s):
 
 
 def get_model_info_by_id(id:str) -> dict:
-    util.printD("Request model info from civitai: "+str(id))
+    util.printD(f"Request model info from civitai: {id}")
 
     if not id:
         util.printD("id is empty")
@@ -334,16 +334,17 @@ def get_model_names_by_type_and_filter(model_type:str, filter:dict) -> list:
                 if ext in model.exts:
                     # find a model
 
+                    info_file = base + suffix + model.info_ext
+
                     # check filter
                     if no_info_only:
                         # check model info file
-                        info_file = base + suffix + model.info_ext
+
                         if os.path.isfile(info_file):
                             continue
 
                     if empty_info_only:
                         # check model info file
-                        info_file = base + suffix + model.info_ext
                         if os.path.isfile(info_file):
                             # load model info
                             model_info = model.load_model_info(info_file)
@@ -391,21 +392,23 @@ def get_model_id_from_url(url:str) -> str:
     return id
 
 
-# Extensions from `find_preview` method in webui `modules/ui_extra_networks.py`
-re_pattern = re.compile(r"\.(png|jpg|jpeg|webp)$")
+def preview_filename(base, ext):
+    return f"{base}.preview.{ext}"
+
 
 def preview_exists(model_path):
     """ Search for existing preview image by finding known filename mutations """
 
-    dir_name = os.path.dirname(model_path)
+    # Extensions from `find_preview` method in webui `modules/ui_extra_networks.py`
+    # gif added in https://github.com/AUTOMATIC1111/stable-diffusion-webui/commit/c602471b85d270e8c36707817d9bad92b0ff991e
+    preview_exts = ["png", "jpg", "jpeg", "webp", "gif"]
 
-    root = os.path.splitext(model_path)[0]
-    base = os.path.basename(root)
+    base, _ = os.path.splitext(model_path)
 
-    for file in os.listdir(dir_name):
-        if fnmatch.fnmatch(file, f"{base}.*"):
-            if re_pattern.search(file) is not None:
-                return True
+    for ext in preview_exts:
+        file = preview_filename(base, ext)
+        if os.path.isfile(file):
+            return True
 
     return False
 
@@ -423,7 +426,7 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, skip_nsfw_
         return
 
     base, ext = os.path.splitext(model_path)
-    preview = base+".preview.png"
+    preview = preview_filename(base, "png") # XXX png not strictly required
     info_file = base + suffix + model.info_ext
 
     # need to download preview image
@@ -683,6 +686,8 @@ def check_models_new_version_by_model_types(model_types:list, delay:float=1) -> 
                     # check exist
                     if not current_version_id:
                         continue
+
+                    r = r + (model_type,)
 
                     # check this version id in list
                     is_already_in_list = False

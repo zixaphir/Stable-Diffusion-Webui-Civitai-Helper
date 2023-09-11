@@ -290,7 +290,7 @@ function use_preview_prompt(event, model_type, search_term){
 
 
 // download model's new version into SD at python side
-function ch_dl_model_new_version(event, model_path, version_id, download_url){
+function ch_dl_model_new_version(event, model_path, version_id, download_url, model_type){
     console.log("start ch_dl_model_new_version");
 
     // must confirm before downloading
@@ -317,6 +317,7 @@ function ch_dl_model_new_version(event, model_path, version_id, download_url){
     msg["model_path"] = model_path;
     msg["version_id"] = version_id;
     msg["download_url"] = download_url;
+    msg["model_type"] = model_type;
 
     // fill to msg box
     send_ch_py_msg(msg);

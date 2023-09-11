@@ -187,13 +187,14 @@ def dl_model_new_version(msg, max_size_preview, skip_nsfw_preview):
 
     result = msg_handler.parse_js_msg(msg)
     if not result:
-        output = "Parsing js ms failed"
+        output = "Parsing js msg failed"
         util.printD(output)
         return output
     
     model_path = result["model_path"]
     version_id = result["version_id"]
     download_url = result["download_url"]
+    model_type = result["model_type"]
 
     util.printD("model_path: " + model_path)
     util.printD("version_id: " + str(version_id))
@@ -240,15 +241,9 @@ def dl_model_new_version(msg, max_size_preview, skip_nsfw_preview):
 
     # get version info
     version_info = civitai.get_version_info_by_version_id(version_id)
-    if not version_info:
-        output = "Model downloaded, but failed to get version info, check console log for detail. Model saved to: " + new_model_path
-        util.printD(output)
-        return output
 
-    # now write version info to file
-    base, ext = os.path.splitext(new_model_path)
-    info_file = base + civitai.suffix + model.info_ext
-    model.write_model_info(info_file, version_info)
+    # now write version info to files
+    model.process_model_info(new_model_path, version_info, model_type)
 
     # then, get preview image
     civitai.get_preview_image_by_model_path(new_model_path, max_size_preview, skip_nsfw_preview)

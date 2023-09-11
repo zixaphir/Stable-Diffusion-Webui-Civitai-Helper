@@ -2,6 +2,7 @@
 import os
 import sys
 import io
+import re
 import hashlib
 import requests
 import shutil
@@ -45,7 +46,6 @@ def gen_file_sha256(filname):
     return hash_value
 
 
-
 # get preview image
 def download_file(url, path):
     printD("Downloading file from: " + url)
@@ -62,6 +62,7 @@ def download_file(url, path):
         shutil.copyfileobj(r.raw, f)
 
     printD("File downloaded to: " + path)
+
 
 # get subfolder list
 def get_subfolders(folder:str) -> list:
@@ -104,3 +105,34 @@ def get_relative_path(item_path:str, parent_path:str) -> str:
 
     # printD("relative:"+relative)
     return relative
+
+
+whitelist = re.compile(r"</?(a|img|br|p|b|strong|i|h[0-9]?)[^>]*>")
+attrs = re.compile(r"""(?:href|src|target)=['"]?[^\s'"]*['"]?""")
+
+def safe_html_replace(match):
+    tag = None
+    attr = None
+    close = False
+
+    m = whitelist.match(match.group(0))
+    if m is not None:
+        el = m.group(0)
+        tag = m.group(1)
+        close = el[1] == "/"
+        if (tag in ["a", "img"]) and not close:
+            m2 = attrs.findall(el)
+            if m2 is not None:
+                attr = " ".join(m2)
+
+        if close:
+            return f"</{tag}>"
+        else:
+            return f"<{tag} {attr}>" if attr else f"<{tag}>"
+
+    return ""
+
+def safe_html(s):
+    """ whitelist only HTML I"m comfortable displaying in webui """
+
+    return re.sub("<[^<]+?>", safe_html_replace, s)
