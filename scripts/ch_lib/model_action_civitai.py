@@ -35,7 +35,7 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
         if model_type not in model_types:
             continue
 
-        util.printD("Scanning path: " + model_folder)
+        util.printD(f"Scanning path: {model_folder}")
         for root, dirs, files in os.walk(model_folder, followlinks=True):
             for filename in files:
                 # check ext
@@ -49,12 +49,12 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
 
                     # check info file
                     if not (os.path.isfile(info_file) and os.path.isfile(sd15_file)):
-                        util.printD("Creating model info for: " + filename)
+                        util.printD(f"Creating model info for: {filename}")
                         # get model's sha256
                         hash = util.gen_file_sha256(item)
 
                         if not hash:
-                            output = "failed generating SHA256 for model:" + filename
+                            output = f"failed generating SHA256 for model: {filename}"
                             util.printD(output)
                             return output
 
@@ -69,7 +69,7 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
                     civitai.get_preview_image_by_model_path(item, max_size_preview, skip_nsfw_preview)
                     image_count = image_count+1
 
-    output = f"Done. Scanned {model_count} models, checked {image_count} images"
+    output = f"Done. Scanned {model_count} models, checked {image_count} images."
 
     util.printD(output)
 
@@ -83,7 +83,7 @@ def get_model_info_by_input(model_type, model_name, model_url_or_id, max_size_pr
     # parse model id
     model_id = civitai.get_model_id_from_url(model_url_or_id)
     if not model_id:
-        output = "failed to parse model id from url: " + model_url_or_id
+        output = f"failed to parse model id from url: {model_url_or_id}"
         util.printD(output)
         return output
 
@@ -133,19 +133,19 @@ def check_models_new_version_to_md(model_types:list) -> str:
             url = f'{civitai.url_dict["modelPage"]}{model_id}'
 
             part = f'<div style="font-size:20px;margin:6px 0px;"><b>Model: <a href="{url}" target="_blank"><u>{model_name}</u></a></b></div>'
-            part = part + f'<div style="font-size:16px">File: {model_path}</div>'
+            part = f'{part}<div style="font-size:16px">File: {model_path}</div>'
             if download_url:
                 # replace "\" to "/" in model_path for windows
                 model_path = model_path.replace('\\', '\\\\')
-                part = part + f'<div style="font-size:16px;margin:6px 0px;">New Version: <u><a href="{download_url}" target="_blank" style="margin:0px 10px;">{new_version_name}</a></u>'
-                # add js function to download new version into SD webui by python
+                part = f'{part}<div style="font-size:16px;margin:6px 0px;">New Version: <u><a href="{download_url}" target="_blank" style="margin:0px 10px;">{new_version_name}</a></u>'
                 part = f"{part}    "
+                # add js function to download new version into SD webui by python
                 # in embed HTML, onclick= will also follow a ", never a ', so have to write it as following
                 part = f"""{part}<u><a href='#' style='margin:0px 10px;' onclick="ch_dl_model_new_version(event, '{model_path}', '{new_verion_id}', '{download_url}', '{model_type}')">[Download into SD]</a></u>"""
                 
             else:
                 part = f'{part}<div style="font-size:16px;margin:6px 0px;">New Version: {new_version_name}'
-            part = part + '</div>'
+            part = f'{part}</div>'
 
             if description:
                 description = util.safe_html(description)
@@ -267,13 +267,13 @@ def get_ver_info_by_ver_str(version_str:str, model_info:dict) -> dict:
         # version name can not be used as id
         # version id is not readable
         # so , we use name_id as version string
-        ver_str = ver["name"]+"_"+str(ver["id"])
+        ver_str = f'{ver["name"]}_{ver["id"]}'
         if ver_str == version_str:
             # find version
             version = ver
 
     if not version:
-        util.printD("can not find version by version string: " + version_str)
+        util.printD(f"can not find version by version string: {version_str}")
         return
     
     # get version id
@@ -311,23 +311,23 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
         # version name can not be used as id
         # version id is not readable
         # so , we use name_id as version string
-        ver_str = ver["name"]+"_"+str(ver["id"])
+        ver_str = f'{ver["name"]}_{ver["id"]}'
         if ver_str == version_str:
             # find version
             version = ver
 
     if not version:
-        util.printD("can not find version by version string: " + version_str)
+        util.printD(f"Can not find version by version string: {version_str}")
         return
     
     # get version id
     if "id" not in version.keys():
-        util.printD("this version has no id")
+        util.printD("This version has no id")
         return
     
     version_id = version["id"]
     if not version_id:
-        util.printD("version id is Empty")
+        util.printD("Version id is Empty")
         return
 
     # get download url
@@ -340,7 +340,7 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
         util.printD("downloadUrl is Empty")
         return
     
-    util.printD("Get Download Url: " + downloadUrl)
+    util.printD(f"Get Download Url: {downloadUrl}")
     
     return (version_id, downloadUrl)
     

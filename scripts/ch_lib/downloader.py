@@ -12,7 +12,7 @@ requests.packages.urllib3.disable_warnings()
 
 # output is downloaded file path
 def dl(url, folder, filename, filepath):
-    util.printD("Start downloading from: " + url)
+    util.printD(f"Start downloading from: {url}")
     # get file_path
     file_path = ""
     if filepath:
@@ -24,7 +24,7 @@ def dl(url, folder, filename, filepath):
             return
         
         if not os.path.isdir(folder):
-            util.printD("folder does not exist: "+folder)
+            util.printD(f"folder does not exist: {folder}")
             return
         
         if filename:
@@ -48,7 +48,7 @@ def dl(url, folder, filename, filepath):
             filename = cd.split("=")[1].strip('"')
             filename = filename.encode('iso8859-1').decode('utf-8')
             if not filename:
-                util.printD("Fail to get file name from Content-Disposition: " + cd)
+                util.printD(f"Fail to get file name from Content-Disposition: {cd}")
                 return
             
         if not filename:
@@ -59,7 +59,7 @@ def dl(url, folder, filename, filepath):
         file_path = os.path.join(folder, filename)
 
 
-    util.printD("Target file path: " + file_path)
+    util.printD(f"Target file path: {file_path}")
     base, ext = os.path.splitext(file_path)
 
     # check if file is already exist
@@ -68,12 +68,12 @@ def dl(url, folder, filename, filepath):
     while os.path.isfile(file_path):
         util.printD("Target file already exist.")
         # re-name
-        new_base = base + "_" + str(count)
-        file_path = new_base + ext
+        new_base = f"{base}_{count}"
+        file_path = f"{new_base}{ext}"
         count += 1
 
     # use a temp file for downloading
-    dl_file_path = new_base+dl_ext
+    dl_file_path = f"{new_base}{dl_ext}"
 
 
     util.printD(f"Downloading to temp file: {dl_file_path}")

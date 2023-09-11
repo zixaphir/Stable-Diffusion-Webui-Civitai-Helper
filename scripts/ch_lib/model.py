@@ -30,8 +30,8 @@ vae_suffix = ".vae"
 
 def get_model_info_paths(model_path):
     base, ext = os.path.splitext(model_path)
-    info_file = base + civitai.suffix + info_ext
-    sd15_file = base + sd15_ext
+    info_file = f"{base}{civitai.suffix}{info_ext}"
+    sd15_file = f"{base}{sd15_ext}"
     return [info_file, sd15_file]
 
 
