@@ -118,47 +118,52 @@ def check_models_new_version_to_md(model_types:list) -> str:
     new_versions = civitai.check_models_new_version_by_model_types(model_types, 1)
 
     count = 0
-    output = ""
     if not new_versions:
-        output = "No model has new version"
-    else:
-        output = "Found new version for following models:  <br>"
-        for new_version in new_versions:
-            count = count+1
-            model_path, model_id, model_name, new_verion_id, new_version_name, description, download_url, img_url, model_type = new_version
-            # in md, each part is something like this:
-            # [model_name](model_url)
-            # [version_name](download_url)
-            # version description
-            url = f'{civitai.url_dict["modelPage"]}{model_id}'
+        util.printD("Done: no new versions found.")
+        return "No models have new versions"
 
-            part = f'<div style="font-size:20px;margin:6px 0px;"><b>Model: <a href="{url}" target="_blank"><u>{model_name}</u></a></b></div>'
-            part = f'{part}<div style="font-size:16px">File: {model_path}</div>'
-            if download_url:
-                # replace "\" to "/" in model_path for windows
-                model_path = model_path.replace('\\', '\\\\')
-                part = f'{part}<div style="font-size:16px;margin:6px 0px;">New Version: <u><a href="{download_url}" target="_blank" style="margin:0px 10px;">{new_version_name}</a></u>'
-                part = f"{part}    "
-                # add js function to download new version into SD webui by python
-                # in embed HTML, onclick= will also follow a ", never a ', so have to write it as following
-                part = f"""{part}<u><a href='#' style='margin:0px 10px;' onclick="ch_dl_model_new_version(event, '{model_path}', '{new_verion_id}', '{download_url}', '{model_type}')">[Download into SD]</a></u>"""
+    output = ["Found new version for following models: <section>"]
+    for new_version in new_versions:
+        count = count+1
+        model_path, model_id, model_name, new_verion_id, new_version_name, description, download_url, img_url, model_type = new_version
+        # in md, each part is something like this:
+        # [model_name](model_url)
+        # [version_name](download_url)
+        # version description
+        url = f'{civitai.url_dict["modelPage"]}{model_id}'
 
-            else:
-                part = f'{part}<div style="font-size:16px;margin:6px 0px;">New Version: {new_version_name}'
-            part = f'{part}</div>'
+        output.append('<div style="margin: 5px; clear: both;">')
 
-            if description:
-                description = util.safe_html(description)
-                part = f'{part}<blockquote style="font-size:16px;margin:6px 0px;">{description}</blockquote><br>'
+        # preview image
+        if img_url:
+            output.append(f"<img src='{img_url}' style='float: left; margin: 5px;'>")
 
-            # preview image
-            if img_url:
-                part = f"{part}<img src='{img_url}'><br>"
+        output.append(f'<div style="font-size:20px;margin:6px 0px;"><b>Model: <a href="{url}" target="_blank"><u>{model_name}</u></a></b></div>')
+        output.append(f'<div style="font-size:16px">File: {model_path}</div>')
+        if download_url:
+            # replace "\" to "/" in model_path for windows
+            model_path = model_path.replace('\\', '\\\\')
+            output.append(f'<div style="font-size:16px;margin:6px 0px;">New Version: <u><a href="{download_url}" target="_blank" style="margin:0px 10px;">{new_version_name}</a></u>')
+            output.append("    ")
+            # add js function to download new version into SD webui by python
+            # in embed HTML, onclick= will also follow a ", never a ', so have to write it as following
+            output.append(f"""<u><a href='#' style='margin:0px 10px;' onclick="ch_dl_model_new_version(event, '{model_path}', '{new_verion_id}', '{download_url}', '{model_type}')">[Download into SD]</a></u>""")
 
+        else:
+            output.append(f'<div style="font-size:16px;margin:6px 0px;">New Version: {new_version_name}')
 
-            output = f"{output}{part}"
+        output.append('</div>')
 
-    util.printD(f"Done. Found {count} model{'s' if count != 1 else ''} have new version. Check UI for detail.")
+        if description:
+            description = util.safe_html(description)
+            output.append(f'<blockquote style="font-size:16px;margin:6px 0px;">{description}</blockquote><br>')
+
+        output.append('</div>')
+
+    output.append('</section>')
+    output = "".join(output)
+
+    util.printD(f"Done. Found {count} model{'s' if count != 1 else ''} that {'have' if count != 1 else 'has a'} new version{'s' if count != 1 else ''}. Check UI for detail.")
 
     return output
 
