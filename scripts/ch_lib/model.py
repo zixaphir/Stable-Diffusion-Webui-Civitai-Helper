@@ -166,13 +166,13 @@ def process_model_info(model_path, model_info, model_type="ckp"):
 
 
 def load_model_info(path):
-    # util.printD("Load model info from file: " + path)
+    # util.printD(f"Load model info from file: {path}")
     model_info = None
     with open(os.path.realpath(path), 'r') as f:
         try:
             model_info = json.load(f)
         except Exception as e:
-            util.printD("Selected file is not json: " + path)
+            util.printD(f"Selected file is not json: {path}")
             util.printD(e)
             return
         
@@ -210,7 +210,7 @@ def get_model_names_by_type(model_type:str) -> list:
 def get_model_path_by_type_and_name(model_type:str, model_name:str) -> str:
     util.printD("Run get_model_path_by_type_and_name")
     if model_type not in folders.keys():
-        util.printD("unknown model_type: " + model_type)
+        util.printD(f"unknown model_type: {model_type}")
         return
     
     if not model_name:

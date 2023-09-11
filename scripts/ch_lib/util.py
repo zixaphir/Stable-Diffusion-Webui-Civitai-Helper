@@ -41,18 +41,18 @@ def gen_file_sha256(filname):
             h.update(block)
 
     hash_value =  h.hexdigest()
-    printD("sha256: " + hash_value)
-    printD("length: " + str(length))
+    printD(f"sha256: {hash_value}")
+    printD(f"length: {length}")
     return hash_value
 
 
 # get preview image
 def download_file(url, path):
-    printD("Downloading file from: " + url)
+    printD(f"Downloading file from: {url}")
     # get file
     r = requests.get(url, stream=True, headers=def_headers, proxies=proxies)
     if not r.ok:
-        printD("Get error code: " + str(r.status_code))
+        printD(f"Get error code: {r.status_code}")
         printD(r.text)
         return
     
@@ -61,12 +61,12 @@ def download_file(url, path):
         r.raw.decode_content = True
         shutil.copyfileobj(r.raw, f)
 
-    printD("File downloaded to: " + path)
+    printD(f"File downloaded to: {path}")
 
 
 # get subfolder list
 def get_subfolders(folder:str) -> list:
-    printD("Get subfolder for: " + folder)
+    printD(f"Get subfolder for: {folder}")
     if not folder:
         printD("folder can not be None")
         return
@@ -89,8 +89,8 @@ def get_subfolders(folder:str) -> list:
 
 # get relative path
 def get_relative_path(item_path:str, parent_path:str) -> str:
-    # printD("item_path:"+item_path)
-    # printD("parent_path:"+parent_path)
+    # printD(f"item_path: {item_path}")
+    # printD(f"parent_path: {parent_path}")
     # item path must start with parent_path
     if not item_path:
         return ""
@@ -103,7 +103,7 @@ def get_relative_path(item_path:str, parent_path:str) -> str:
     if relative[:1] == "/" or relative[:1] == "\\":
         relative = relative[1:]
 
-    # printD("relative:"+relative)
+    # printD(f"relative: {relative}")
     return relative
 
 

@@ -373,7 +373,7 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
     
     # get model root folder
     if model_type not in model.folders.keys():
-        output = "Unknow model type: "+model_type
+        output = f"Unknown model type: {model_type}"
         util.printD(output)
         return output
     
@@ -392,7 +392,7 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
     # get model folder for downloading
     model_folder = os.path.join(model_root_folder, subfolder)
     if not os.path.isdir(model_folder):
-        output = "Model folder is not a dir: "+ model_folder
+        output = f"Model folder is not a dir: {model_folder}"
         util.printD(output)
         return output
     
