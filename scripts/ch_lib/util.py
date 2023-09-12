@@ -9,7 +9,7 @@ import shutil
 
 
 short_name = "sd_civitai_helper"
-version = "1.7.0"
+version = "1.7.1"
 
 def_headers = {'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'}
 
