@@ -90,45 +90,7 @@ def get_model_info_by_hash(hash:str):
     return content
 
 
-def trim_html(s):
-    """ Remove any HTML for a given string and, if needed, replace it with
-        a comparable plain-text alternative.
-    """
-
-    def sub_tag(m):
-        tag = m.group(1)
-        if tag == "p":
-            return "\n\n"
-        if tag == "br":
-            return "\n"
-        if tag == "li":
-            return "* "
-        if tag == "code":
-            return "`"
-        return ''
-
-    def sub_escaped(m):
-        escaped = m.group(1)
-        unescaped = {
-            "gt": ">",
-            "lt": "<",
-            "quot": '"',
-            "amp": "&"
-        }
-        return unescaped.get(escaped, "")
-
-    s = re.sub(r"</?([a-zA-Z]+)(?:[^>]+)?>", sub_tag, s)
-    s = re.sub(r"\&(gt|lt|quot|amp)\;", sub_escaped, s)
-
-    while s[0:2] == "\n\n":
-        s = s[2:]
-
-    return s
-
-
 def get_model_info_by_id(id:str) -> dict:
-    def process_key_error(note):
-        util.printD(f"Failed to process {note}. Continuing.")
 
     util.printD(f"Request model info from civitai: {id}")
 
@@ -161,45 +123,6 @@ def get_model_info_by_id(id:str) -> dict:
     if not content:
         util.printD("error, content from civitai is None")
         return
-
-    try:
-        content["description"] = trim_html(content["description"])
-
-    except Exception:
-        content["description"] = ""
-        process_key_error('description')
-
-    try:
-        content["version info"] = trim_html(content["version info"])
-
-    except Exception:
-        content["version info"] = ""
-        process_key_error('version info')
-
-    try:
-        content["allowCommericialUse"] = trim_html(str(content["allowCommercialUse"]))
-
-    except Exception:
-        content["allowCommericialUse"] = ""
-        process_key_error('commercial use guidelines')
-
-
-    try:
-        tags = content["tags"]
-        data = []
-        for tag in tags:
-            try:
-                data.append(trim_html(tag))
-            except:
-                util.printD(f"Failed to process tag: {tag}.")
-
-        content["tags"] = data
-
-    except Exception as e:
-        content["tags"] = ""
-        process_key_error('tags')
-
-
 
     return content
 

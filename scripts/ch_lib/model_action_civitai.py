@@ -9,9 +9,63 @@ from . import civitai
 from . import downloader
 
 
-# scan model to generate SHA256, then use this SHA256 to get model info from civitai
-# return output msg
+def get_metadata_skeleton():
+    # Used to generate at least something when model is not on civitai.
+    return {
+        "id": "",
+        "modelId": "",
+        "name": "",
+        "trainedWords": [],
+        "baseModel": "Unknown",
+        "description": "",
+        "model": {
+            "name": "",
+            "type": "",
+            "nsfw": "",
+            "poi": ""
+        },
+        "model": {
+            "name": "",
+            "type": "",
+            "nsfw": "",
+            "poi": ""
+        },
+        "files": [
+            {
+                "name": "",
+                "sizeKB": 0,
+                "type": "Model",
+                "hashes": {
+                    "AutoV2": "",
+                    "SHA256": ""
+                }
+            }
+        ],
+        "downloadUrl": ""
+    }
+
+
+def metadata_needed(info_file, sd15_file):
+    """ This is intended to be expanded to include extra cases where we may need
+        to regenerate metadata.
+        return True if metadata is needed
+    """
+
+    if not os.path.isfile(info_file):
+        return True
+
+    if not os.path.isfile(sd15_file):
+        return True
+
+    return False
+
+
+
 def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
+    """ Scan model to generate SHA256, then use this SHA256 to get model info from civitai
+        return output msg
+    """
+
     util.printD("Start scan_model")
     output = ""
 
@@ -22,6 +76,7 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
         return output
 
     model_types = []
+
     # check type if it is a string
     if type(scan_model_types) == str:
         model_types.append(scan_model_types)
@@ -30,7 +85,7 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
 
     model_count = 0
     image_count = 0
-    # scan_log = ""
+
     for model_type, model_folder in model.folders.items():
         if model_type not in model_types:
             continue
@@ -43,12 +98,11 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
                 base, ext = os.path.splitext(item)
                 if ext in model.exts:
 
-                    # find a model
-                    # get info file
+                    # find a model, get info file
                     info_file, sd15_file = model.get_model_info_paths(item)
 
                     # check info file
-                    if not (os.path.isfile(info_file) and os.path.isfile(sd15_file)):
+                    if metadata_needed(info_file, sd15_file):
                         util.printD(f"Creating model info for: {filename}")
                         # get model's sha256
                         hash = util.gen_file_sha256(item)
@@ -60,7 +114,15 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
 
                         # use this sha256 to get model info from civitai
                         model_info = civitai.get_model_info_by_hash(hash)
+
+                        if (model_info == {}) and not model_info.get("id", None):
+                            model_info = dummy_model_info(item, hash, model_type)
+
                         model.process_model_info(item, model_info, model_type)
+
+                    else:
+                        util.printD(f"Model metadata not needed for {filename}")
+
 
                     # set model_count
                     model_count = model_count+1
@@ -74,6 +136,29 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
     util.printD(output)
 
     return output
+
+
+def dummy_model_info(file, hash, model_type):
+    if not hash:
+        return {}
+
+    model_info = get_metadata_skeleton()
+
+    autov2 = hash[:10]
+    filename = os.path.basename(file)
+    filesize = int(os.path.getsize(file) / 1024)
+
+    model_metadata = model_info["model"]
+    file_metadata = model_info["files"][0]
+
+    model_metadata["name"] = filename
+    model_metadata["type"] = model_type
+
+    file_metadata["sizeKB"] = filesize
+    file_metadata["hashes"]["SHA256"] = hash
+    file_metadata["hashes"]["AutoV2"] = autov2
+
+    return model_info
 
 
 # Get model info by model type, name and url
