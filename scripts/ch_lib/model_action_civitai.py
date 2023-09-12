@@ -132,7 +132,7 @@ def check_models_new_version_to_md(model_types:list) -> str:
         # version description
         url = f'{civitai.url_dict["modelPage"]}{model_id}'
 
-        output.append('<div style="margin: 5px; clear: both;">')
+        output.append('<article style="margin: 5px; clear: both;">')
 
         # preview image
         if img_url:
@@ -158,7 +158,7 @@ def check_models_new_version_to_md(model_types:list) -> str:
             description = util.safe_html(description)
             output.append(f'<blockquote style="font-size:16px;margin:6px 0px;">{description}</blockquote><br>')
 
-        output.append('</div>')
+        output.append('</article>')
 
     output.append('</section>')
     output = "".join(output)
