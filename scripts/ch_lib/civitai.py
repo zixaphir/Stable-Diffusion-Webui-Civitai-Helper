@@ -40,9 +40,11 @@ def append_parent_model_metadata(content):
 
     metadatas = ["description", "tags", "allowNoCredit", "allowCommercialUse", "allowDerivatives", "allowDifferentLicense"]
 
+    content["creator"] = parent_model.get("creator", "{}")
+
     model_metadata = content["model"]
     for metadata in metadatas:
-        model_metadata[metadata] = parent_model[metadata]
+        model_metadata[metadata] = parent_model.get(metadata, "")
 
     return content
 
