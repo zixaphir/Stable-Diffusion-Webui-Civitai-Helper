@@ -122,7 +122,7 @@ def get_model_info_by_id(id:str) -> dict:
 
     if not content:
         util.printD("error, content from civitai is None")
-        returns
+        return
 
     return content
 
