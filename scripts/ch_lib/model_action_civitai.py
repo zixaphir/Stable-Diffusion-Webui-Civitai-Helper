@@ -9,39 +9,40 @@ from . import civitai
 from . import downloader
 
 
-# Used to generate at least something when model is not on civitai.
-MODEL_INFO_SKELETON = {
-    "id": None,
-    "modelId": None,
-    "name": None,
-    "trainedWords": [],
-    "baseModel": "Unknown",
-    "description": None,
-    "model": {
-        "name": None,
-        "type": None,
-        "nsfw": None,
-        "poi": None
-    },
-    "model": {
-        "name": None,
-        "type": None,
-        "nsfw": None,
-        "poi": None
-    },
-    "files": [
-        {
-            "name": None,
-            "sizeKB": None,
-            "type": "Model",
-            "hashes": {
-                "AutoV2": None,
-                "SHA256": None
+def get_metadata_skeleton():
+    # Used to generate at least something when model is not on civitai.
+    return {
+        "id": "",
+        "modelId": "",
+        "name": "",
+        "trainedWords": [],
+        "baseModel": "Unknown",
+        "description": "",
+        "model": {
+            "name": "",
+            "type": "",
+            "nsfw": "",
+            "poi": ""
+        },
+        "model": {
+            "name": "",
+            "type": "",
+            "nsfw": "",
+            "poi": ""
+        },
+        "files": [
+            {
+                "name": "",
+                "sizeKB": 0,
+                "type": "Model",
+                "hashes": {
+                    "AutoV2": "",
+                    "SHA256": ""
+                }
             }
-        }
-    ],
-    "downloadUrl": None
-}
+        ],
+        "downloadUrl": ""
+    }
 
 
 def metadata_needed(info_file, sd15_file):
@@ -114,8 +115,8 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
                         # use this sha256 to get model info from civitai
                         model_info = civitai.get_model_info_by_hash(hash)
 
-                        if model_info and not model_info.get("id", None):
-                            model_info = dummy_model_info(item, hash)
+                        if (model_info == {}) and not model_info.get("id", None):
+                            model_info = dummy_model_info(item, hash, model_type)
 
                         model.process_model_info(item, model_info, model_type)
 
@@ -141,7 +142,7 @@ def dummy_model_info(file, hash, model_type):
     if not hash:
         return {}
 
-    model_info = copy.deepcopy(MODEL_INFO_SKELETON)
+    model_info = get_metadata_skeleton()
 
     autov2 = hash[:10]
     filename = os.path.basename(file)
