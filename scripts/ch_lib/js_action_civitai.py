@@ -4,6 +4,7 @@ import os
 import json
 import requests
 import webbrowser
+from modules.shared import opts
 from . import util
 from . import model
 from . import civitai
@@ -15,7 +16,7 @@ from . import downloader
 # get civitai's model url and open it in browser
 # parameter: model_type, search_term
 # output: python msg - will be sent to hidden textbox then picked by js side
-def open_model_url(msg, open_url_with_js):
+def open_model_url(msg):
     util.printD("Start open_model_url")
 
     output = ""
@@ -41,7 +42,7 @@ def open_model_url(msg, open_url_with_js):
         util.printD(f"model id from info file of {model_type} {search_term} is None")
         return ""
 
-    url = civitai.url_dict["modelPage"]+str(model_id)
+    url = f'{civitai.url_dict["modelPage"]}{model_id}'
 
 
     # msg content for js
@@ -49,8 +50,8 @@ def open_model_url(msg, open_url_with_js):
         "url":""
     }
 
-    if not open_url_with_js:
-        util.printD("Open Url: " + url)
+    if not opts.ch_open_url_with_js:
+        util.printD(f"Open Url: {url}")
         # open url
         webbrowser.open_new_tab(url)
     else:
@@ -97,15 +98,16 @@ def add_trigger_words(msg):
         util.printD(f"trainedWords from info file for {model_type} {search_term} is empty")
         return [prompt, prompt]
     
-    # get ful trigger words
-    trigger_words = ""
-    for word in trainedWords:
-        trigger_words = trigger_words + word + ", "
+    # guess if trained words are a list of words or list of prompts
+    prompt_list = (',' in trainedWords[0])
 
-    new_prompt = prompt + " " + trigger_words
-    util.printD("trigger_words: " + trigger_words)
-    util.printD("prompt: " + prompt)
-    util.printD("new_prompt: " + new_prompt)
+    # if a list of prompts, join with a newline, else a comma and a space
+    trigger_words = ("\n" if prompt_list else ", ").join(trainedWords)
+
+    new_prompt = f"{prompt} {trigger_words}"
+    util.printD(f"trigger_words: {trigger_words}")
+    util.printD(f"prompt: {prompt}")
+    util.printD(f"new_prompt: {new_prompt}")
 
     util.printD("End add_trigger_words")
 
@@ -179,23 +181,31 @@ def use_preview_image_prompt(msg):
 # download model's new verson by model path, version id and download url
 # output is a md log
 def dl_model_new_version(msg, max_size_preview, skip_nsfw_preview):
+    """ This method is triggered by a click event on the client
+        side that sends a signal to download a single new model
+        version. The actual check for new models is in
+        `model_action_civitai.check_models_new_version_to_md`.
+
+        XXX: Perhaps it should be moved to this file?
+    """
     util.printD("Start dl_model_new_version")
 
     output = ""
 
     result = msg_handler.parse_js_msg(msg)
     if not result:
-        output = "Parsing js ms failed"
+        output = "Parsing js msg failed"
         util.printD(output)
         return output
     
     model_path = result["model_path"]
     version_id = result["version_id"]
     download_url = result["download_url"]
+    model_type = result["model_type"]
 
-    util.printD("model_path: " + model_path)
-    util.printD("version_id: " + str(version_id))
-    util.printD("download_url: " + download_url)
+    util.printD(f"model_path: {model_path}")
+    util.printD(f"version_id: {version_id}")
+    util.printD(f"download_url: {download_url}")
 
     # check data
     if not model_path:
@@ -214,43 +224,29 @@ def dl_model_new_version(msg, max_size_preview, skip_nsfw_preview):
         return output
 
     if not os.path.isfile(model_path):
-        output = "model_path is not a file: "+ model_path
+        output = f"model_path is not a file: {model_path}"
         util.printD(output)
         return output
 
     # get model folder from model path
     model_folder = os.path.dirname(model_path)
 
-    # no need to check when downloading new version, since checking new version is already checked
-    # check if this model is already existed
-    # r = civitai.search_local_model_info_by_version_id(model_folder, version_id)
-    # if r:
-    #     output = "This model version is already existed"
-    #     util.printD(output)
-    #     return output
-
     # download file
     new_model_path = downloader.dl(download_url, model_folder, None, None)
     if not new_model_path:
-        output = "Download failed, check console log for detail. Download url: " + download_url
+        output = f"Download failed, check console log for detail. Download url: {download_url}"
         util.printD(output)
         return output
 
     # get version info
     version_info = civitai.get_version_info_by_version_id(version_id)
-    if not version_info:
-        output = "Model downloaded, but failed to get version info, check console log for detail. Model saved to: " + new_model_path
-        util.printD(output)
-        return output
 
-    # now write version info to file
-    base, ext = os.path.splitext(new_model_path)
-    info_file = base + civitai.suffix + model.info_ext
-    model.write_model_info(info_file, version_info)
+    # now write version info to files
+    model.process_model_info(new_model_path, version_info, model_type)
 
     # then, get preview image
     civitai.get_preview_image_by_model_path(new_model_path, max_size_preview, skip_nsfw_preview)
     
-    output = "Done. Model downloaded to: " + new_model_path
+    output = f"Done. Model downloaded to: {new_model_path}"
     util.printD(output)
     return output

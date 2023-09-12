@@ -11,8 +11,8 @@ dl_ext = ".downloading"
 requests.packages.urllib3.disable_warnings()
 
 # output is downloaded file path
-def dl(url, folder, filename, filepath):
-    util.printD("Start downloading from: " + url)
+def dl(url, folder, filename, filepath, duplicate=None):
+    util.printD(f"Start downloading from: {url}")
     # get file_path
     file_path = ""
     if filepath:
@@ -20,13 +20,15 @@ def dl(url, folder, filename, filepath):
     else:
         # if file_path is not in parameter, then folder must be in parameter
         if not folder:
-            util.printD("folder is none")
-            return
-        
+            output = "Folder is none"
+            util.printD(output)
+            return (False, output)
+
         if not os.path.isdir(folder):
-            util.printD("folder does not exist: "+folder)
-            return
-        
+            output = f"Folder does not exist: {folder}"
+            util.printD(output)
+            return (False, output)
+
         if filename:
             file_path = os.path.join(folder, filename)
 
@@ -48,37 +50,40 @@ def dl(url, folder, filename, filepath):
             filename = cd.split("=")[1].strip('"')
             filename = filename.encode('iso8859-1').decode('utf-8')
             if not filename:
-                util.printD("Fail to get file name from Content-Disposition: " + cd)
-                return
-            
+                return (False, f"Fail to get file name from Content-Disposition: {cd}")
+
         if not filename:
-            util.printD("Can not get file name from download url's header")
-            return
-        
+            return (False, "Can not get file name from download url's header")
+
         # with folder and filename, now we have the full file path
         file_path = os.path.join(folder, filename)
 
 
-    util.printD("Target file path: " + file_path)
+    util.printD(f"Target file path: {file_path}")
     base, ext = os.path.splitext(file_path)
 
-    # check if file is already exist
-    count = 2
-    new_base = base
-    while os.path.isfile(file_path):
-        util.printD("Target file already exist.")
-        # re-name
-        new_base = base + "_" + str(count)
-        file_path = new_base + ext
-        count += 1
+    # duplicate handling
+    if duplicate == "Rename New":
+        # check if file is already exist
+        count = 2
+        new_base = base
+        while os.path.isfile(file_path):
+            util.printD("Target file already exist.")
+            # re-name
+            new_base = f"{base}_{count}"
+            file_path = f"{new_base}{ext}"
+            count += 1
+
+    elif duplicate != "Overwrite":
+        if os.path.isfile(file_path):
+            return (False, "File already exists! Download will not proceed.")
 
     # use a temp file for downloading
-    dl_file_path = new_base+dl_ext
-
+    dl_file_path = f"{file_path}{dl_ext}"
 
     util.printD(f"Downloading to temp file: {dl_file_path}")
 
-    # check if downloading file is exsited
+    # check if downloading file exists
     downloaded_size = 0
     if os.path.exists(dl_file_path):
         downloaded_size = os.path.getsize(dl_file_path)
@@ -93,7 +98,7 @@ def dl(url, folder, filename, filepath):
     r = requests.get(url, stream=True, verify=False, headers=headers, proxies=util.proxies)
 
     # write to file
-    with open(dl_file_path, "ab") as f:
+    with open(dl_file_path, "wb") as f:
         for chunk in r.iter_content(chunk_size=1024):
             if chunk:
                 downloaded_size += len(chunk)
@@ -112,5 +117,5 @@ def dl(url, folder, filename, filepath):
     # rename file
     os.rename(dl_file_path, file_path)
     util.printD(f"File Downloaded to: {file_path}")
-    return file_path
+    return (True, file_path)
 

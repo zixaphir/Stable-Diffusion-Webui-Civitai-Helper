@@ -20,14 +20,14 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
         output = "Model Types is None, can not scan."
         util.printD(output)
         return output
-    
+
     model_types = []
     # check type if it is a string
     if type(scan_model_types) == str:
         model_types.append(scan_model_types)
     else:
         model_types = scan_model_types
-    
+
     model_count = 0
     image_count = 0
     # scan_log = ""
@@ -35,51 +35,32 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
         if model_type not in model_types:
             continue
 
-        util.printD("Scanning path: " + model_folder)
+        util.printD(f"Scanning path: {model_folder}")
         for root, dirs, files in os.walk(model_folder, followlinks=True):
             for filename in files:
                 # check ext
                 item = os.path.join(root, filename)
                 base, ext = os.path.splitext(item)
                 if ext in model.exts:
-                    # ignore vae file
-                    if len(base) > 4:
-                        if base[-4:] == model.vae_suffix:
-                            # find .vae
-                            util.printD("This is a vae file: " + filename)
-                            continue
 
                     # find a model
                     # get info file
-                    info_file = base + civitai.suffix + model.info_ext
-                    sd15_file = base + model.sd15_ext
+                    info_file, sd15_file = model.get_model_info_paths(item)
 
                     # check info file
-                    if not os.path.isfile(info_file):
-                        util.printD("Creating model info for: " + filename)
+                    if not (os.path.isfile(info_file) and os.path.isfile(sd15_file)):
+                        util.printD(f"Creating model info for: {filename}")
                         # get model's sha256
                         hash = util.gen_file_sha256(item)
 
                         if not hash:
-                            output = "failed generating SHA256 for model:" + filename
+                            output = f"failed generating SHA256 for model: {filename}"
                             util.printD(output)
                             return output
-                        
+
                         # use this sha256 to get model info from civitai
                         model_info = civitai.get_model_info_by_hash(hash)
-                        # delay 1 second for ti
-                        if model_type == "ti":
-                            util.printD("Delay 1 second for TI")
-                            time.sleep(1)
-
-                        if model_info is None:
-                            output = "Connect to Civitai API service failed. Wait a while and try again"
-                            util.printD(output)
-                            return output+", check console log for detail"
-
-                        # write model info to files
-                        model.write_model_info(info_file, model_info)
-                        write_sd15_model_info(sd15_file, model_info)
+                        model.process_model_info(item, model_info, model_type)
 
                     # set model_count
                     model_count = model_count+1
@@ -88,85 +69,11 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
                     civitai.get_preview_image_by_model_path(item, max_size_preview, skip_nsfw_preview)
                     image_count = image_count+1
 
-
-    # scan_log = "Done"
-
-    output = f"Done. Scanned {model_count} models, checked {image_count} images"
+    output = f"Done. Scanned {model_count} models, checked {image_count} images."
 
     util.printD(output)
 
     return output
-
-# SD1.5 Webui added saving model information to JSON files.
-# Much of this extension's metadata management is replicated
-# by this new functionality, including automatically adding
-# activator keywords to the prompt. It also provides a much
-# cleaner UI than civitai (not a high bar to clear) to
-# simply read a model's description.
-# So why not populate it with useful information?
-def write_sd15_model_info(path, model_info):
-    get_data_safe = util.get_data_safe
-
-    # Do not overwrite user-created files!
-    # TODO: maybe populate empty fields in existing files?
-    if os.path.isfile(path):
-        util.printD(f"File exists: {path}.")
-        return
-
-    data = {}
-
-    data["description"] = get_data_safe(model_info, "description", "")
-
-    # AFAIK civitai model versions are currently:
-    #   SD 1.4, SD 1.5, SD 2.0, SD 2.0 786, SD 2.1, SD 2.1 786
-    #   SD 2.1 Unclip, SDXL 0.9, SDXL 1.0, and Other.
-    # Conveniently, the 4th character is all we need for webui.
-    base_model = get_data_safe(model_info, "baseModel", None)
-    if base_model:
-        sd_version = base_model[3]
-
-        if sd_version == '1':
-            sd_version = 'SD1'
-        elif sd_version ==  '2':
-            sd_version = 'SD2'
-        elif sd_version == 'L':
-            sd_version = 'SDXL'
-        else:
-            sd_version = 'Unknown'
-    else:
-        sd_version = 'Unknown'
-
-    data["sd version"] = sd_version
-
-    # XXX "trained words" usage is inconsistent among model authors.
-    # Some use each entry as an individual activator, while others
-    # use them as entire prompts
-    activator = get_data_safe(model_info, "trainedWords", [])
-    if (activator and activator[0]):
-        if "," in activator[0]:
-            # assume trainedWords is a prompt list
-            # XXX webui does not support newlines in activator text
-            # so this is the best hinting I can give the user at the
-            # moment that these are mutually-exclusive prompts.
-            data["activation text"] = " || ".join(activator)
-        else:
-            # assume trainedWords are single keywords
-            data["activation text"] = ", ".join(activator)
-
-    # Sadly, Civitai does not provide default weight information,
-    # So 0 disables this functionality on webui's end
-    # (Tho 1 would also work?)
-    data["preferred weight"] = 0
-
-    # I suppose notes are more for user notes, but populating it
-    # with potentially useful information about this particular
-    # version of the model is fine too, right? The user can
-    # always replace these if they're unneeded or add to them
-    version_info = get_data_safe(model_info, "version info", "")
-    if version_info != None:
-        data["notes"] = version_info
-
-    model.write_model_info(path, data)
 
 
 # Get model info by model type, name and url
@@ -176,7 +83,7 @@ def get_model_info_by_input(model_type, model_name, model_url_or_id, max_size_pr
     # parse model id
     model_id = civitai.get_model_id_from_url(model_url_or_id)
     if not model_id:
-        output = "failed to parse model id from url: " + model_url_or_id
+        output = f"failed to parse model id from url: {model_url_or_id}"
         util.printD(output)
         return output
 
@@ -187,37 +94,21 @@ def get_model_info_by_input(model_type, model_name, model_url_or_id, max_size_pr
         output = "failed to get model file path"
         util.printD(output)
         return output
-    
+
     model_root, model_path = result
     if not model_path:
         output = "model path is empty"
         util.printD(output)
         return output
-    
-    # get info file path
-    base, ext = os.path.splitext(model_path)
-    info_file = base + civitai.suffix + model.info_ext
-    sd15_file = base + model.sd15_ext
 
-    # get model info    
+    # get model info
     #we call it model_info, but in civitai, it is actually version info
     model_info = civitai.get_version_info_by_model_id(model_id)
 
-    if not model_info:
-        output = "failed to get model info from url: " + model_url_or_id
-        util.printD(output)
-        return output
-    
-    # write model info to files
-    model.write_model_info(info_file, model_info)
-    write_sd15_model_info(sd15_file, model_info)
-
-    util.printD("Saved model info to: "+ info_file)
+    model.process_model_info(model_path, model_info, model_type)
 
     # check preview image
     civitai.get_preview_image_by_model_path(model_path, max_size_preview, skip_nsfw_preview)
-
-    output = "Model Info saved to: " + info_file
     return output
 
 
@@ -227,81 +118,86 @@ def check_models_new_version_to_md(model_types:list) -> str:
     new_versions = civitai.check_models_new_version_by_model_types(model_types, 1)
 
     count = 0
-    output = ""
     if not new_versions:
-        output = "No model has new version"
-    else:
-        output = "Found new version for following models:  <br>"
-        for new_version in new_versions:
-            count = count+1
-            model_path, model_id, model_name, new_verion_id, new_version_name, description, download_url, img_url = new_version
-            # in md, each part is something like this:
-            # [model_name](model_url)
-            # [version_name](download_url)
-            # version description
-            url = civitai.url_dict["modelPage"]+str(model_id)
+        util.printD("Done: no new versions found.")
+        return "No models have new versions"
 
-            part = f'<div style="font-size:20px;margin:6px 0px;"><b>Model: <a href="{url}" target="_blank"><u>{model_name}</u></a></b></div>'
-            part = part + f'<div style="font-size:16px">File: {model_path}</div>'
-            if download_url:
-                # replace "\" to "/" in model_path for windows
-                model_path = model_path.replace('\\', '\\\\')
-                part = part + f'<div style="font-size:16px;margin:6px 0px;">New Version: <u><a href="{download_url}" target="_blank" style="margin:0px 10px;">{new_version_name}</a></u>'
-                # add js function to download new version into SD webui by python
-                part = part + "    "
-                # in embed HTML, onclick= will also follow a ", never a ', so have to write it as following
-                part = part + f"<u><a href='#' style='margin:0px 10px;' onclick=\"ch_dl_model_new_version(event, '{model_path}', '{new_verion_id}', '{download_url}')\">[Download into SD]</a></u>"
-                
-            else:
-                part = part + f'<div style="font-size:16px;margin:6px 0px;">New Version: {new_version_name}'
-            part = part + '</div>'
+    output = ["Found new version for following models: <section>"]
+    for new_version in new_versions:
+        count = count+1
+        model_path, model_id, model_name, new_verion_id, new_version_name, description, download_url, img_url, model_type = new_version
+        # in md, each part is something like this:
+        # [model_name](model_url)
+        # [version_name](download_url)
+        # version description
+        url = f'{civitai.url_dict["modelPage"]}{model_id}'
 
-            # description
-            if description:
-                part = part + '<blockquote style="font-size:16px;margin:6px 0px;">'+ description + '</blockquote><br>'
+        output.append('<article style="margin: 5px; clear: both;">')
 
-            # preview image            
-            if img_url:
-                part = part + f"<img src='{img_url}'><br>"
-                
+        # preview image
+        if img_url:
+            output.append(f"<img src='{img_url}' style='float: left; margin: 5px;'>")
 
-            output = output + part
+        output.append(f'<div style="font-size:20px;margin:6px 0px;"><b>Model: <a href="{url}" target="_blank"><u>{model_name}</u></a></b></div>')
+        output.append(f'<div style="font-size:16px">File: {model_path}</div>')
+        if download_url:
+            # replace "\" to "/" in model_path for windows
+            model_path = model_path.replace('\\', '\\\\')
+            output.append(f'<div style="font-size:16px;margin:6px 0px;">New Version: <u><a href="{download_url}" target="_blank" style="margin:0px 10px;">{new_version_name}</a></u>')
+            output.append("    ")
+            # add js function to download new version into SD webui by python
+            # in embed HTML, onclick= will also follow a ", never a ', so have to write it as following
+            output.append(f"""<u><a href='#' style='margin:0px 10px;' onclick="ch_dl_model_new_version(event, '{model_path}', '{new_verion_id}', '{download_url}', '{model_type}')">[Download into SD]</a></u>""")
 
-    util.printD(f"Done. Find {count} models have new version. Check UI for detail.")
+        else:
+            output.append(f'<div style="font-size:16px;margin:6px 0px;">New Version: {new_version_name}')
+
+        output.append('</div>')
+
+        if description:
+            description = util.safe_html(description)
+            output.append(f'<blockquote style="font-size:16px;margin:6px 0px;">{description}</blockquote><br>')
+
+        output.append('</article>')
+
+    output.append('</section>')
+    output = "".join(output)
+
+    util.printD(f"Done. Found {count} model{'s' if count != 1 else ''} that {'have' if count != 1 else 'has a'} new version{'s' if count != 1 else ''}. Check UI for detail.")
 
     return output
 
 
 # get model info by url
 def get_model_info_by_url(model_url_or_id:str) -> tuple:
-    util.printD("Getting model info by: " + model_url_or_id)
+    util.printD(f"Getting model info by: {model_url_or_id}")
 
     # parse model id
     model_id = civitai.get_model_id_from_url(model_url_or_id)
     if not model_id:
         util.printD("failed to parse model id from url or id")
-        return    
+        return
 
     model_info = civitai.get_model_info_by_id(model_id)
     if model_info is None:
         util.printD("Connect to Civitai API service failed. Wait a while and try again")
         return
-    
+
     if not model_info:
         util.printD("failed to get model info from url or id")
         return
-    
+
     # parse model type, model name, subfolder, version from this model info
     # get model type
     if "type" not in model_info.keys():
         util.printD("model type is not in model_info")
         return
-    
+
     civitai_model_type = model_info["type"]
     if civitai_model_type not in civitai.model_type_dict.keys():
-        util.printD("This model type is not supported:"+civitai_model_type)
+        util.printD(f"This model type is not supported: {civitai_model_type}")
         return
-    
+
     model_type = civitai.model_type_dict[civitai_model_type]
 
     # get model type
@@ -318,18 +214,18 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
     if "modelVersions" not in model_info.keys():
         util.printD("modelVersions is not in model_info")
         return
-    
+
     modelVersions = model_info["modelVersions"]
     if not modelVersions:
         util.printD("modelVersions is Empty")
         return
-    
+
     version_strs = []
     for version in modelVersions:
         # version name can not be used as id
         # version id is not readable
         # so , we use name_id as version string
-        version_str = version["name"]+"_"+str(version["id"])
+        version_str = f'{version["name"]}_{version["id"]}'
         version_strs.append(version_str)
 
     # get folder by model type
@@ -342,11 +238,11 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
     # add default root folder
     subfolders.append("/")
 
-    util.printD("Get following info for downloading:")
-    util.printD(f"model_name:{model_name}")
-    util.printD(f"model_type:{model_type}")
-    util.printD(f"subfolders:{subfolders}")
-    util.printD(f"version_strs:{version_strs}")
+    util.printD("Got following info for downloading:")
+    util.printD(f"model_name: {model_name}")
+    util.printD(f"model_type: {model_type}")
+    util.printD(f"subfolders: {subfolders}")
+    util.printD(f"version_strs: {version_strs}")
 
     return (model_info, model_name, model_type, subfolders, version_strs)
 
@@ -355,11 +251,11 @@ def get_ver_info_by_ver_str(version_str:str, model_info:dict) -> dict:
     if not version_str:
         util.printD("version_str is empty")
         return
-    
+
     if not model_info:
         util.printD("model_info is None")
         return
-    
+
     # get version list
     if "modelVersions" not in model_info.keys():
         util.printD("modelVersions is not in model_info")
@@ -369,27 +265,27 @@ def get_ver_info_by_ver_str(version_str:str, model_info:dict) -> dict:
     if not modelVersions:
         util.printD("modelVersions is Empty")
         return
-    
+
     # find version by version_str
     version = None
     for ver in modelVersions:
         # version name can not be used as id
         # version id is not readable
         # so , we use name_id as version string
-        ver_str = ver["name"]+"_"+str(ver["id"])
+        ver_str = f'{ver["name"]}_{ver["id"]}'
         if ver_str == version_str:
             # find version
             version = ver
 
     if not version:
-        util.printD("can not find version by version string: " + version_str)
+        util.printD(f"can not find version by version string: {version_str}")
         return
-    
+
     # get version id
     if "id" not in version.keys():
         util.printD("this version has no id")
         return
-    
+
     return version
 
 
@@ -399,11 +295,11 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
     if not version_str:
         util.printD("version_str is empty")
         return
-    
+
     if not model_info:
         util.printD("model_info is None")
         return
-    
+
     # get version list
     if "modelVersions" not in model_info.keys():
         util.printD("modelVersions is not in model_info")
@@ -413,79 +309,78 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
     if not modelVersions:
         util.printD("modelVersions is Empty")
         return
-    
+
     # find version by version_str
     version = None
     for ver in modelVersions:
         # version name can not be used as id
         # version id is not readable
         # so , we use name_id as version string
-        ver_str = ver["name"]+"_"+str(ver["id"])
+        ver_str = f'{ver["name"]}_{ver["id"]}'
         if ver_str == version_str:
             # find version
             version = ver
 
     if not version:
-        util.printD("can not find version by version string: " + version_str)
+        util.printD(f"Can not find version by version string: {version_str}")
         return
-    
+
     # get version id
     if "id" not in version.keys():
-        util.printD("this version has no id")
+        util.printD("This version has no id")
         return
-    
+
     version_id = version["id"]
     if not version_id:
-        util.printD("version id is Empty")
+        util.printD("Version id is Empty")
         return
 
     # get download url
     if "downloadUrl" not in version.keys():
         util.printD("downloadUrl is not in this version")
         return
-    
+
     downloadUrl = version["downloadUrl"]
     if not downloadUrl:
         util.printD("downloadUrl is Empty")
         return
-    
-    util.printD("Get Download Url: " + downloadUrl)
-    
+
+    util.printD(f"Get Download Url: {downloadUrl}")
+
     return (version_id, downloadUrl)
-    
 
-# download model from civitai by input
-# output to markdown log
-def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, version_str:str, dl_all_bool:bool, max_size_preview:bool, skip_nsfw_preview:bool) -> str:
 
-    output = ""
+def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, version_str:str, dl_all_bool:bool, max_size_preview:bool, skip_nsfw_preview:bool, duplicate:str) -> str:
+    """ download model from civitai by input
+        output to markdown log
+    """
 
     if not model_info:
         output = "model_info is None"
         util.printD(output)
         return output
-    
+
     if not model_type:
         output = "model_type is None"
         util.printD(output)
         return output
-    
+
     if not subfolder_str:
         output = "subfolder string is None"
         util.printD(output)
         return output
-    
+
     if not version_str:
         output = "version_str is None"
         util.printD(output)
         return output
-    
+
     # get model root folder
     if model_type not in model.folders.keys():
-        output = "Unknow model type: "+model_type
+        output = f"Unknown model type: {model_type}"
         util.printD(output)
         return output
-    
+
     model_root_folder = model.folders[model_type]
 
 
@@ -501,19 +396,21 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
     # get model folder for downloading
     model_folder = os.path.join(model_root_folder, subfolder)
     if not os.path.isdir(model_folder):
-        output = "Model folder is not a dir: "+ model_folder
+        output = f"Model folder is not a dir: {model_folder}"
         util.printD(output)
         return output
-    
+
     # get version info
     ver_info = get_ver_info_by_ver_str(version_str, model_info)
     if not ver_info:
-        output = "Fail to get version info, check console log for detail"
+        output = "Failed to get version info, check console log for detail"
         util.printD(output)
         return output
-    
+
     version_id = ver_info["id"]
 
+    filepath = None
+    msg = None
 
     if dl_all_bool:
         # get all download url from files info
@@ -535,18 +432,17 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
             output = "This model version is already existed"
             util.printD(output)
             return output
-        
+
         # download
-        filepath = ""
         for url in download_urls:
-            model_filepath = downloader.dl(url, model_folder, None, None)
-            if not model_filepath:
-                output = "Downloading failed, check console log for detail"
+            success, msg = downloader.dl(url, model_folder, None, None, duplicate)
+            if not success:
+                output = f"Downloading failed: {msg}"
                 util.printD(output)
                 return output
-            
+
             if url == ver_info["downloadUrl"]:
-                filepath = model_filepath
+                filepath = msg
     else:
         # only download one file
         # get download url
@@ -555,36 +451,27 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
             output = "Fail to get download url, check console log for detail"
             util.printD(output)
             return output
-        
+
         # download
-        filepath = downloader.dl(url, model_folder, None, None)
-        if not filepath:
-            output = "Downloading failed, check console log for detail"
+        success, msg = downloader.dl(url, model_folder, None, None, duplicate)
+        if not success:
+            output = f"Downloading failed: {msg}"
             util.printD(output)
             return output
 
+        filepath = msg
+
 
     if not filepath:
-        filepath = model_filepath
-    
+        filepath = msg
+
     # get version info
     version_info = civitai.get_version_info_by_version_id(version_id)
-    if not version_info:
-        output = "Model downloaded, but failed to get version info, check console log for detail. Model saved to: " + filepath
-        util.printD(output)
-        return output
-
-    # write version info to file
-    base, ext = os.path.splitext(filepath)
-    info_file = base + civitai.suffix + model.info_ext
-    sd15_file = base + model.sd15_ext
-
-    model.write_model_info(info_file, version_info)
-    write_sd15_model_info(sd15_file, version_info)
+    model.process_model_info(filepath, version_info, model_type)
 
     # then, get preview image
     civitai.get_preview_image_by_model_path(filepath, max_size_preview, skip_nsfw_preview)
-    
-    output = "Done. Model downloaded to: " + filepath
+
+    output = f"Done. Model downloaded to: {filepath}"
     util.printD(output)
     return output

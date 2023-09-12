@@ -148,6 +148,7 @@ async function open_model_url(event, model_type, search_term){
     //get hidden components of extension
     let js_open_url_btn = gradioApp().getElementById("ch_js_open_url_btn");
     if (!js_open_url_btn) {
+        console.log("Failed to find js_open_url_btn");
         return;
     }
 
@@ -264,7 +265,7 @@ function use_preview_prompt(event, model_type, search_term){
 
 
 // download model's new version into SD at python side
-function ch_dl_model_new_version(event, model_path, version_id, download_url){
+function ch_dl_model_new_version(event, model_path, version_id, download_url, model_type){
     console.log("start ch_dl_model_new_version");
 
     // must confirm before downloading
@@ -285,6 +286,7 @@ function ch_dl_model_new_version(event, model_path, version_id, download_url){
         model_path: model_path,
         version_id: version_id,
         download_url: download_url,
+        model_type: model_type
     };
 
     // fill to msg box
@@ -584,10 +586,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         });
     }
 
-    const ch_always_display_ckb = gradioApp().querySelector("#ch_always_display_ckb input");
-    const ch_always_display = ch_always_display_ckb ? ch_always_display_ckb.checked : false;
-
-    additional_node.style.display = ch_always_display ? "block" : null;
+    additional_node.style.display = opts.ch_always_display ? "block" : null;
 
     // search_term node
     // search_term = subfolder path + model name + ext

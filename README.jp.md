@@ -1,11 +1,23 @@
-### Language
-[中文](README.cn.md)   
-[English](README.md)  
-[한국어(ChatGPT)](README.kr.md)  
+# この文書はChatGPTによって英語から翻訳されました。
 
-## About Civitai Helper2: Model Info Helper
-Civitai Helper 2は、**ModelInfo Helper**に改名されます。現在開発中です。デモをご覧ください:
-[YouTube](https://youtu.be/mPcKwQDDH8s)  
+**[寄稿者](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/graphs/contributors)**
+
+### Language
+[中文(ChatGPT)](README.cn.md)
+[English](README.md)  
+[한국어(ChatGPT)](README.kr.md)
+
+## Civitai Helperについて
+
+この拡張機能は、Civitaiからモデルとモデルのメタデータをダウンロードできる機能を提供します。Civitaiにホストされているモデルのアクティベーションキーワード、モデルの説明、バージョン情報、モデルのプレビューなどのデータが、安定した拡散WebUIから離れることなく手に入ります。
+
+## このバージョンのCivitai Helperについて
+
+これは私の個人的なバージョンのStable-Diffusion-Webui-Civitai-Helperです。SD-webui v1.5がリリースされたとき、私が使用していたバージョンが壊れたため、完全に新たに始めました。それ以来、自分が必要とする機能を追加し、古いバージョンのsd-webuiとの互換性を維持するために最善の努力をしましたが、古いバージョンは使用しないため、古いバージョンでのテストは行いません。
+
+私はできる限りこれを動作させるつもりですが、これは単なる趣味のプロジェクトであり、他のより経験豊富な拡張機能開発者と比べてスキルが圧倒的に不足しています。私は長い間姿を消すことがあり、興味を失った場合は恐らく永遠になるかもしれません。私はエラーを起こしやすく、バグが予想されます。
+
+もしもっと興味を持った誰かが開発を引き継ぐことを決定した場合、喜んでこのプロジェクトの制御権を譲渡し、彼らのプロジェクトへの変更を希望される場合にはそれをサポートします。
 
 # お知らせ
 **この拡張機能は現在、非常に安定しています。もし問題があれば、コンソールログの詳細を確認し、[よくある質問](#よくある質問)を確認してください。**   

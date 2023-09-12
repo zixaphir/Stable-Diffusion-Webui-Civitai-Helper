@@ -2,12 +2,13 @@
 import os
 import sys
 import io
+import re
 import hashlib
 import requests
 import shutil
 
 
-version = "1.6.4"
+version = "1.7.0"
 
 def_headers = {'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'}
 
@@ -40,19 +41,18 @@ def gen_file_sha256(filname):
             h.update(block)
 
     hash_value =  h.hexdigest()
-    printD("sha256: " + hash_value)
-    printD("length: " + str(length))
+    printD(f"sha256: {hash_value}")
+    printD(f"length: {length}")
     return hash_value
-
 
 
 # get preview image
 def download_file(url, path):
-    printD("Downloading file from: " + url)
+    printD(f"Downloading file from: {url}")
     # get file
     r = requests.get(url, stream=True, headers=def_headers, proxies=proxies)
     if not r.ok:
-        printD("Get error code: " + str(r.status_code))
+        printD(f"Get error code: {r.status_code}")
         printD(r.text)
         return
     
@@ -61,11 +61,12 @@ def download_file(url, path):
         r.raw.decode_content = True
         shutil.copyfileobj(r.raw, f)
 
-    printD("File downloaded to: " + path)
+    printD(f"File downloaded to: {path}")
+
 
 # get subfolder list
 def get_subfolders(folder:str) -> list:
-    printD("Get subfolder for: " + folder)
+    printD(f"Get subfolder for: {folder}")
     if not folder:
         printD("folder can not be None")
         return
@@ -86,18 +87,10 @@ def get_subfolders(folder:str) -> list:
     return subfolders
 
 
-def get_data_safe(data, key, default_value):
-    return data[key]
-    try:
-        return data[key]
-    except:
-        return default_value
-
-
 # get relative path
 def get_relative_path(item_path:str, parent_path:str) -> str:
-    # printD("item_path:"+item_path)
-    # printD("parent_path:"+parent_path)
+    # printD(f"item_path: {item_path}")
+    # printD(f"parent_path: {parent_path}")
     # item path must start with parent_path
     if not item_path:
         return ""
@@ -110,5 +103,36 @@ def get_relative_path(item_path:str, parent_path:str) -> str:
     if relative[:1] == "/" or relative[:1] == "\\":
         relative = relative[1:]
 
-    # printD("relative:"+relative)
+    # printD(f"relative: {relative}")
     return relative
+
+
+whitelist = re.compile(r"</?(a|img|br|p|b|strong|i|h[0-9]|code)[^>]*>")
+attrs = re.compile(r"""(?:href|src|target)=['"]?[^\s'"]*['"]?""")
+
+def safe_html_replace(match):
+    tag = None
+    attr = None
+    close = False
+
+    m = whitelist.match(match.group(0))
+    if m is not None:
+        el = m.group(0)
+        tag = m.group(1)
+        close = el[1] == "/"
+        if (tag in ["a", "img"]) and not close:
+            m2 = attrs.findall(el)
+            if m2 is not None:
+                attr = " ".join(m2)
+
+        if close:
+            return f"</{tag}>"
+        else:
+            return f"<{tag} {attr}>" if attr else f"<{tag}>"
+
+    return ""
+
+def safe_html(s):
+    """ whitelist only HTML I"m comfortable displaying in webui """
+
+    return re.sub("<[^<]+?>", safe_html_replace, s)
