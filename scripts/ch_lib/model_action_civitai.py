@@ -350,11 +350,10 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
     return (version_id, downloadUrl)
 
 
-# download model from civitai by input
-# output to markdown log
-def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, version_str:str, dl_all_bool:bool, max_size_preview:bool, skip_nsfw_preview:bool) -> str:
-
-    output = ""
+def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, version_str:str, dl_all_bool:bool, max_size_preview:bool, skip_nsfw_preview:bool, duplicate:str) -> str:
+    """ download model from civitai by input
+        output to markdown log
+    """
 
     if not model_info:
         output = "model_info is None"
@@ -410,6 +409,8 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
 
     version_id = ver_info["id"]
 
+    filepath = None
+    msg = None
 
     if dl_all_bool:
         # get all download url from files info
@@ -433,16 +434,15 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
             return output
 
         # download
-        filepath = ""
         for url in download_urls:
-            model_filepath = downloader.dl(url, model_folder, None, None)
-            if not model_filepath:
-                output = "Downloading failed, check console log for detail"
+            success, msg = downloader.dl(url, model_folder, None, None, duplicate)
+            if not success:
+                output = f"Downloading failed: {msg}"
                 util.printD(output)
                 return output
 
             if url == ver_info["downloadUrl"]:
-                filepath = model_filepath
+                filepath = msg
     else:
         # only download one file
         # get download url
@@ -453,15 +453,17 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
             return output
 
         # download
-        filepath = downloader.dl(url, model_folder, None, None)
-        if not filepath:
-            output = "Downloading failed, check console log for detail"
+        success, msg = downloader.dl(url, model_folder, None, None, duplicate)
+        if not success:
+            output = f"Downloading failed: {msg}"
             util.printD(output)
             return output
 
+        filepath = msg
+
 
     if not filepath:
-        filepath = model_filepath
+        filepath = msg
 
     # get version info
     version_info = civitai.get_version_info_by_version_id(version_id)

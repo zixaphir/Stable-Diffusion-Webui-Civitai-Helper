@@ -109,7 +109,7 @@ def on_ui_tabs():
                 # with gr.Row():
                 scan_model_log_md = gr.Markdown(value="Scanning takes time, just wait. Check console log for detail", elem_id="ch_scan_model_log_md")
 
-        
+
         with gr.Box(elem_classes="ch_box"):
             with gr.Column():
                 gr.Markdown("### Get Model Info from Civitai by URL")
@@ -136,8 +136,9 @@ def on_ui_tabs():
                     dl_model_type_txtbox = gr.Textbox(label="Model Type", interactive=False, lines=1, value="")
                     dl_subfolder_drop = gr.Dropdown(choices=[], label="Sub-folder", value="", interactive=True, multiselect=False)
                     dl_version_drop = gr.Dropdown(choices=[], label="Model Version", value="", interactive=True, multiselect=False)
+                    dl_duplicate_drop = gr.Dropdown(choices=["Skip", "Overwrite", "Rename New"], label="Duplicate File Behavior", value="Skip", interactive=True, multiselect=False)
                     dl_all_ckb = gr.Checkbox(label="Download All files", value=False, elem_id="ch_dl_all_ckb", elem_classes="ch_vpadding")
-                
+
                 dl_civitai_model_by_id_btn = gr.Button(value="3. Download Model", variant="primary")
                 dl_log_md = gr.Markdown(value="Check Console log for Downloading Status")
 
@@ -174,7 +175,7 @@ def on_ui_tabs():
 
         # Download Model
         dl_model_info_btn.click(get_model_info_by_url, inputs=[dl_model_url_or_id_txtbox, dl_subfolder_drop], outputs=[dl_model_info, dl_model_name_txtbox, dl_model_type_txtbox, dl_subfolder_drop, dl_version_drop])
-        dl_civitai_model_by_id_btn.click(model_action_civitai.dl_model_by_input, inputs=[dl_model_info, dl_model_type_txtbox, dl_subfolder_drop, dl_version_drop, dl_all_ckb, max_size_preview_ckb, skip_nsfw_preview_ckb], outputs=dl_log_md)
+        dl_civitai_model_by_id_btn.click(model_action_civitai.dl_model_by_input, inputs=[dl_model_info, dl_model_type_txtbox, dl_subfolder_drop, dl_version_drop, dl_all_ckb, max_size_preview_ckb, skip_nsfw_preview_ckb, dl_duplicate_drop], outputs=dl_log_md)
 
         # Check models' new version
         check_models_new_version_btn.click(model_action_civitai.check_models_new_version_to_md, inputs=model_types_ckbg, outputs=check_models_new_version_log_md)
