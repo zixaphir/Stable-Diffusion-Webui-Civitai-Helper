@@ -11,7 +11,7 @@ from modules import shared, paths_internal
 root_path = paths_internal.data_path
 
 
-# if command line arguement is used to change model folder, 
+# if command line arguement is used to change model folder,
 # then model folder is in absolute path, not based on this root path anymore.
 # so to make extension work with those absolute model folder paths, model folder also need to be in absolute path
 folders = {
@@ -68,6 +68,10 @@ def get_custom_model_folder():
             pass
 
 
+def process_key_error(note):
+    util.printD(f"Failed to process {note}. Continuing.")
+
+
 def process_model_info(model_path, model_info, model_type="ckp"):
     """ Write model info to file
 
@@ -89,6 +93,39 @@ def process_model_info(model_path, model_info, model_type="ckp"):
 
     info_file, sd15_file = get_model_info_paths(model_path)
 
+    try:
+        model_info["description"] = util.trim_html(model_info["description"])
+
+    except Exception:
+        model_info["description"] = ""
+        process_key_error("description")
+
+    try:
+        model_info["version info"] = util.trim_html(model_info["version info"])
+
+    except Exception:
+        model_info["version info"] = ""
+        process_key_error("version info")
+
+    try:
+        tags = model_info["tags"]
+        data = []
+        for tag in tags:
+            data.append(tag)
+
+        model_info["tags"] = data
+
+    except Exception as e:
+        model_info["tags"] = []
+        process_key_error("tags")
+
+    # I'm already running into issues with people asking for breaking
+    # changes, so I just want to have this for reference later down
+    # the line
+    model_info["extensions"] = {}
+    model_info["extensions"][util.short_name] = {}
+    model_info["extensions"][util.short_name]["version"] = util.version
+
     ### civitai model info file
 
     if not os.path.isfile(info_file):
@@ -97,6 +134,7 @@ def process_model_info(model_path, model_info, model_type="ckp"):
             f.write(json.dumps(model_info, indent=4))
 
     ### sd v1.5 model info file
+    sd_data = {}
 
     # Do not overwrite user-created files!
     # TODO: maybe populate empty fields in existing files?
@@ -105,8 +143,6 @@ def process_model_info(model_path, model_info, model_type="ckp"):
         return
 
     util.printD(f"Write model SD webui info to file: {sd15_file}")
-
-    sd_data = {}
 
     sd_data["description"] = model_info.get("description", "")
 
@@ -160,6 +196,7 @@ def process_model_info(model_path, model_info, model_type="ckp"):
         # So 0 disables this functionality on webui's end
         # (Tho 1 would also work?)
         sd_data["preferred weight"] = 0
+        sd_data["extensions"] = model_info["extensions"]
 
     with open(os.path.realpath(sd15_file), 'w') as f:
         f.write(json.dumps(sd_data, indent=4))
@@ -175,7 +212,7 @@ def load_model_info(path):
             util.printD(f"Selected file is not json: {path}")
             util.printD(e)
             return
-        
+
     return model_info
 
 
@@ -212,7 +249,7 @@ def get_model_path_by_type_and_name(model_type:str, model_name:str) -> str:
     if model_type not in folders.keys():
         util.printD(f"unknown model_type: {model_type}")
         return
-    
+
     if not model_name:
         util.printD("model name can not be empty")
         return

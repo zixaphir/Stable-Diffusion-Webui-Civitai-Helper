@@ -8,6 +8,7 @@ import requests
 import shutil
 
 
+short_name = "sd_civitai_helper"
 version = "1.7.0"
 
 def_headers = {'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'}
@@ -55,7 +56,7 @@ def download_file(url, path):
         printD(f"Get error code: {r.status_code}")
         printD(r.text)
         return
-    
+
     # write to file
     with open(os.path.realpath(path), 'wb') as f:
         r.raw.decode_content = True
@@ -70,11 +71,11 @@ def get_subfolders(folder:str) -> list:
     if not folder:
         printD("folder can not be None")
         return
-    
+
     if not os.path.isdir(folder):
         printD("path is not a folder")
         return
-    
+
     prefix_len = len(folder)
     subfolders = []
     for root, dirs, files in os.walk(folder, followlinks=True):
@@ -136,3 +137,36 @@ def safe_html(s):
     """ whitelist only HTML I"m comfortable displaying in webui """
 
     return re.sub("<[^<]+?>", safe_html_replace, s)
+
+
+def trim_html(s):
+    """ Remove any HTML for a given string and, if needed, replace it with
+        a comparable plain-text alternative.
+    """
+
+    def sub_tag(m):
+        tag = m.group(1)
+        if tag == "/p":
+            return "\n\n"
+        if tag == "br":
+            return "\n"
+        if tag == "li":
+            return "* "
+        if tag in ["code", "/code"]:
+            return "`"
+        return ''
+
+    def sub_escaped(m):
+        escaped = m.group(1)
+        unescaped = {
+            "gt": ">",
+            "lt": "<",
+            "quot": '"',
+            "amp": "&"
+        }
+        return unescaped.get(escaped, "")
+
+    s = re.sub(r"<(/?[a-zA-Z]+)(?:[^>]+)?>", sub_tag, s)
+    s = re.sub(r"\&(gt|lt|quot|amp)\;", sub_escaped, s)
+
+    return s
