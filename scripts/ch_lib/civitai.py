@@ -40,12 +40,9 @@ def append_parent_model_metadata(content):
 
     metadatas = ["description", "tags", "allowNoCredit", "allowCommercialUse", "allowDerivatives", "allowDifferentLicense"]
 
-    # Preserve version info where it exists.
-    if content["description"] != parent_model["description"]:
-        content["version info"] = content["description"]
-
+    model_metadata = content["model"]
     for metadata in metadatas:
-        content[metadata] = parent_model[metadata]
+        model_metadata[metadata] = parent_model[metadata]
 
     return content
 

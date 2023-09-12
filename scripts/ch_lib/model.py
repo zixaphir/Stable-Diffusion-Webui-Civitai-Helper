@@ -93,38 +93,38 @@ def process_model_info(model_path, model_info, model_type="ckp"):
 
     info_file, sd15_file = get_model_info_paths(model_path)
 
+    parent = model_info["model"]
+
+    try:
+        parent["description"] = util.trim_html(parent["description"])
+
+    except Exception:
+        parent["description"] = ""
+        process_key_error("description")
+
     try:
         model_info["description"] = util.trim_html(model_info["description"])
 
     except Exception:
         model_info["description"] = ""
-        process_key_error("description")
-
-    try:
-        model_info["version info"] = util.trim_html(model_info["version info"])
-
-    except Exception:
-        model_info["version info"] = ""
         process_key_error("version info")
 
     try:
-        tags = model_info["tags"]
+        tags = parent["tags"]
         data = []
         for tag in tags:
             data.append(tag)
 
-        model_info["tags"] = data
+        parent["tags"] = data
 
     except Exception as e:
-        model_info["tags"] = []
+        parent["tags"] = []
         process_key_error("tags")
 
     # I'm already running into issues with people asking for breaking
     # changes, so I just want to have this for reference later down
     # the line
-    model_info["extensions"] = {}
-    model_info["extensions"][util.short_name] = {}
-    model_info["extensions"][util.short_name]["version"] = util.version
+    model_info["extensions"] = util.create_extension_block(model_info.get("extensions", {}))
 
     ### civitai model info file
 
@@ -144,13 +144,13 @@ def process_model_info(model_path, model_info, model_type="ckp"):
 
     util.printD(f"Write model SD webui info to file: {sd15_file}")
 
-    sd_data["description"] = model_info.get("description", "")
+    sd_data["description"] = parent.get("description", "")
 
     # I suppose notes are more for user notes, but populating it
     # with potentially useful information about this particular
     # version of the model is fine too, right? The user can
     # always replace these if they're unneeded or add to them
-    version_info = model_info.get("version info", None)
+    version_info = model_info.get("description", None)
     if version_info is not None:
         sd_data["notes"] = version_info
 
@@ -196,7 +196,7 @@ def process_model_info(model_path, model_info, model_type="ckp"):
         # So 0 disables this functionality on webui's end
         # (Tho 1 would also work?)
         sd_data["preferred weight"] = 0
-        sd_data["extensions"] = model_info["extensions"]
+        sd_data["extensions"] = util.create_extension_block(sd_data.get("extensions", {}))
 
     with open(os.path.realpath(sd15_file), 'w') as f:
         f.write(json.dumps(sd_data, indent=4))

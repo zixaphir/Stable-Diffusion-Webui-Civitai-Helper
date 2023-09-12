@@ -170,3 +170,31 @@ def trim_html(s):
     s = re.sub(r"\&(gt|lt|quot|amp)\;", sub_escaped, s)
 
     return s
+
+
+def metadata_version(metadata):
+    try:
+        return metadata["extensions"][short_name]["version"]
+    except:
+        return False
+
+
+def create_extension_block(data):
+    block = {
+        short_name: {
+            "version": version
+        }
+    }
+    if not data:
+        return block
+
+    if not data.get(short_name, False):
+        data[short_name] = block[short_name]
+        return data
+
+    data[short_name]["version"] = version
+
+    return data
+
+
+
