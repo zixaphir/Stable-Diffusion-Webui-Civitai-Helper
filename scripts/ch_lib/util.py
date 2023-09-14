@@ -166,8 +166,23 @@ def trim_html(s):
         }
         return unescaped.get(escaped, "")
 
+    # non-breaking space. Useless unstyled content
+    s = s.replace("\u00a0", "")
+
+    # remove non-whitelisted HTML tags,
+    # replace whitelisted tags with text-equivalents
     s = re.sub(r"<(/?[a-zA-Z]+)(?:[^>]+)?>", sub_tag, s)
+
+    # Replace HTML-escaped characters with displayables.
     s = re.sub(r"\&(gt|lt|quot|amp)\;", sub_escaped, s)
+
+    # remove trailing line breaks
+    count = -1
+    while s[count] == "\n":
+        count = count - 1
+
+    if count < -1:
+        s = s[0:count + 1]
 
     return s
 
