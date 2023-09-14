@@ -6,10 +6,19 @@ import re
 import hashlib
 import requests
 import shutil
+from packaging.version import parse as parse_version
 
-
+# used to append extension information to JSON/INFO files
 short_name = "sd_civitai_helper"
+
+# current version of the exension
 version = "1.7.1"
+
+# Civitai INFO files below this version will regenerated
+compat_version_info = "1.7.1"
+
+# SD webui model info JSON below this version will be regenerated
+compat_version_json = "1.7.1"
 
 def_headers = {'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'}
 
@@ -185,6 +194,10 @@ def trim_html(s):
         s = s[0:count + 1]
 
     return s
+
+
+def newer_versions(ver1, ver2):
+    return parse_version(ver1) > parse_version(ver2)
 
 
 def metadata_version(metadata):
