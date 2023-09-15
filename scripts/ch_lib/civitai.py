@@ -477,7 +477,7 @@ def search_local_model_info_by_version_id(folder:str, version_id:int) -> dict:
 
 # check new version for a model by model path
 # return (model_path, model_id, model_name, new_verion_id, new_version_name, description, download_url, img_url)
-def check_model_new_version_by_path(model_path:str, delay:float=1) -> tuple:
+def check_model_new_version_by_path(model_path:str, delay:float=0.2) -> tuple:
     if not model_path:
         util.printD("model_path is empty")
         return
@@ -515,7 +515,7 @@ def check_model_new_version_by_path(model_path:str, delay:float=1) -> tuple:
     # get model info by id from civitai
     model_info = get_model_info_by_id(model_id)
     # delay before next request, to prevent to be treat as DDoS
-    util.printD(f"delay:{delay} second")
+    util.printD(f"delay: {delay} second")
     time.sleep(delay)
 
     if not model_info:
@@ -595,7 +595,7 @@ def check_model_new_version_by_path(model_path:str, delay:float=1) -> tuple:
 # check model's new version
 # parameter: delay - float, how many seconds to delay between each request to civitai
 # return: new_versions - a list for all new versions, each one is (model_path, model_id, model_name, new_verion_id, new_version_name, description, download_url, img_url)
-def check_models_new_version_by_model_types(model_types:list, delay:float=1) -> list:
+def check_models_new_version_by_model_types(model_types:list, delay:float=0.2) -> list:
     util.printD("Checking models' new version")
 
     if not model_types:

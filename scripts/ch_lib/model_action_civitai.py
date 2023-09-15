@@ -45,26 +45,13 @@ def get_metadata_skeleton():
     }
 
 
-def metadata_needed(info_file, sd15_file):
-    """ This is intended to be expanded to include extra cases where we may need
-        to regenerate metadata.
-        return True if metadata is needed
-    """
 
-    if not os.path.isfile(info_file):
-        return True
-
-    if not os.path.isfile(sd15_file):
-        return True
-
-    return False
-
-
-
-def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
+def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview, refetch_old):
     """ Scan model to generate SHA256, then use this SHA256 to get model info from civitai
         return output msg
     """
+
+    delay = 0.2
 
     util.printD("Start scan_model")
     output = ""
@@ -102,7 +89,7 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
                     info_file, sd15_file = model.get_model_info_paths(item)
 
                     # check info file
-                    if metadata_needed(info_file, sd15_file):
+                    if model.metadata_needed(info_file, sd15_file, refetch_old):
                         util.printD(f"Creating model info for: {filename}")
                         # get model's sha256
                         hash = util.gen_file_sha256(item)
@@ -118,7 +105,11 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
                         if (model_info == {}) and not model_info.get("id", None):
                             model_info = dummy_model_info(item, hash, model_type)
 
-                        model.process_model_info(item, model_info, model_type)
+                        model.process_model_info(item, model_info, model_type, refetch_old=refetch_old)
+
+                        # delay before next request, to prevent to be treat as DDoS
+                        util.printD(f"delay: {delay} second")
+                        time.sleep(delay)
 
                     else:
                         util.printD(f"Model metadata not needed for {filename}")
@@ -200,7 +191,7 @@ def get_model_info_by_input(model_type, model_name, model_url_or_id, max_size_pr
 
 # check models' new version and output to UI as markdown doc
 def check_models_new_version_to_md(model_types:list) -> str:
-    new_versions = civitai.check_models_new_version_by_model_types(model_types, 1)
+    new_versions = civitai.check_models_new_version_by_model_types(model_types, 0.2)
 
     count = 0
     if not new_versions:

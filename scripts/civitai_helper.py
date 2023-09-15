@@ -100,9 +100,17 @@ def on_ui_tabs():
             with gr.Column():
                 gr.Markdown("### Scan Models for Civitai")
                 with gr.Row():
-                    max_size_preview_ckb = gr.Checkbox(label="Download Max Size Preview", value=max_size_preview, elem_id="ch_max_size_preview_ckb")
-                    skip_nsfw_preview_ckb = gr.Checkbox(label="Skip NSFW Preview Images", value=skip_nsfw_preview, elem_id="ch_skip_nsfw_preview_ckb")
-                    scan_model_types_drop = gr.CheckboxGroup(choices=model_types, label="Model Types", value=model_types)
+                    with gr.Column():
+                        max_size_preview_ckb = gr.Checkbox(label="Download Max Size Preview", value=max_size_preview, elem_id="ch_max_size_preview_ckb")
+                    with gr.Column():
+                        skip_nsfw_preview_ckb = gr.Checkbox(label="Skip NSFW Preview Images", value=skip_nsfw_preview, elem_id="ch_skip_nsfw_preview_ckb")
+                    with gr.Column():
+                        refetch_old_ckb = gr.Checkbox(label="Replace Old Metadata Formats*", value=False, elem_id="ch_refetch_old_ckb")
+                        gr.HTML("""
+                            <div style="margin-top:-1em;margin-left:2em;">* [<a href=https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Metadata-Format-Changes>wiki</a>]</div>
+                        """)
+                    with gr.Column():
+                        scan_model_types_drop = gr.CheckboxGroup(choices=model_types, label="Model Types", value=model_types)
 
                 # with gr.Row():
                 scan_model_civitai_btn = gr.Button(value="Scan", variant="primary", elem_id="ch_scan_model_civitai_btn")
@@ -165,7 +173,7 @@ def on_ui_tabs():
 
         # ====events====
         # Scan Models for Civitai
-        scan_model_civitai_btn.click(model_action_civitai.scan_model, inputs=[scan_model_types_drop, max_size_preview_ckb, skip_nsfw_preview_ckb], outputs=scan_model_log_md)
+        scan_model_civitai_btn.click(model_action_civitai.scan_model, inputs=[scan_model_types_drop, max_size_preview_ckb, skip_nsfw_preview_ckb, refetch_old_ckb], outputs=scan_model_log_md)
 
         # Get Civitai Model Info by Model Page URL
         model_type_drop.change(get_model_names_by_input, inputs=[model_type_drop, empty_info_only_ckb], outputs=model_name_drop)

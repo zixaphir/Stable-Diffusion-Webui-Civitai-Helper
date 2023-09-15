@@ -72,7 +72,40 @@ def process_key_error(note):
     util.printD(f"Failed to process {note}. Continuing.")
 
 
-def process_model_info(model_path, model_info, model_type="ckp"):
+def metadata_needed(info_file, sd15_file, refetch_old):
+    """ return True if metadata is needed
+    """
+
+    need_civitai = metadata_needed_for_type(info_file, "civitai", refetch_old)
+    need_sdwebui = metadata_needed_for_type(sd15_file, "sdwebui", refetch_old)
+
+    return need_civitai or need_sdwebui
+
+
+def metadata_needed_for_type(path, type, refetch_old):
+    """ return True if metadata is needed for path
+    """
+    if not os.path.isfile(path):
+        return True
+
+    if refetch_old:
+        metadata = None
+        with open(path) as file:
+            metadata = json.load(file)
+
+        metadata_version = util.metadata_version(metadata)
+
+        if not metadata_version:
+            return True
+
+        compat_version = util.compat_version_info if type == "civitai" else util.compat_version_json
+
+        return util.newer_versions(util.version, compat_version)
+
+    return False
+
+
+def process_model_info(model_path, model_info, model_type="ckp", refetch_old=False):
     """ Write model info to file
 
         SD1.5 Webui added saving model information to JSON files.
@@ -100,14 +133,14 @@ def process_model_info(model_path, model_info, model_type="ckp"):
 
     except Exception:
         parent["description"] = ""
-        process_key_error("description")
+        process_key_error("model description")
 
     try:
         model_info["description"] = util.trim_html(model_info["description"])
 
     except Exception:
         model_info["description"] = ""
-        process_key_error("version info")
+        process_key_error("version description")
 
     try:
         tags = parent["tags"]
@@ -121,14 +154,16 @@ def process_model_info(model_path, model_info, model_type="ckp"):
         parent["tags"] = []
         process_key_error("tags")
 
-    # I'm already running into issues with people asking for breaking
-    # changes, so I just want to have this for reference later down
-    # the line
+    """ I'm already running into issues with people asking for breaking
+        changes, so I just want to have this for reference later down
+        the line
+    """
     model_info["extensions"] = util.create_extension_block(model_info.get("extensions", {}))
 
     ### civitai model info file
 
-    if not os.path.isfile(info_file):
+
+    if metadata_needed_for_type(info_file, "civitai", refetch_old):
         util.printD(f"Write model civitai info to file: {info_file}")
         with open(os.path.realpath(info_file), 'w') as f:
             f.write(json.dumps(model_info, indent=4))
@@ -138,23 +173,25 @@ def process_model_info(model_path, model_info, model_type="ckp"):
 
     # Do not overwrite user-created files!
     # TODO: maybe populate empty fields in existing files?
-    if os.path.isfile(sd15_file):
-        util.printD(f"File exists: {sd15_file}.")
+    if not metadata_needed_for_type(sd15_file, "sdwebui", refetch_old):
+        util.printD(f"Metadata not needed for: {sd15_file}.")
         return
 
     util.printD(f"Write model SD webui info to file: {sd15_file}")
 
     sd_data["description"] = parent.get("description", "")
 
-    # I suppose notes are more for user notes, but populating it
-    # with potentially useful information about this particular
-    # version of the model is fine too, right? The user can
-    # always replace these if they're unneeded or add to them
+    """ I suppose notes are more for user notes, but populating it
+        with potentially useful information about this particular
+        version of the model is fine too, right? The user can
+        always replace these if they're unneeded or add to them
+    """
     version_info = model_info.get("description", None)
     if version_info is not None:
         sd_data["notes"] = version_info
 
-    if model_type == "lora" or model_type == "lycoris":
+    if model_type in ["lora", "lycoris"]:
+
         """ AFAIK civitai model versions are currently:
             SD 1.4, SD 1.5, SD 2.0, SD 2.0 786, SD 2.1, SD 2.1 786
             SD 2.1 Unclip, SDXL 0.9, SDXL 1.0, and Other.
@@ -177,26 +214,31 @@ def process_model_info(model_path, model_info, model_type="ckp"):
 
         sd_data["sd version"] = sd_version
 
-        # XXX "trained words" usage is inconsistent among model authors.
-        # Some use each entry as an individual activator, while others
-        # use them as entire prompts
+        """ "trained words" usage is inconsistent among model authors.
+            Some use each entry as an individual activator, while others
+            use them as entire prompts
+        """
         activator = model_info.get("trainedWords", [])
         if (activator and activator[0]):
             if "," in activator[0]:
                 # assume trainedWords is a prompt list
-                # XXX webui does not support newlines in activator text
-                # so this is the best hinting I can give the user at the
-                # moment that these are mutually-exclusive prompts.
+
+                """ XXX webui does not support newlines in activator text
+                    so this is the best hinting I can give the user at the
+                    moment that these are mutually-exclusive prompts.
+                """
                 sd_data["activation text"] = " || ".join(activator)
             else:
                 # assume trainedWords are single keywords
                 sd_data["activation text"] = ", ".join(activator)
 
-        # Sadly, Civitai does not provide default weight information,
-        # So 0 disables this functionality on webui's end
-        # (Tho 1 would also work?)
+        """ Sadly, Civitai does not provide default weight information,
+            So 0 disables this functionality on webui's end
+            (Tho 1 would also work?)
+        """
         sd_data["preferred weight"] = 0
-        sd_data["extensions"] = util.create_extension_block(sd_data.get("extensions", {}))
+
+    sd_data["extensions"] = util.create_extension_block(sd_data.get("extensions", None))
 
     with open(os.path.realpath(sd15_file), 'w') as f:
         f.write(json.dumps(sd_data, indent=4))

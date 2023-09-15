@@ -121,6 +121,9 @@ whitelist = re.compile(r"</?(a|img|br|p|b|strong|i|h[0-9]|code)[^>]*>")
 attrs = re.compile(r"""(?:href|src|target)=['"]?[^\s'"]*['"]?""")
 
 def safe_html_replace(match):
+    """ Given a block of text, returns that block with most HTML removed
+        and unneeded attributes pruned.
+    """
     tag = None
     attr = None
     close = False
@@ -197,22 +200,34 @@ def trim_html(s):
 
 
 def newer_versions(ver1, ver2):
+    """ Returns true if the version of the extension is newer than
+        the version we're checking against.
+    """
     return parse_version(ver1) > parse_version(ver2)
 
 
 def metadata_version(metadata):
+    """ Attempts retrieve the extension version used to create
+        to create the object block
+    """
     try:
         return metadata["extensions"][short_name]["version"]
     except:
         return False
 
 
-def create_extension_block(data):
+def create_extension_block(data=None):
+    """ Creates or edits an extensions block for usage in JSON files
+        created or edited by this extension.
+
+        Adds the current version of this extension to the extensions block
+    """
     block = {
         short_name: {
             "version": version
         }
     }
+
     if not data:
         return block
 
