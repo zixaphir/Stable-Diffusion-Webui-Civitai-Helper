@@ -9,16 +9,16 @@ import requests
 from . import util
 from . import model
 
-suffix = ".civitai"
+SUFFIX = ".civitai"
 
-url_dict = {
+URLS = {
     "modelPage":"https://civitai.com/models/",
     "modelId": "https://civitai.com/api/v1/models/",
     "modelVersionId": "https://civitai.com/api/v1/model-versions/",
     "hash": "https://civitai.com/api/v1/model-versions/by-hash/"
 }
 
-model_type_dict = {
+MODEL_TYPES = {
     "Checkpoint": "ckp",
     "TextualInversion": "ti",
     "Hypernetwork": "hyper",
@@ -58,7 +58,7 @@ def get_model_info_by_hash(hash:str):
         util.printD("hash is empty")
         return
 
-    r = requests.get(f'{url_dict["hash"]}{hash}', headers=util.def_headers, proxies=util.proxies)
+    r = requests.get(f'{URLS["hash"]}{hash}', headers=util.def_headers, proxies=util.proxies)
     if not r.ok:
         if r.status_code == 404:
             # this is not a civitai model
@@ -97,7 +97,7 @@ def get_model_info_by_id(id:str) -> dict:
         util.printD("id is empty")
         return
 
-    r = requests.get(f'{url_dict["modelId"]}{id}', headers=util.def_headers, proxies=util.proxies)
+    r = requests.get(f'{URLS["modelId"]}{id}', headers=util.def_headers, proxies=util.proxies)
     if not r.ok:
         if r.status_code == 404:
             # this is not a civitai model
@@ -133,7 +133,7 @@ def get_version_info_by_version_id(id:str) -> dict:
         util.printD("id is empty")
         return
 
-    r = requests.get(f'{url_dict["modelVersionId"]}{id}', headers=util.def_headers, proxies=util.proxies)
+    r = requests.get(f'{URLS["modelVersionId"]}{id}', headers=util.def_headers, proxies=util.proxies)
     if not r.ok:
         if r.status_code == 404:
             # this is not a civitai model
@@ -232,7 +232,7 @@ def load_model_info_by_search_term(model_type, search_term):
         model_folders = [model.folders[model_type]]
 
     for model_folder in model_folders:
-        model_info_filename = f"{model_info_base}{suffix}{model.info_ext}"
+        model_info_filename = f"{model_info_base}{SUFFIX}{model.CIVITAI_EXT}"
         model_info_filepath = os.path.join(model_folder, model_info_filename)
 
         found = os.path.isfile(model_info_filepath)
@@ -284,10 +284,10 @@ def get_model_names_by_type_and_filter(model_type:str, filter:dict) -> list:
                 item = os.path.join(root, filename)
                 # check extension
                 base, ext = os.path.splitext(item)
-                if ext in model.exts:
+                if ext in model.EXTS:
                     # find a model
 
-                    info_file = f"{base}{suffix}{model.info_ext}"
+                    info_file = f"{base}{SUFFIX}{model.CIVITAI_EXT}"
 
                     # check filter
                     if no_info_only:
@@ -380,7 +380,7 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, skip_nsfw_
 
     base, ext = os.path.splitext(model_path)
     preview = preview_filename(base, "png") # XXX png not strictly required
-    info_file = f"{base}{suffix}{model.info_ext}"
+    info_file = f"{base}{SUFFIX}{model.CIVITAI_EXT}"
 
     # need to download preview image
     util.printD(f"Checking preview image for model: {model_path}")
@@ -443,13 +443,13 @@ def search_local_model_info_by_version_id(folder:str, version_id:int) -> dict:
     for filename in os.listdir(folder):
         # check ext
         base, ext = os.path.splitext(filename)
-        if ext == model.info_ext:
+        if ext == model.CIVITAI_EXT:
             # find info file
             if len(base) < 9:
                 # not a civitai info file
                 continue
 
-            if base[-8:] == suffix:
+            if base[-8:] == SUFFIX:
                 # find a civitai info file
                 path = os.path.join(folder, filename)
                 model_info = model.load_model_info(path)
@@ -488,7 +488,7 @@ def check_model_new_version_by_path(model_path:str, delay:float=0.2) -> tuple:
 
     # get model info file name
     base, ext = os.path.splitext(model_path)
-    info_file = f"{base}{suffix}{model.info_ext}"
+    info_file = f"{base}{SUFFIX}{model.CIVITAI_EXT}"
 
     if not os.path.isfile(info_file):
         return
@@ -628,7 +628,7 @@ def check_models_new_version_by_model_types(model_types:list, delay:float=0.2) -
                 # check ext
                 item = os.path.join(root, filename)
                 base, ext = os.path.splitext(item)
-                if ext in model.exts:
+                if ext in model.EXTS:
                     # find a model
                     r = check_model_new_version_by_path(item, delay)
 

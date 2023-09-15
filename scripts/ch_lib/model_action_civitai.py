@@ -83,7 +83,7 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview, refetch_ol
                 # check ext
                 item = os.path.join(root, filename)
                 base, ext = os.path.splitext(item)
-                if ext in model.exts:
+                if ext in model.EXTS:
 
                     # find a model, get info file
                     info_file, sd15_file = model.get_model_info_paths(item)
@@ -206,7 +206,7 @@ def check_models_new_version_to_md(model_types:list) -> str:
         # [model_name](model_url)
         # [version_name](download_url)
         # version description
-        url = f'{civitai.url_dict["modelPage"]}{model_id}'
+        url = f'{civitai.URLS["modelPage"]}{model_id}'
 
         output.append('<article style="margin: 5px; clear: both;">')
 
@@ -270,11 +270,11 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
         return
 
     civitai_model_type = model_info["type"]
-    if civitai_model_type not in civitai.model_type_dict.keys():
+    if civitai_model_type not in civitai.MODEL_TYPES.keys():
         util.printD(f"This model type is not supported: {civitai_model_type}")
         return
 
-    model_type = civitai.model_type_dict[civitai_model_type]
+    model_type = civitai.MODEL_TYPES[civitai_model_type]
 
     # get model type
     if "name" not in model_info.keys():

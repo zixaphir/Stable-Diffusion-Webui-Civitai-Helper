@@ -8,31 +8,31 @@ from modules import shared, paths_internal
 
 
 # this is the default root path
-root_path = paths_internal.data_path
+ROOT_PATH = paths_internal.data_path
 
+EXTS = (".bin", ".pt", ".safetensors", ".ckpt")
+CIVITAI_EXT = ".info"
+SDWEBUI_EXT = ".json"
 
-# if command line arguement is used to change model folder,
-# then model folder is in absolute path, not based on this root path anymore.
-# so to make extension work with those absolute model folder paths, model folder also need to be in absolute path
+"""
+If command line arguement is used to change model folder,
+then model folder is in absolute path, not based on this root path anymore.
+so to make extension work with those absolute model folder paths, model folder also need to be in absolute path
+"""
 folders = {
-    "ti": os.path.join(root_path, "embeddings"),
-    "hyper": os.path.join(root_path, "models", "hypernetworks"),
-    "ckp": os.path.join(root_path, "models", "Stable-diffusion"),
-    "lora": os.path.join(root_path, "models", "Lora"),
-    "lycoris": os.path.join(root_path, "models", "LyCORIS"),
+    "ti": os.path.join(ROOT_PATH, "embeddings"),
+    "hyper": os.path.join(ROOT_PATH, "models", "hypernetworks"),
+    "ckp": os.path.join(ROOT_PATH, "models", "Stable-diffusion"),
+    "lora": os.path.join(ROOT_PATH, "models", "Lora"),
+    "lycoris": os.path.join(ROOT_PATH, "models", "LyCORIS"),
 }
-
-exts = (".bin", ".pt", ".safetensors", ".ckpt")
-info_ext = ".info"
-sd15_ext = ".json"
-vae_suffix = ".vae"
 
 
 def get_model_info_paths(model_path):
     base, ext = os.path.splitext(model_path)
-    info_file = f"{base}{civitai.suffix}{info_ext}"
-    sd15_file = f"{base}{sd15_ext}"
-    return [info_file, sd15_file]
+    info_file = f"{base}{civitai.SUFFIX}{CIVITAI_EXT}"
+    sd15_file = f"{base}{SDWEBUI_EXT}"
+    return (info_file, sd15_file)
 
 
 # get custom model path
@@ -82,7 +82,7 @@ def metadata_needed(info_file, sd15_file, refetch_old):
     return need_civitai or need_sdwebui
 
 
-def metadata_needed_for_type(path, type, refetch_old):
+def metadata_needed_for_type(path, meta_type, refetch_old):
     """ return True if metadata is needed for path
     """
     if not os.path.isfile(path):
@@ -98,9 +98,9 @@ def metadata_needed_for_type(path, type, refetch_old):
         if not metadata_version:
             return True
 
-        compat_version = util.compat_version_info if type == "civitai" else util.compat_version_json
+        compat_version = util.COMPAT_VERSION_CIVITAI if meta_type == "civitai" else util.COMPAT_VERSION_SDWEBUI
 
-        return util.newer_versions(util.version, compat_version)
+        return util.newer_versions(compat_version, metadata_version)
 
     return False
 
@@ -154,9 +154,10 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
         parent["tags"] = []
         process_key_error("tags")
 
-    """ I'm already running into issues with people asking for breaking
-        changes, so I just want to have this for reference later down
-        the line
+    """
+    I'm already running into issues with people asking for breaking
+    changes, so I just want to have this for reference later down
+    the line
     """
     model_info["extensions"] = util.create_extension_block(model_info.get("extensions", {}))
 
@@ -181,61 +182,76 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
 
     sd_data["description"] = parent.get("description", "")
 
-    """ I suppose notes are more for user notes, but populating it
-        with potentially useful information about this particular
-        version of the model is fine too, right? The user can
-        always replace these if they're unneeded or add to them
+    """
+    I suppose notes are more for user notes, but populating it
+    with potentially useful information about this particular
+    version of the model is fine too, right? The user can
+    always replace these if they're unneeded or add to them
     """
     version_info = model_info.get("description", None)
     if version_info is not None:
         sd_data["notes"] = version_info
 
-    if model_type in ["lora", "lycoris"]:
+    """
+    AFAIK civitai model versions are currently:
+    SD 1.4, SD 1.5, SD 2.0, SD 2.0 786, SD 2.1, SD 2.1 786
+    SD 2.1 Unclip, SDXL 0.9, SDXL 1.0, and Other.
+    Conveniently, the 4th character is all we need for webui.
 
-        """ AFAIK civitai model versions are currently:
-            SD 1.4, SD 1.5, SD 2.0, SD 2.0 786, SD 2.1, SD 2.1 786
-            SD 2.1 Unclip, SDXL 0.9, SDXL 1.0, and Other.
-            Conveniently, the 4th character is all we need for webui.
-        """
-        base_model = model_info.get("baseModel", None)
-        if base_model:
-            sd_version = base_model[3]
+    INFO: On Civitai, all models list base model/"sd version".
+    The SD WebUI interface only displays them for Lora/Lycoris.
+    I'm populating the field anyways in hopes it eventually gets
+    added.
+    """
+    base_model = model_info.get("baseModel", None)
+    if base_model:
+        sd_version = base_model[3]
 
-            if sd_version == '1':
-                sd_version = 'SD1'
-            elif sd_version ==  '2':
-                sd_version = 'SD2'
-            elif sd_version == 'L':
-                sd_version = 'SDXL'
-            else:
-                sd_version = 'Unknown'
+        if sd_version == '1':
+            sd_version = 'SD1'
+        elif sd_version ==  '2':
+            sd_version = 'SD2'
+        elif sd_version == 'L':
+            sd_version = 'SDXL'
         else:
             sd_version = 'Unknown'
+    else:
+        sd_version = 'Unknown'
 
-        sd_data["sd version"] = sd_version
+    sd_data["sd version"] = sd_version
 
-        """ "trained words" usage is inconsistent among model authors.
-            Some use each entry as an individual activator, while others
-            use them as entire prompts
-        """
-        activator = model_info.get("trainedWords", [])
-        if (activator and activator[0]):
-            if "," in activator[0]:
-                # assume trainedWords is a prompt list
+    """
+    INFO: On Civitai, all non-checkpoint models can have trained words.
+    The SD WebUI interface only displays them for Lora/Lycoris.
+    I'm populating the field anyways in hopes it eventually gets
+    added.
 
-                """ XXX webui does not support newlines in activator text
-                    so this is the best hinting I can give the user at the
-                    moment that these are mutually-exclusive prompts.
-                """
-                sd_data["activation text"] = " || ".join(activator)
-            else:
-                # assume trainedWords are single keywords
-                sd_data["activation text"] = ", ".join(activator)
+    "trained words" usage is inconsistent among model authors.
+    Some use each entry as an individual activator, while others
+    use them as entire prompts
+    """
+    activator = model_info.get("trainedWords", [])
+    if (activator and activator[0]):
+        if "," in activator[0]:
+            # assume trainedWords is a prompt list
 
-        """ Sadly, Civitai does not provide default weight information,
-            So 0 disables this functionality on webui's end
-            (Tho 1 would also work?)
-        """
+            """
+            XXX webui does not support newlines in activator text
+            so this is the best hinting I can give the user at the
+            moment that these are mutually-exclusive prompts.
+            """
+            sd_data["activation text"] = " || ".join(activator)
+        else:
+            # assume trainedWords are single keywords
+            sd_data["activation text"] = ", ".join(activator)
+
+    """
+    Sadly, Civitai does not provide default weight information,
+    So 0 disables this functionality on webui's end
+    (Tho 1 would also work?)
+    """
+
+    if model_type in ["lora", "lycoris"]:
         sd_data["preferred weight"] = 0
 
     sd_data["extensions"] = util.create_extension_block(sd_data.get("extensions", None))
@@ -277,7 +293,7 @@ def get_model_names_by_type(model_type:str) -> list:
                 item = os.path.join(root, filename)
                 # check extension
                 base, ext = os.path.splitext(item)
-                if ext in exts:
+                if ext in EXTS:
                     # find a model
                     model_names.append(filename)
 

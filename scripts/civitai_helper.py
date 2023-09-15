@@ -12,7 +12,6 @@ from modules.shared import opts
 from scripts.ch_lib import model
 from scripts.ch_lib import js_action_civitai
 from scripts.ch_lib import model_action_civitai
-#from scripts.ch_lib import setting
 from scripts.ch_lib import civitai
 from scripts.ch_lib import util
 
@@ -20,10 +19,10 @@ from scripts.ch_lib import util
 # init
 
 # root path
-root_path = os.getcwd()
+ROOT_PATH = os.getcwd()
 
 # extension path
-extension_path = scripts.basedir()
+EXTENSION_PATH = scripts.basedir()
 
 model.get_custom_model_folder()
 
@@ -32,7 +31,7 @@ def on_ui_tabs():
     # init
     # init_py_msg = {
     #     # relative extension path
-    #     "extension_path": util.get_relative_path(extension_path, root_path),
+    #     "EXTENSION_PATH": util.get_relative_path(EXTENSION_PATH, ROOT_PATH),
     # }
     # init_py_msg_str = json.dumps(init_py_msg)
 
@@ -160,7 +159,7 @@ def on_ui_tabs():
                 check_models_new_version_log_md = gr.HTML("It takes time, just wait. Check console log for detail")
 
         # ====Footer====
-        gr.Markdown(f"<center>version:{util.version}</center>")
+        gr.HTML(f"<center>{util.SHORT_NAME} version: {util.VERSION}</center>")
 
         # ====hidden component for js, not in any tab====
         js_msg_txtbox = gr.Textbox(label="Request Msg From Js", visible=False, lines=1, value="", elem_id="ch_js_msg_txtbox")

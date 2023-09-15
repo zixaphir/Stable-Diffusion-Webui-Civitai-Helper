@@ -9,16 +9,16 @@ import shutil
 from packaging.version import parse as parse_version
 
 # used to append extension information to JSON/INFO files
-short_name = "sd_civitai_helper"
+SHORT_NAME = "sd_civitai_helper"
 
 # current version of the exension
-version = "1.7.1"
+VERSION = "1.7.1"
 
 # Civitai INFO files below this version will regenerated
-compat_version_info = "1.7.1"
+COMPAT_VERSION_CIVITAI = "1.7.1"
 
 # SD webui model info JSON below this version will be regenerated
-compat_version_json = "1.7.1"
+COMPAT_VERSION_SDWEBUI = "1.7.1"
 
 def_headers = {'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'}
 
@@ -203,6 +203,7 @@ def newer_versions(ver1, ver2):
     """ Returns true if the version of the extension is newer than
         the version we're checking against.
     """
+
     return parse_version(ver1) > parse_version(ver2)
 
 
@@ -211,7 +212,7 @@ def metadata_version(metadata):
         to create the object block
     """
     try:
-        return metadata["extensions"][short_name]["version"]
+        return metadata["extensions"][SHORT_NAME]["version"]
     except:
         return False
 
@@ -223,19 +224,19 @@ def create_extension_block(data=None):
         Adds the current version of this extension to the extensions block
     """
     block = {
-        short_name: {
-            "version": version
+        SHORT_NAME: {
+            "version": VERSION
         }
     }
 
     if not data:
         return block
 
-    if not data.get(short_name, False):
-        data[short_name] = block[short_name]
+    if not data.get(SHORT_NAME, False):
+        data[SHORT_NAME] = block[SHORT_NAME]
         return data
 
-    data[short_name]["version"] = version
+    data[SHORT_NAME]["version"] = VERSION
 
     return data
 

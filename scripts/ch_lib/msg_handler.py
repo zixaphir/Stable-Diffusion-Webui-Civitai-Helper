@@ -4,8 +4,8 @@ import json
 from . import util
 
 # action list
-js_actions = ("open_url", "add_trigger_words", "use_preview_prompt", "dl_model_new_version")
-py_actions = ("open_url")
+JS_ACTIONS = ("open_url", "add_trigger_words", "use_preview_prompt", "dl_model_new_version")
+PY_ACTIONS = ("open_url")
 
 
 # handle request from javascript
@@ -28,7 +28,7 @@ def parse_js_msg(msg):
         util.printD("Action from js request is None")
         return
 
-    if action not in js_actions:
+    if action not in JS_ACTIONS:
         util.printD(f"Unknown action: {action}")
         return
 
@@ -50,7 +50,7 @@ def build_py_msg(action:str, content:dict):
         util.printD("Action is None")
         return
 
-    if action not in py_actions:
+    if action not in PY_ACTIONS:
         util.printD(f"Unknown action: {action}")
         return
 
