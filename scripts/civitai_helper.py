@@ -106,7 +106,7 @@ def on_ui_tabs():
                     with gr.Column():
                         refetch_old_ckb = gr.Checkbox(label="Replace Old Metadata Formats*", value=False, elem_id="ch_refetch_old_ckb")
                         gr.HTML("""
-                            <div style="margin-top:-1em;margin-left:2em;">* [<a href=https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Metadata-Format-Changes>wiki</a>]</div>
+                            <div style="margin-top:-1em;margin-left:2em;">* [<a href=https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Metadata-Format-Changes>wiki</a>]</div> Do not use this option if you have made changes with the metadata editor without backing up your data!!
                         """)
                     with gr.Column():
                         scan_model_types_drop = gr.CheckboxGroup(choices=model_types, label="Model Types", value=model_types)

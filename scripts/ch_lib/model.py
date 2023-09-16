@@ -28,6 +28,16 @@ folders = {
 }
 
 
+class VersionMismatchException(Exception):
+    # Constructor or Initializer
+    def __init__(self, value):
+        self.value = value
+
+    # __str__ is to print() the value
+    def __str__(self):
+        return(repr(self.value))
+
+
 def get_model_info_paths(model_path):
     base, ext = os.path.splitext(model_path)
     info_file = f"{base}{civitai.SUFFIX}{CIVITAI_EXT}"
@@ -100,9 +110,32 @@ def metadata_needed_for_type(path, meta_type, refetch_old):
 
         compat_version = util.COMPAT_VERSION_CIVITAI if meta_type == "civitai" else util.COMPAT_VERSION_SDWEBUI
 
+        util.printD(f"{path}: {metadata_version}, {compat_version}")
+
         return util.newer_versions(compat_version, metadata_version)
 
     return False
+
+
+def verify_overwrite_eligibility(path, new_data):
+    if not os.path.isfile(path):
+        return True
+
+    with open(path, "r") as file:
+        old_data = json.load(file)
+
+    if "civitai" in path:
+        new_id = new_data.get("id", "")
+        old_id = old_data.get("id", "")
+        if new_id != old_id:
+            if old_id != "":
+                raise VersionMismatchException(f"New metadata id ({new_id}) does not match old metadata id ({old_id})")
+
+    if new_data.get("description", "") == "" and old_data.get("description", "") != "":
+        util.printD(f"New description is blank while old description contains data. Skipping {path}")
+        return False
+
+    return True
 
 
 def process_model_info(model_path, model_info, model_type="ckp", refetch_old=False):
@@ -119,6 +152,11 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
 
         Returns True if successful, otherwise an error message.
     """
+
+    def write_info(data, path, info_type):
+        util.printD(f"Write model {info_type} info to file: {path}")
+        with open(os.path.realpath(path), 'w') as f:
+            f.write(json.dumps(data, indent=4))
 
     if model_info is None:
         util.printD(f"Failed to get model info.")
@@ -162,12 +200,16 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
     model_info["extensions"] = util.create_extension_block(model_info.get("extensions", {}))
 
     ### civitai model info file
-
-
     if metadata_needed_for_type(info_file, "civitai", refetch_old):
-        util.printD(f"Write model civitai info to file: {info_file}")
-        with open(os.path.realpath(info_file), 'w') as f:
-            f.write(json.dumps(model_info, indent=4))
+        if refetch_old:
+            try:
+                if verify_overwrite_eligibility(info_file, model_info):
+                    write_info(model_info, info_file, "civitai")
+            except VersionMismatchException as e:
+                util.printD(f"{e}, aborting")
+                return
+        else:
+            write_info(model_info, info_file, "civitai")
 
     ### sd v1.5 model info file
     sd_data = {}
@@ -256,8 +298,11 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
 
     sd_data["extensions"] = util.create_extension_block(sd_data.get("extensions", None))
 
-    with open(os.path.realpath(sd15_file), 'w') as f:
-        f.write(json.dumps(sd_data, indent=4))
+    if refetch_old:
+        if verify_overwrite_eligibility(sd15_file, sd_data):
+            write_info(sd_data, sd15_file, "webui")
+    else:
+        write_info(sd_data, sd15_file, "webui")
 
 
 def load_model_info(path):
