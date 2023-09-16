@@ -239,6 +239,15 @@ Since v1.5.5, we've already optimized the SHA256 function to the top. So the onl
 
 
 # Change Log
+## v1.7.2
+* Better HTML sanitization/removal from Descrition/Note fields.
+* CivitAI Anti-DDOS false-positive delay lowered. This may be reverted if it causes issues, tho <5 API hits a second shouldn't be too bad.
+* CivitAI Anti-DDOS false-positive delay added to all models, not just embeddings, when performing model scans.
+  * However, delay has been removed when a scanned model does not need to perform an API hit to CivitAI.
+* Enabled functionality to re-download model data if the current data is from an older version of SD-Webui-Civitai-Helper.
+  * For many people, this will not be necessary. For those migrating from the original extension, missing data for WebUI is handled separately and will be downloaded on scan anyways.
+  * For more details, see the [wiki](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Metadata-Format-Changes).
+
 ## v1.7.1
 * Settings are now in the settings menu.
 * Model previews following the name format `[model name].preview.[format]` in JPEG, GIF, and WEBP formats are now checked before downloading model previews from civitai.
@@ -246,6 +255,7 @@ Since v1.5.5, we've already optimized the SHA256 function to the top. So the onl
 * Improved layout of Model Update interface.
 * Added options for behaviors when downloading a model with the same filename as one already existing.
   * The new default is to skip downloading, replacing the old default of renaming the new model.
+* **Post-release Hotfix**: fixed skeleton JSON generation for models not found on CivitAI.
 
 ## v1.7.0
 * Added compatibility with Stable Diffusion WebUI v1.5.0-v1.6.0.
