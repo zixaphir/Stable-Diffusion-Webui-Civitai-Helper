@@ -30,6 +30,12 @@ proxies = None
 def printD(msg):
     print(f"Civitai Helper: {msg}", file=sys.stderr)
 
+def download_error(download_url, msg):
+    output = f"Download failed, check console log for detail. Download url: {download_url}"
+    printD(output)
+    printD(msg)
+    return output
+
 
 def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
     """Yield pieces of data from a file-like object until EOF."""

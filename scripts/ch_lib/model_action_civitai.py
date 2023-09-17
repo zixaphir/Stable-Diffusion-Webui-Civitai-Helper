@@ -513,9 +513,7 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
         for url in download_urls:
             success, msg = downloader.dl(url, model_folder, None, None, duplicate)
             if not success:
-                output = f"Downloading failed: {msg}"
-                util.printD(output)
-                return output
+                return util.download_error(url, msg)
 
             if url == ver_info["downloadUrl"]:
                 filepath = msg
@@ -531,9 +529,7 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
         # download
         success, msg = downloader.dl(url, model_folder, None, None, duplicate)
         if not success:
-            output = f"Downloading failed: {msg}"
-            util.printD(output)
-            return output
+            return util.download_error(url, msg)
 
         filepath = msg
 
