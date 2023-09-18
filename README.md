@@ -247,6 +247,7 @@ Since v1.5.5, we've already optimized the SHA256 function to the top. So the onl
 * Enabled functionality to re-download model data if the current data is from an older version of SD-Webui-Civitai-Helper.
   * For many people, this will not be necessary. For those migrating from the original extension, missing data for WebUI is handled separately and will be downloaded on scan anyways.
   * For more details, see the [wiki](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Metadata-Format-Changes).
+* **HOTFIX**: if a model has been deleted from Civitai, the `Replace Old Metadata Formats` option will no longer overwrite working data with dummy data.
 
 ## v1.7.1
 * Settings are now in the settings menu.

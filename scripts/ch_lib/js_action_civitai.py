@@ -185,8 +185,6 @@ def dl_model_new_version(msg, max_size_preview, skip_nsfw_preview):
         side that sends a signal to download a single new model
         version. The actual check for new models is in
         `model_action_civitai.check_models_new_version_to_md`.
-
-        XXX: Perhaps it should be moved to this file?
     """
     util.printD("Start dl_model_new_version")
 
@@ -232,21 +230,19 @@ def dl_model_new_version(msg, max_size_preview, skip_nsfw_preview):
     model_folder = os.path.dirname(model_path)
 
     # download file
-    new_model_path = downloader.dl(download_url, model_folder, None, None)
-    if not new_model_path:
-        output = f"Download failed, check console log for detail. Download url: {download_url}"
-        util.printD(output)
-        return output
+    success, msg = downloader.dl(download_url, model_folder, None, None)
+    if not success:
+        return util.download_error(download_url, msg)
 
     # get version info
     version_info = civitai.get_version_info_by_version_id(version_id)
 
     # now write version info to files
-    model.process_model_info(new_model_path, version_info, model_type)
+    model.process_model_info(msg, version_info, model_type)
 
     # then, get preview image
-    civitai.get_preview_image_by_model_path(new_model_path, max_size_preview, skip_nsfw_preview)
+    civitai.get_preview_image_by_model_path(msg, max_size_preview, skip_nsfw_preview)
 
-    output = f"Done. Model downloaded to: {new_model_path}"
+    output = f"Done. Model downloaded to: {msg}"
     util.printD(output)
     return output
