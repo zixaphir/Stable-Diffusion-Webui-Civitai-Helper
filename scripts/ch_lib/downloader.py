@@ -76,7 +76,7 @@ def dl(url, folder, filename, filepath, duplicate=None):
 
     elif duplicate != "Overwrite":
         if os.path.isfile(file_path):
-            return (False, "File already exists! Download will not proceed.")
+            return (False, "File {file_path} already exists! Download will not proceed.")
 
     # use a temp file for downloading
     dl_file_path = f"{file_path}{DL_EXT}"
