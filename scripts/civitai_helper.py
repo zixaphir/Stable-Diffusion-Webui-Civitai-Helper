@@ -38,7 +38,7 @@ def on_ui_tabs():
     # set proxy
     proxy = opts.ch_proxy
     if proxy:
-        util.printD(f"Set Proxy: {proxy}", "")
+        util.printD(f"Set Proxy: {proxy}")
         util.proxies = {
             "http": proxy,
             "https": proxy,
