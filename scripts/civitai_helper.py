@@ -248,6 +248,15 @@ def on_ui_settings():
             section=section)
     )
     shared.opts.add_option(
+        "ch_dl_webui_metadata",
+        shared.OptionInfo(
+            True,
+            "Also add data for WebUI metadata editor",
+            gr.Checkbox,
+            {"interactive": True},
+            section=section)
+    )
+    shared.opts.add_option(
         "ch_proxy",
         shared.OptionInfo(
             "",

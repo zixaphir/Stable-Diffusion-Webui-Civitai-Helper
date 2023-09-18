@@ -2,6 +2,7 @@
 # handle msg between js and python side
 import os
 import json
+from modules.shared import opts
 from . import civitai
 from . import util
 from modules import shared, paths_internal
@@ -95,8 +96,12 @@ def metadata_needed(info_file, sd15_file, refetch_old):
 def metadata_needed_for_type(path, meta_type, refetch_old):
     """ return True if metadata is needed for path
     """
+
     if not os.path.isfile(path):
         return True
+
+    if meta_type == "sdwebui" and not opts.ch_dl_webui_metadata:
+        return False
 
     if refetch_old:
         metadata = None
