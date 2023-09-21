@@ -3,6 +3,7 @@
 import os
 import time
 import re
+from modules import sd_models
 from . import util
 from . import model
 from . import civitai
@@ -43,7 +44,6 @@ def get_metadata_skeleton():
         ],
         "downloadUrl": ""
     }
-
 
 
 def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview, refetch_old):
@@ -129,15 +129,15 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview, refetch_ol
     return output
 
 
-def dummy_model_info(file, hash, model_type):
+def dummy_model_info(path, hash, model_type):
     if not hash:
         return {}
 
     model_info = get_metadata_skeleton()
 
     autov2 = hash[:10]
-    filename = os.path.basename(file)
-    filesize = int(os.path.getsize(file) / 1024)
+    filename = os.path.basename(path)
+    filesize = int(os.path.getsize(path) / 1024)
 
     model_metadata = model_info["model"]
     file_metadata = model_info["files"][0]
@@ -145,9 +145,29 @@ def dummy_model_info(file, hash, model_type):
     model_metadata["name"] = filename
     model_metadata["type"] = model_type
 
+    file_metadata["name"] = filename
     file_metadata["sizeKB"] = filesize
     file_metadata["hashes"]["SHA256"] = hash
     file_metadata["hashes"]["AutoV2"] = autov2
+
+    # We can't get data on the model from civitai, but some models
+    # do store their training data.
+    trained_words = model_info["trainedWords"]
+
+    try:
+        file_metadata = sd_models.read_metadata_from_safetensors(path)
+
+        if file_metadata == {}:
+            return model_info
+
+        tag_frequency = file_metadata.get("ss_tag_frequency", [])
+
+        for tag in tag_frequency.keys():
+            word = re.sub(r"^\d+_", "", tag)
+            trained_words.append(word)
+
+    except:
+        util.printD("Failed to read model for inferred trained words. No trained words will be added to metadata")
 
     return model_info
 

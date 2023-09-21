@@ -79,7 +79,7 @@ def get_custom_model_folder():
             pass
 
 
-def process_key_error(note):
+def process_key_error(note:str):
     util.printD(f"Failed to process {note}. Continuing.")
 
 
@@ -216,14 +216,17 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
         else:
             write_info(model_info, info_file, "civitai")
 
-    ### sd v1.5 model info file
-    sd_data = {}
+    if not opts.ch_dl_webui_metadata:
+        return
 
     # Do not overwrite user-created files!
     # TODO: maybe populate empty fields in existing files?
     if not metadata_needed_for_type(sd15_file, "sdwebui", refetch_old):
         util.printD(f"Metadata not needed for: {sd15_file}.")
         return
+
+    ### sd v1.5 model info file
+    sd_data = {}
 
     util.printD(f"Write model SD webui info to file: {sd15_file}")
 
