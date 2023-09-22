@@ -3,17 +3,6 @@
 "use strict";
 
 let replace_preview_text = '';
-let ch_always_display_ckb;
-
-function ch_convert_file_path_to_url(path){
-    let prefix = "file=";
-    let path_to_url = path.replaceAll('\\', '/');
-    return prefix+path_to_url;
-}
-
-function ch_img_node_str(path) {
-    return `<img src='${ch_convert_file_path_to_url(path)}' style="width:24px">`;
-}
 
 function ch_gradio_version() {
     let foot = gradioApp().getElementById("footer");
@@ -458,7 +447,7 @@ const buttons = {
 };
 
 const createUI = (function() {
-    let assignStyle = (el, el_thm) => {
+    let assignStyle = (el) => {
         //css
         const btn_margin = "0px 5px";
         const btn_fontSize = "200%";
@@ -532,7 +521,6 @@ const createUI = (function() {
 })();
 
 function processSingleCard(active_tab_type, active_extra_tab_type, card) {
-    let metadata_button = null;
     let additional_node = null;
     let ul_node = null;
     let replace_preview_btn = null;
@@ -709,7 +697,7 @@ onUiLoaded(() => {
         for (const header of headers) {
             const model_type = header.textContent.trim().replace(" ", "_").toLowerCase();
 
-            let extraNetworksClick = e => {
+            let extraNetworksClick = () => {
                 waitForExtraTabs(prefix, [model_type]);
                 header.removeEventListener("click", extraNetworksClick);
             };
