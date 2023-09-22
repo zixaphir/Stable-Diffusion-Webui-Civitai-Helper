@@ -183,13 +183,6 @@ In these cases, you can always link a model to civitai by filling its URL in thi
 
 
 ## Feature Request
-~~
-No new feature for v1.x after v1.5. All new feature will go to 2.x.
-
-2.x will focus on custom model information and may change name to "Model Info Helper", because it is not just focus on Civitai anymore.
-
-From v1.5, v1.x goes into maintenance phase.
-~~
 Feel free to submit feature requests, but pull requests are preferred.
 
 Enjoy!
