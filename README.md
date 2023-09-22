@@ -52,7 +52,7 @@ Done.
 This extension need to get extra network's cards id. Which is added since **2023-02-06**.
 **If your SD webui is an earlier version, you need to update it!**
 
-# Some of the following information may not up-to-date. Most functionality should be the same or similar, but many changes post-v1.6 have not been documented as of yet. Images may not match 1:1 with the current state of the extension.
+### Some of the following information may not up-to-date. Most functionality should be the same or similar, but many changes post-v1.6 have not been documented as of yet. Images may not match 1:1 with the current state of the extension.
 
 ## Scanning Models
 Go to extension tab "Civitai Helper". There is a button called "Scan model".
@@ -89,9 +89,11 @@ Move your mouse on to the bottom of a model card. It will show 4 icon buttons:
 
 ## Webui Metadata Editor
 As of v1.7.0, this extension also downloads data for Webui's Metadata Editor by default. This data includes information you'd previously have to read unruly JSON files or navigate to Civitai to read.
+
 ![](img/webui_metadata_editor.png)
 
 This data can be accessed by clicking the metadata button on the model card.
+
 ![](img/webui_metadata_button.png)
 
 ## Download
@@ -101,6 +103,7 @@ To download a model by Civitai Model Page's Url, you need 3 steps:
 * It will fill model name, type, sub-folder, and model version automatically, but you can change the sub-folder and model version if you need to.
   * If you need to add more sub-folders, you must do this by navigating to the model directory on the system running your webui version.
 * Click download.
+
 ![](img/download_model.jpg)
 
 Detail will be displayed on console log, with a progress bar.
@@ -108,6 +111,7 @@ Downloading can resume from break-point, so no fear for large file.
 
 ## Checking Model's New Version
 You can checking your local model's new version from civitai by model types. You can select multiple model types.
+
 ![](img/check_model_new_version.jpg)
 
 The checking process has a small delay after each model's new version checking request. So it is a little slow.
@@ -155,6 +159,7 @@ For some sock5 proxy, need to be used as "socks5h://xxxxx".
 
 * "Always Display Button" is good for touch screen.
 * "Show Buttons on Thumb Mode" will turn on/off additional Buttons on thumbnail.
+
 ![](img/other_setting.jpg)
 
 
