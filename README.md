@@ -49,9 +49,9 @@ Done.
 
 ## Branches
 Development of this extension happens in three development branches:
-* ***master***: The current version of the extension intended for end users. Out-of-version changes to this branch only exist to hotfix critical issues found after the release of a new version.
-* ***dev***: The active development version of this extension. This will always have the most up-to-date changes but is also the most likely to contain bugs
-* ***v1.6ONLY***: Not supported and not really intended for anybody except for me. Slowest to update and less tested than other branches, this branch only runs on the latest version of webui. Compatibility code for older versions is actively removed, and whether I'm running it on webui stable or webui dev is in flux. In theory, this is the most optimized version of the extension, but it's often just me chasing waterfalls. Do not submit issues if you use this branch. They will be marked as invalid, closed, and otherwise ignored.
+* **`master`**: The current version of the extension intended for end users. Out-of-version changes to this branch only exist to hotfix critical issues found after the release of a new version.
+* **`dev`**: The active development version of this extension. This will always have the most up-to-date changes but is also the most likely to contain bugs
+* **`v1.6ONLY`**: Not supported and not really intended for anybody except for me. Slowest to update and less tested than other branches, this branch only runs on the latest version of webui. Compatibility code for older versions is actively removed, and whether I'm running it on webui stable or webui dev is in flux. In theory, this is the most optimized version of the extension, but it's often just me chasing waterfalls. Do not submit issues if you use this branch. They will be marked as invalid, closed, and otherwise ignored.
 
 ## Update Your SD Webui
 This extension need to get extra network's cards id. Which is added since **2023-02-06**.
