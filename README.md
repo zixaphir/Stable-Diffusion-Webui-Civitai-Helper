@@ -126,7 +126,7 @@ There are 3 urls for each new version.
 * Third one is a button to download it into your SD's model folder with python.
 With this one, output information is on "Download Model" section's log and console log. **One task at a time**.
 
-![](img/check_model_new_version_output.jpg)
+![](img/check_model_new_version_output.png)
 
 
 ## Get Model Info By Url
