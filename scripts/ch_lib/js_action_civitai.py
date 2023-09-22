@@ -24,7 +24,7 @@ def open_model_url(msg):
     if not result:
         util.printD("Parsing js ms failed")
         return
-    
+
     model_type = result["model_type"]
     search_term = result["search_term"]
 
@@ -42,7 +42,7 @@ def open_model_url(msg):
         util.printD(f"model id from info file of {model_type} {search_term} is None")
         return ""
 
-    url = f'{civitai.url_dict["modelPage"]}{model_id}'
+    url = f'{civitai.URLS["modelPage"]}{model_id}'
 
 
     # msg content for js
@@ -74,7 +74,7 @@ def add_trigger_words(msg):
     if not result:
         util.printD("Parsing js ms failed")
         return
-    
+
     model_type = result["model_type"]
     search_term = result["search_term"]
     prompt = result["prompt"]
@@ -84,20 +84,20 @@ def add_trigger_words(msg):
     if not model_info:
         util.printD(f"Failed to get model info for {model_type} {search_term}")
         return [prompt, prompt]
-    
+
     if "trainedWords" not in model_info.keys():
         util.printD(f"Failed to get trainedWords from info file for {model_type} {search_term}")
         return [prompt, prompt]
-    
+
     trainedWords = model_info["trainedWords"]
     if not trainedWords:
         util.printD(f"No trainedWords from info file for {model_type} {search_term}")
         return [prompt, prompt]
-    
+
     if len(trainedWords) == 0:
         util.printD(f"trainedWords from info file for {model_type} {search_term} is empty")
         return [prompt, prompt]
-    
+
     # guess if trained words are a list of words or list of prompts
     prompt_list = (',' in trainedWords[0])
 
@@ -126,7 +126,7 @@ def use_preview_image_prompt(msg):
     if not result:
         util.printD("Parsing js ms failed")
         return
-    
+
     model_type = result["model_type"]
     search_term = result["search_term"]
     prompt = result["prompt"]
@@ -137,20 +137,20 @@ def use_preview_image_prompt(msg):
     if not model_info:
         util.printD(f"Failed to get model info for {model_type} {search_term}")
         return [prompt, neg_prompt, prompt, neg_prompt]
-    
+
     if "images" not in model_info.keys():
         util.printD(f"Failed to get images from info file for {model_type} {search_term}")
         return [prompt, neg_prompt, prompt, neg_prompt]
-    
+
     images = model_info["images"]
     if not images:
         util.printD(f"No images from info file for {model_type} {search_term}")
         return [prompt, neg_prompt, prompt, neg_prompt]
-    
+
     if len(images) == 0:
         util.printD(f"images from info file for {model_type} {search_term} is empty")
         return [prompt, neg_prompt, prompt, neg_prompt]
-    
+
     # get prompt from preview images' meta data
     preview_prompt = ""
     preview_neg_prompt = ""
@@ -160,7 +160,7 @@ def use_preview_image_prompt(msg):
                 if "prompt" in img["meta"].keys():
                     if img["meta"]["prompt"]:
                         preview_prompt = img["meta"]["prompt"]
-                
+
                 if "negativePrompt" in img["meta"].keys():
                     if img["meta"]["negativePrompt"]:
                         preview_neg_prompt = img["meta"]["negativePrompt"]
@@ -168,13 +168,13 @@ def use_preview_image_prompt(msg):
                 # we only need 1 prompt
                 if preview_prompt:
                     break
-            
+
     if not preview_prompt:
         util.printD(f"There is no prompt of {model_type} {search_term} in its preview image")
         return [prompt, neg_prompt, prompt, neg_prompt]
-    
+
     util.printD("End use_preview_image_prompt")
-    
+
     return [preview_prompt, preview_neg_prompt, preview_prompt, preview_neg_prompt]
 
 
@@ -185,8 +185,6 @@ def dl_model_new_version(msg, max_size_preview, skip_nsfw_preview):
         side that sends a signal to download a single new model
         version. The actual check for new models is in
         `model_action_civitai.check_models_new_version_to_md`.
-
-        XXX: Perhaps it should be moved to this file?
     """
     util.printD("Start dl_model_new_version")
 
@@ -197,7 +195,7 @@ def dl_model_new_version(msg, max_size_preview, skip_nsfw_preview):
         output = "Parsing js msg failed"
         util.printD(output)
         return output
-    
+
     model_path = result["model_path"]
     version_id = result["version_id"]
     download_url = result["download_url"]
@@ -217,7 +215,7 @@ def dl_model_new_version(msg, max_size_preview, skip_nsfw_preview):
         output = "version_id is empty"
         util.printD(output)
         return output
-    
+
     if not download_url:
         output = "download_url is empty"
         util.printD(output)
@@ -232,21 +230,19 @@ def dl_model_new_version(msg, max_size_preview, skip_nsfw_preview):
     model_folder = os.path.dirname(model_path)
 
     # download file
-    new_model_path = downloader.dl(download_url, model_folder, None, None)
-    if not new_model_path:
-        output = f"Download failed, check console log for detail. Download url: {download_url}"
-        util.printD(output)
-        return output
+    success, msg = downloader.dl(download_url, model_folder, None, None)
+    if not success:
+        return util.download_error(download_url, msg)
 
     # get version info
     version_info = civitai.get_version_info_by_version_id(version_id)
 
     # now write version info to files
-    model.process_model_info(new_model_path, version_info, model_type)
+    model.process_model_info(msg, version_info, model_type)
 
     # then, get preview image
-    civitai.get_preview_image_by_model_path(new_model_path, max_size_preview, skip_nsfw_preview)
-    
-    output = f"Done. Model downloaded to: {new_model_path}"
+    civitai.get_preview_image_by_model_path(msg, max_size_preview, skip_nsfw_preview)
+
+    output = f"Done. Model downloaded to: {msg}"
     util.printD(output)
     return output

@@ -5,7 +5,7 @@ import os
 from . import util
 
 
-dl_ext = ".downloading"
+DL_EXT = ".downloading"
 
 # disable ssl warning info
 requests.packages.urllib3.disable_warnings()
@@ -76,10 +76,10 @@ def dl(url, folder, filename, filepath, duplicate=None):
 
     elif duplicate != "Overwrite":
         if os.path.isfile(file_path):
-            return (False, "File already exists! Download will not proceed.")
+            return (False, "File {file_path} already exists! Download will not proceed.")
 
     # use a temp file for downloading
-    dl_file_path = f"{file_path}{dl_ext}"
+    dl_file_path = f"{file_path}{DL_EXT}"
 
     util.printD(f"Downloading to temp file: {dl_file_path}")
 

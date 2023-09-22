@@ -12,7 +12,6 @@ from modules.shared import opts
 from scripts.ch_lib import model
 from scripts.ch_lib import js_action_civitai
 from scripts.ch_lib import model_action_civitai
-#from scripts.ch_lib import setting
 from scripts.ch_lib import civitai
 from scripts.ch_lib import util
 
@@ -20,10 +19,10 @@ from scripts.ch_lib import util
 # init
 
 # root path
-root_path = os.getcwd()
+ROOT_PATH = os.getcwd()
 
 # extension path
-extension_path = scripts.basedir()
+EXTENSION_PATH = scripts.basedir()
 
 model.get_custom_model_folder()
 
@@ -32,14 +31,14 @@ def on_ui_tabs():
     # init
     # init_py_msg = {
     #     # relative extension path
-    #     "extension_path": util.get_relative_path(extension_path, root_path),
+    #     "EXTENSION_PATH": util.get_relative_path(EXTENSION_PATH, ROOT_PATH),
     # }
     # init_py_msg_str = json.dumps(init_py_msg)
 
     # set proxy
     proxy = opts.ch_proxy
     if proxy:
-        util.printD(f"Set Proxy: {proxy}", "")
+        util.printD(f"Set Proxy: {proxy}")
         util.proxies = {
             "http": proxy,
             "https": proxy,
@@ -99,9 +98,17 @@ def on_ui_tabs():
             with gr.Column():
                 gr.Markdown("### Scan Models for Civitai")
                 with gr.Row():
-                    max_size_preview_ckb = gr.Checkbox(label="Download Max Size Preview", value=max_size_preview, elem_id="ch_max_size_preview_ckb")
-                    skip_nsfw_preview_ckb = gr.Checkbox(label="Skip NSFW Preview Images", value=skip_nsfw_preview, elem_id="ch_skip_nsfw_preview_ckb")
-                    scan_model_types_drop = gr.CheckboxGroup(choices=model_types, label="Model Types", value=model_types)
+                    with gr.Column():
+                        max_size_preview_ckb = gr.Checkbox(label="Download Max Size Preview", value=max_size_preview, elem_id="ch_max_size_preview_ckb")
+                    with gr.Column():
+                        skip_nsfw_preview_ckb = gr.Checkbox(label="Skip NSFW Preview Images", value=skip_nsfw_preview, elem_id="ch_skip_nsfw_preview_ckb")
+                    with gr.Column():
+                        refetch_old_ckb = gr.Checkbox(label="Replace Old Metadata Formats*", value=False, elem_id="ch_refetch_old_ckb")
+                        gr.HTML("""
+                            <div style="margin-top:-1em;margin-left:2em;">* [<a href=https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Metadata-Format-Changes>wiki</a>]</div> Do not use this option if you have made changes with the metadata editor without backing up your data!!
+                        """)
+                    with gr.Column():
+                        scan_model_types_drop = gr.CheckboxGroup(choices=model_types, label="Model Types", value=model_types)
 
                 # with gr.Row():
                 scan_model_civitai_btn = gr.Button(value="Scan", variant="primary", elem_id="ch_scan_model_civitai_btn")
@@ -151,7 +158,7 @@ def on_ui_tabs():
                 check_models_new_version_log_md = gr.HTML("It takes time, just wait. Check console log for detail")
 
         # ====Footer====
-        gr.Markdown(f"<center>version:{util.version}</center>")
+        gr.HTML(f"<center>{util.SHORT_NAME} version: {util.VERSION}</center>")
 
         # ====hidden component for js, not in any tab====
         js_msg_txtbox = gr.Textbox(label="Request Msg From Js", visible=False, lines=1, value="", elem_id="ch_js_msg_txtbox")
@@ -164,7 +171,7 @@ def on_ui_tabs():
 
         # ====events====
         # Scan Models for Civitai
-        scan_model_civitai_btn.click(model_action_civitai.scan_model, inputs=[scan_model_types_drop, max_size_preview_ckb, skip_nsfw_preview_ckb], outputs=scan_model_log_md)
+        scan_model_civitai_btn.click(model_action_civitai.scan_model, inputs=[scan_model_types_drop, max_size_preview_ckb, skip_nsfw_preview_ckb, refetch_old_ckb], outputs=scan_model_log_md)
 
         # Get Civitai Model Info by Model Page URL
         model_type_drop.change(get_model_names_by_input, inputs=[model_type_drop, empty_info_only_ckb], outputs=model_name_drop)
@@ -223,6 +230,15 @@ def on_ui_settings():
         shared.OptionInfo(
             False,
             "Skip NSFW Preview Images",
+            gr.Checkbox,
+            {"interactive": True},
+            section=section)
+    )
+    shared.opts.add_option(
+        "ch_dl_webui_metadata",
+        shared.OptionInfo(
+            True,
+            "Also add data for WebUI metadata editor",
             gr.Checkbox,
             {"interactive": True},
             section=section)

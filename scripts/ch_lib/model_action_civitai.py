@@ -3,6 +3,7 @@
 import os
 import time
 import re
+from modules import sd_models
 from . import util
 from . import model
 from . import civitai
@@ -45,26 +46,12 @@ def get_metadata_skeleton():
     }
 
 
-def metadata_needed(info_file, sd15_file):
-    """ This is intended to be expanded to include extra cases where we may need
-        to regenerate metadata.
-        return True if metadata is needed
-    """
-
-    if not os.path.isfile(info_file):
-        return True
-
-    if not os.path.isfile(sd15_file):
-        return True
-
-    return False
-
-
-
-def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
+def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview, refetch_old):
     """ Scan model to generate SHA256, then use this SHA256 to get model info from civitai
         return output msg
     """
+
+    delay = 0.2
 
     util.printD("Start scan_model")
     output = ""
@@ -96,13 +83,13 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
                 # check ext
                 item = os.path.join(root, filename)
                 base, ext = os.path.splitext(item)
-                if ext in model.exts:
+                if ext in model.EXTS:
 
                     # find a model, get info file
                     info_file, sd15_file = model.get_model_info_paths(item)
 
                     # check info file
-                    if metadata_needed(info_file, sd15_file):
+                    if model.metadata_needed(info_file, sd15_file, refetch_old):
                         util.printD(f"Creating model info for: {filename}")
                         # get model's sha256
                         hash = util.gen_file_sha256(item)
@@ -118,7 +105,11 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
                         if (model_info == {}) and not model_info.get("id", None):
                             model_info = dummy_model_info(item, hash, model_type)
 
-                        model.process_model_info(item, model_info, model_type)
+                        model.process_model_info(item, model_info, model_type, refetch_old=refetch_old)
+
+                        # delay before next request, to prevent to be treat as DDoS
+                        util.printD(f"delay: {delay} second")
+                        time.sleep(delay)
 
                     else:
                         util.printD(f"Model metadata not needed for {filename}")
@@ -138,15 +129,15 @@ def scan_model(scan_model_types, max_size_preview, skip_nsfw_preview):
     return output
 
 
-def dummy_model_info(file, hash, model_type):
+def dummy_model_info(path, hash, model_type):
     if not hash:
         return {}
 
     model_info = get_metadata_skeleton()
 
     autov2 = hash[:10]
-    filename = os.path.basename(file)
-    filesize = int(os.path.getsize(file) / 1024)
+    filename = os.path.basename(path)
+    filesize = int(os.path.getsize(path) / 1024)
 
     model_metadata = model_info["model"]
     file_metadata = model_info["files"][0]
@@ -154,9 +145,29 @@ def dummy_model_info(file, hash, model_type):
     model_metadata["name"] = filename
     model_metadata["type"] = model_type
 
+    file_metadata["name"] = filename
     file_metadata["sizeKB"] = filesize
     file_metadata["hashes"]["SHA256"] = hash
     file_metadata["hashes"]["AutoV2"] = autov2
+
+    # We can't get data on the model from civitai, but some models
+    # do store their training data.
+    trained_words = model_info["trainedWords"]
+
+    try:
+        file_metadata = sd_models.read_metadata_from_safetensors(path)
+
+        if file_metadata == {}:
+            return model_info
+
+        tag_frequency = file_metadata.get("ss_tag_frequency", [])
+
+        for tag in tag_frequency.keys():
+            word = re.sub(r"^\d+_", "", tag)
+            trained_words.append(word)
+
+    except:
+        util.printD("Failed to read model for inferred trained words. No trained words will be added to metadata")
 
     return model_info
 
@@ -200,7 +211,7 @@ def get_model_info_by_input(model_type, model_name, model_url_or_id, max_size_pr
 
 # check models' new version and output to UI as markdown doc
 def check_models_new_version_to_md(model_types:list) -> str:
-    new_versions = civitai.check_models_new_version_by_model_types(model_types, 1)
+    new_versions = civitai.check_models_new_version_by_model_types(model_types, 0.2)
 
     count = 0
     if not new_versions:
@@ -215,7 +226,7 @@ def check_models_new_version_to_md(model_types:list) -> str:
         # [model_name](model_url)
         # [version_name](download_url)
         # version description
-        url = f'{civitai.url_dict["modelPage"]}{model_id}'
+        url = f'{civitai.URLS["modelPage"]}{model_id}'
 
         output.append('<article style="margin: 5px; clear: both;">')
 
@@ -279,11 +290,11 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
         return
 
     civitai_model_type = model_info["type"]
-    if civitai_model_type not in civitai.model_type_dict.keys():
+    if civitai_model_type not in civitai.MODEL_TYPES.keys():
         util.printD(f"This model type is not supported: {civitai_model_type}")
         return
 
-    model_type = civitai.model_type_dict[civitai_model_type]
+    model_type = civitai.MODEL_TYPES[civitai_model_type]
 
     # get model type
     if "name" not in model_info.keys():
@@ -522,9 +533,7 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
         for url in download_urls:
             success, msg = downloader.dl(url, model_folder, None, None, duplicate)
             if not success:
-                output = f"Downloading failed: {msg}"
-                util.printD(output)
-                return output
+                return util.download_error(url, msg)
 
             if url == ver_info["downloadUrl"]:
                 filepath = msg
@@ -540,9 +549,7 @@ def dl_model_by_input(model_info:dict, model_type:str, subfolder_str:str, versio
         # download
         success, msg = downloader.dl(url, model_folder, None, None, duplicate)
         if not success:
-            output = f"Downloading failed: {msg}"
-            util.printD(output)
-            return output
+            return util.download_error(url, msg)
 
         filepath = msg
 

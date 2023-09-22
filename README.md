@@ -52,6 +52,8 @@ Done.
 This extension need to get extra network's cards id. Which is added since **2023-02-06**.
 **If your SD webui is an earlier version, you need to update it!**
 
+### Some of the following information may not up-to-date. Most functionality should be the same or similar, but many changes post-v1.6 have not been documented as of yet. Images may not match 1:1 with the current state of the extension.
+
 ## Scanning Models
 Go to extension tab "Civitai Helper". There is a button called "Scan model".
 
@@ -61,14 +63,14 @@ Click it and the extension will scan all your models to generate SHA256 hashes, 
 
 **Scanning takes time, just wait it finish**
 
-For each model, it will create a json file to save all model info from Civitai. This model info file will be "Your_model_name.civitai.info" in your model folder.
+For each model, it will create two files to save all model info from Civitai. These model info files will be `[model_name].civitai.info` and `[model_name].json` in your model folder.
 
 ![](img/model_info_file.jpg)
 
-If a model info file already exists, it will be skipped. If a model cannot be found in Civitai, it will create an empty model info file, so the model won't be scanned twice.
+If a model info file already exists, by default it will be skipped. If a model cannot be found in Civitai, a minimal model info file will be created with any information that can be extracted from the model. By default, a model with model pre-existing model info files will not be scanned.
 
 ### Adding New Models
-When you have some new models, just click scan button again, to get new model's information and preview images. It won't scan the same model twice.
+When you have some new models, just click scan button again to get new model's information and preview images. Only new models will be scanned with default options.
 
 ## Model Card
 **(Use this only after scanning finished)**
@@ -85,12 +87,23 @@ Move your mouse on to the bottom of a model card. It will show 4 icon buttons:
 
 ![](img/model_card.jpg)
 
+## Webui Metadata Editor
+As of v1.7.0, this extension also downloads data for Webui's Metadata Editor by default. This data includes information you'd previously have to read unruly JSON files or navigate to Civitai to read.
+
+![](img/webui_metadata_editor.png)
+
+This data can be accessed by clicking the metadata button on the model card.
+
+![](img/webui_metadata_button.png)
 
 ## Download
 To download a model by Civitai Model Page's Url, you need 3 steps:
-* Fill url, click button to get model info
-* It will show model name and type automatically. Just choose sub-folder and model version
+* Fill the Civitai URL or Model ID
+* Click "1. Get Model Information by Civitai Url.
+* It will fill model name, type, sub-folder, and model version automatically, but you can change the sub-folder and model version if you need to.
+  * If you need to add more sub-folders, you must do this by navigating to the model directory on the system running your webui version.
 * Click download.
+
 ![](img/download_model.jpg)
 
 Detail will be displayed on console log, with a progress bar.
@@ -98,11 +111,12 @@ Downloading can resume from break-point, so no fear for large file.
 
 ## Checking Model's New Version
 You can checking your local model's new version from civitai by model types. You can select multiple model types.
+
 ![](img/check_model_new_version.jpg)
 
-The checking process has a "1 second delay" after each model's new version checking request. So it is a little slow.
+The checking process has a small delay after each model's new version checking request. So it is a little slow.
 
-This is to protect Civitai from issue like DDos from this extension. Some cloud service provider has a rule as "no more than 1 API request in a second for free user". Civitai doesn't have this rule yet, but we still need to protect it. There is no good for us if it is down.
+This is to protect Civitai from issue like DDos from this extension. There is no good for us if it is down.
 
 **After checking process done**, it will display all new version's information on UI.
 
@@ -112,7 +126,7 @@ There are 3 urls for each new version.
 * Third one is a button to download it into your SD's model folder with python.
 With this one, output information is on "Download Model" section's log and console log. **One task at a time**.
 
-![](img/check_model_new_version_output.jpg)
+![](img/check_model_new_version_output.png)
 
 
 ## Get Model Info By Url
@@ -145,6 +159,7 @@ For some sock5 proxy, need to be used as "socks5h://xxxxx".
 
 * "Always Display Button" is good for touch screen.
 * "Show Buttons on Thumb Mode" will turn on/off additional Buttons on thumbnail.
+
 ![](img/other_setting.jpg)
 
 
@@ -172,15 +187,14 @@ There are 2 cases this hash code can not find the model on civitai:
 In these cases, you can always link a model to civitai by filling its URL in this extension.
 
 
-
 ## Feature Request
-No new feature for v1.x after v1.5. All new feature will go to 2.x.
-
-2.x will focus on custom model information and may change name to "Model Info Helper", because it is not just focus on Civitai anymore.
-
-From v1.5, v1.x goes into maintenance phase.
+Feel free to submit feature requests, but pull requests are preferred.
 
 Enjoy!
+
+
+## Pull Requests
+All pull requests should target the dev branch. For those who take a stab at the code, I apologize for the lack of consistency in coding style, naming, and other syntactical oddities. At some point, I intend to clean up the code and have everything pass linting, but we're not there yet.
 
 
 ## Common Issue
@@ -201,13 +215,11 @@ Your update could be failed if you have modified SD webui's file. You need to ch
 In many cases, git will just refuse to update and tell you there are some conflicts need you to handle manually. If you don't check the consloe log, you will think your SD webui is updated, but it is not.
 
 ### Request, Scan or Get model info failed
-This extension is stable. So, the reason for this most likely is your internet connection to Civitai API service.
+Usually the reason for this most likely is the connection to Civitai API service failed. This can be for a number of reasons.
 
-Civitai is not as stable as those rich websites, it can be down or refuse your API connection.
+Sometimes Civitai can be down or refuse your API connection. Civitai has a connection pool setting. Basicly, it's a max connection number that civitai can have at the same time. So if there are already too manny connections on civitai, it will refuse your API connection.
 
-Civitai has a connection pool setting. Basicly, it's a max connection number that civitai can have at the same time. So, if there are already too manny connections on civitai, it will refuse your API connection.
-
-In those cases, the only thing you can do is just wait a while then try again.
+In those cases, the only thing you can do is just wait a while then try again. I suggest making a cup of tea!
 
 ### Get Wrong model info and preview images from civitai
 A bad news is, some models are saved with a wrong sha256 in civitai's database. Check here for more detail:
@@ -223,8 +235,6 @@ Also, you can report those models with wrong sha256 to civitai at following page
 Please report that model to civitai, so they can fix it.
 
 
-
-
 ### Scanning fail when using colab
 First of, search your error message with google. Most likely, it will be a colab issue.
 
@@ -235,10 +245,23 @@ Since v1.5.5, we've already optimized the SHA256 function to the top. So the onl
 * or use a pro account of colab.
 
 
-
-
-
 # Change Log
+## v1.7.3
+* Downloading webui model information (`[model_name].json`) is now optional and can be configured in the webui settings.
+* When a model is not found on Civitai, this extension will attempt to read the model header for activation keywords. This only works with safetensors files with kohya_ss metadata and may be inaccurate depending on how the model was trained. This method assumes the model was trained with each trained concept having its own training folder. This is not always the case.
+  * This information can also be found in webui without any extensions by clicking the :information_source: button and reading the `"ss_tag_frequency":` section. This section may prove more helpful on models that are trained on multiple concepts but with all the training data under one directory. For instance, if it was trained for certain characters, search the list for that character's name. Often model authors will use a name plus a unique identifier as to not cause the character to "bleed into" other characters with the same name. For instance, we can the [All The Mothers](https://civitai.com/models/48200) lora has all of its trained characters as tagged images under one dataset:
+  ![](img/all_the_mothers.png)
+
+## v1.7.2
+* Better HTML sanitization/removal from Descrition/Note fields.
+* CivitAI Anti-DDOS false-positive delay lowered. This may be reverted if it causes issues, tho <5 API hits a second shouldn't be too bad.
+* CivitAI Anti-DDOS false-positive delay added to all models, not just embeddings, when performing model scans.
+  * However, delay has been removed when a scanned model does not need to perform an API hit to CivitAI.
+* Enabled functionality to re-download model data if the current data is from an older version of SD-Webui-Civitai-Helper.
+  * For many people, this will not be necessary. For those migrating from the original extension, missing data for WebUI is handled separately and will be downloaded on scan anyways.
+  * For more details, see the [wiki](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Metadata-Format-Changes).
+* **HOTFIX**: if a model has been deleted from Civitai, the `Replace Old Metadata Formats` option will no longer overwrite working data with dummy data.
+
 ## v1.7.1
 * Settings are now in the settings menu.
 * Model previews following the name format `[model name].preview.[format]` in JPEG, GIF, and WEBP formats are now checked before downloading model previews from civitai.
@@ -246,6 +269,7 @@ Since v1.5.5, we've already optimized the SHA256 function to the top. So the onl
 * Improved layout of Model Update interface.
 * Added options for behaviors when downloading a model with the same filename as one already existing.
   * The new default is to skip downloading, replacing the old default of renaming the new model.
+* **Post-release Hotfix**: fixed skeleton JSON generation for models not found on CivitAI.
 
 ## v1.7.0
 * Added compatibility with Stable Diffusion WebUI v1.5.0-v1.6.0.

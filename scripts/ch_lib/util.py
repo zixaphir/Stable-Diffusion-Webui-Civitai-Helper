@@ -6,10 +6,19 @@ import re
 import hashlib
 import requests
 import shutil
+from packaging.version import parse as parse_version
 
+# used to append extension information to JSON/INFO files
+SHORT_NAME = "sd_civitai_helper"
 
-short_name = "sd_civitai_helper"
-version = "1.7.1"
+# current version of the exension
+VERSION = "1.7.3"
+
+# Civitai INFO files below this version will regenerated
+COMPAT_VERSION_CIVITAI = "1.7.2"
+
+# SD webui model info JSON below this version will be regenerated
+COMPAT_VERSION_SDWEBUI = "1.7.2"
 
 def_headers = {'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'}
 
@@ -20,6 +29,12 @@ proxies = None
 # print for debugging
 def printD(msg):
     print(f"Civitai Helper: {msg}", file=sys.stderr)
+
+def download_error(download_url, msg):
+    output = f"Download failed, check console log for detail. Download url: {download_url}"
+    printD(output)
+    printD(msg)
+    return output
 
 
 def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
@@ -112,6 +127,9 @@ whitelist = re.compile(r"</?(a|img|br|p|b|strong|i|h[0-9]|code)[^>]*>")
 attrs = re.compile(r"""(?:href|src|target)=['"]?[^\s'"]*['"]?""")
 
 def safe_html_replace(match):
+    """ Given a block of text, returns that block with most HTML removed
+        and unneeded attributes pruned.
+    """
     tag = None
     attr = None
     close = False
@@ -166,7 +184,67 @@ def trim_html(s):
         }
         return unescaped.get(escaped, "")
 
+    # non-breaking space. Useless unstyled content
+    s = s.replace("\u00a0", "")
+
+    # remove non-whitelisted HTML tags,
+    # replace whitelisted tags with text-equivalents
     s = re.sub(r"<(/?[a-zA-Z]+)(?:[^>]+)?>", sub_tag, s)
+
+    # Replace HTML-escaped characters with displayables.
     s = re.sub(r"\&(gt|lt|quot|amp)\;", sub_escaped, s)
 
+    # remove trailing line breaks
+    count = -1
+    while s[count] == "\n":
+        count = count - 1
+
+    if count < -1:
+        s = s[0:count + 1]
+
     return s
+
+
+def newer_versions(ver1, ver2):
+    """ Returns true if the version of the extension is newer than
+        the version we're checking against.
+    """
+
+    return parse_version(ver1) > parse_version(ver2)
+
+
+def metadata_version(metadata):
+    """ Attempts retrieve the extension version used to create
+        to create the object block
+    """
+    try:
+        return metadata["extensions"][SHORT_NAME]["version"]
+    except:
+        return False
+
+
+def create_extension_block(data=None):
+    """ Creates or edits an extensions block for usage in JSON files
+        created or edited by this extension.
+
+        Adds the current version of this extension to the extensions block
+    """
+    block = {
+        SHORT_NAME: {
+            "version": VERSION
+        }
+    }
+
+    if not data:
+        return block
+
+    if not data.get(SHORT_NAME, False):
+        data[SHORT_NAME] = block[SHORT_NAME]
+        return data
+
+    data[SHORT_NAME]["version"] = VERSION
+
+    return data
+
+
+
