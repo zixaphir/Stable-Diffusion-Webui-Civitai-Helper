@@ -32,9 +32,10 @@ Civitai: ![Civitai Url](https://civitai.com/models/16768/civitai-helper-sd-webui
   - 🌐: Open this model's Civitai url in a new tab
   - 💡: Add this model's trigger words to prompt
   - 🏷️: Use this model's preview image's prompt
-* Above buttons support thumbnail mode of Extra Network
+* Above buttons support thumbnail mode of Extra Network in versions of webui prior to 1.5.0.
+    * Thumbnail mode was removed in v1.5.0 of webui and replaced customizable model card sizes.
 * Option to always show additional buttons, to work with touchscreen.
-
+* To the best of my knowledge, this extension should still work in versions of webui prior to v1.5.0, but it is not tested. I make best-effort attempts to write code that *should* maintain compatibility with older versions, but if you have run into problems, please file an issue and I'll attempt to resolve it.
 
 # Install
 Go to SD webui's extension tab, go to `Install from url` sub-tab.
@@ -46,7 +47,11 @@ Everytime you install or update this extension, you need to shutdown SD Webui an
 
 Done.
 
-# How to Use
+## Branches
+Development of this extension happens in three development branches:
+* ***master***: The current version of the extension intended for end users. Out-of-version changes to this branch only exist to hotfix critical issues found after the release of a new version.
+* ***dev***: The active development version of this extension. This will always have the most up-to-date changes but is also the most likely to contain bugs
+* ***v1.6ONLY***: Not supported and not really intended for anybody except for me. Slowest to update and less tested than other branches, this branch only runs on the latest version of webui. Compatibility code for older versions is actively removed, and whether I'm running it on webui stable or webui dev is in flux. In theory, this is the most optimized version of the extension, but it's often just me chasing waterfalls. Do not submit issues if you use this branch. They will be marked as invalid, closed, and otherwise ignored.
 
 ## Update Your SD Webui
 This extension need to get extra network's cards id. Which is added since **2023-02-06**.
@@ -128,7 +133,6 @@ With this one, output information is on "Download Model" section's log and conso
 
 ![](img/check_model_new_version_output.png)
 
-
 ## Get Model Info By Url
 This is used to force a local model links to a Civitai model. For example, you converted a model's format or pruned it. Then it can not be found on civitai when scanning.
 
@@ -151,19 +155,14 @@ Then all requests to civitai will use the proxy.
 
 For some sock5 proxy, need to be used as "socks5h://xxxxx".
 
-
-
-
 ## Other Setting
 **The Save Setting button, will save both "Scan Model"'s setting and other setting.**
 
 * "Always Display Button" is good for touch screen.
 * "Show Buttons on Thumb Mode" will turn on/off additional Buttons on thumbnail.
+    * Thumbnail Mode was removed in v1.5.0 of webui.
 
 ![](img/other_setting.jpg)
-
-
-
 
 ## Preview Image
 Extra network uses both `model_file.png` and `model_file.preview.png` as preview image. But `model_file.png` has higher priority, because it is created by yourself.
@@ -186,16 +185,13 @@ There are 2 cases this hash code can not find the model on civitai:
 
 In these cases, you can always link a model to civitai by filling its URL in this extension.
 
-
 ## Feature Request
 Feel free to submit feature requests, but pull requests are preferred.
 
 Enjoy!
 
-
 ## Pull Requests
 All pull requests should target the dev branch. For those who take a stab at the code, I apologize for the lack of consistency in coding style, naming, and other syntactical oddities. At some point, I intend to clean up the code and have everything pass linting, but we're not there yet.
-
 
 ## Common Issue
 ### 4 Buttons on card didn't show
@@ -234,7 +230,6 @@ Also, you can report those models with wrong sha256 to civitai at following page
 
 Please report that model to civitai, so they can fix it.
 
-
 ### Scanning fail when using colab
 First of, search your error message with google. Most likely, it will be a colab issue.
 
@@ -243,7 +238,6 @@ If you are sure it is a out of memory issue when scanning models, and you are us
 Since v1.5.5, we've already optimized the SHA256 function to the top. So the only 2 choices for you are:
 * try again
 * or use a pro account of colab.
-
 
 # Change Log
 ##
