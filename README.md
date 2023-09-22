@@ -87,6 +87,12 @@ Move your mouse on to the bottom of a model card. It will show 4 icon buttons:
 
 ![](img/model_card.jpg)
 
+## Webui Metadata Editor
+As of v1.7.0, this extension also downloads data for Webui's Metadata Editor by default. This data includes information you'd previously have to read unruly JSON files or navigate to Civitai to read.
+![](img/webui_metadata_editor.png)
+
+This data can be accessed by clicking the metadata button on the model card.
+![](img/webui_metadata_button.png)
 
 ## Download
 To download a model by Civitai Model Page's Url, you need 3 steps:
@@ -245,7 +251,8 @@ Since v1.5.5, we've already optimized the SHA256 function to the top. So the onl
 ## v1.7.3
 * Downloading webui model information (`[model_name].json`) is now optional and can be configured in the webui settings.
 * When a model is not found on Civitai, this extension will attempt to read the model header for activation keywords. This only works with safetensors files with kohya_ss metadata and may be inaccurate depending on how the model was trained. This method assumes the model was trained with each trained concept having its own training folder. This is not always the case.
-  * This information can also be found in webui without any extensions by clicking the :information_source: button and reading the `"ss_tag_frequency":` section. This section may prove more helpful on models that are trained on multiple concepts but with all the training data under one directory. For instance, if it was trained for certain characters, search the list for that character's name. Often model authors will use a name plus a unique identifier as to not cause the character to "bleed into" other characters with the same name. For instance, we can the [All The Mothers](https://civitai.com/models/48200) lora has all of its trained characters as tagged images under one dataset: ![](img/all_the_mothers.png)
+  * This information can also be found in webui without any extensions by clicking the :information_source: button and reading the `"ss_tag_frequency":` section. This section may prove more helpful on models that are trained on multiple concepts but with all the training data under one directory. For instance, if it was trained for certain characters, search the list for that character's name. Often model authors will use a name plus a unique identifier as to not cause the character to "bleed into" other characters with the same name. For instance, we can the [All The Mothers](https://civitai.com/models/48200) lora has all of its trained characters as tagged images under one dataset:
+  ![](img/all_the_mothers.png)
 
 ## v1.7.2
 * Better HTML sanitization/removal from Descrition/Note fields.
