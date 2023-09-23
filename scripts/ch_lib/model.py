@@ -97,11 +97,11 @@ def metadata_needed_for_type(path, meta_type, refetch_old):
     """ return True if metadata is needed for path
     """
 
-    if not os.path.isfile(path):
-        return True
-
     if meta_type == "sdwebui" and not opts.ch_dl_webui_metadata:
         return False
+
+    if not os.path.isfile(path):
+        return True
 
     if refetch_old:
         metadata = None
