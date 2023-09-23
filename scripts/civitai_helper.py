@@ -34,6 +34,8 @@ BUTTONS = {
     "remove_model_button": False,
 }
 
+NSFW_LEVELS = ["Soft", "Mature", "X", "Do not Skip"]
+
 model.get_custom_model_folder()
 
 
@@ -112,7 +114,7 @@ def on_ui_tabs():
                     with gr.Column():
                         max_size_preview_ckb = gr.Checkbox(label="Download Max Size Preview", value=max_size_preview, elem_id="ch_max_size_preview_ckb")
                     with gr.Column():
-                        skip_nsfw_preview_ckb = gr.Checkbox(label="Skip NSFW Preview Images", value=skip_nsfw_preview, elem_id="ch_skip_nsfw_preview_ckb")
+                        skip_nsfw_preview_ckb = gr.Dropdown(label="Block NSFW Level Above", choices=NSFW_LEVELS, value=skip_nsfw_preview, elem_id="ch_skip_nsfw_preview_ckb")
                     with gr.Column():
                         refetch_old_ckb = gr.Checkbox(label="Replace Old Metadata Formats*", value=False, elem_id="ch_refetch_old_ckb")
                         gr.HTML("""
@@ -220,7 +222,8 @@ def on_ui_settings():
             "Open model Url on the user's client side, rather than server side. If you are running WebUI locally, disabling this may open URLs in your default internet browser if it is different than the one you are running WebUI in",
             gr.Checkbox,
             {"interactive": True},
-            section=section)
+            section=section
+        )
     )
     shared.opts.add_option(
         "ch_hide_buttons",
@@ -229,7 +232,8 @@ def on_ui_settings():
            "Hide checked Civitai Helper buttons on model cards",
            gr.CheckboxGroup,
            {"choices": [x for x in BUTTONS]},
-           section=section)
+           section=section
+        )
    )
     shared.opts.add_option(
         "ch_always_display",
@@ -238,7 +242,8 @@ def on_ui_settings():
             "Always Display Buttons on model cards",
             gr.Checkbox,
             {"interactive": True},
-            section=section)
+            section=section
+        )
     )
     shared.opts.add_option(
         "ch_show_btn_on_thumb",
@@ -247,7 +252,8 @@ def on_ui_settings():
             "Show Button On Thumb Mode in SD webui versions before 1.5.0",
             gr.Checkbox,
             {"interactive": True},
-            section=section)
+            section=section
+        )
     )
     shared.opts.add_option(
         "ch_max_size_preview",
@@ -256,16 +262,21 @@ def on_ui_settings():
             "Download Max Size Preview",
             gr.Checkbox,
             {"interactive": True},
-            section=section)
+            section=section
+        )
     )
     shared.opts.add_option(
         "ch_skip_nsfw_preview",
         shared.OptionInfo(
-            False,
+            "Do not Skip",
             "Skip NSFW Preview Images",
-            gr.Checkbox,
-            {"interactive": True},
-            section=section)
+            gr.Dropdown,
+            {
+                "choices": NSFW_LEVELS,
+                "interactive": True
+            },
+            section=section
+        )
     )
     shared.opts.add_option(
         "ch_dl_webui_metadata",

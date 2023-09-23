@@ -344,6 +344,9 @@ def get_model_id_from_url(url:str) -> str:
 
     return id
 
+def should_skip(selected_level, current_level):
+    order = ["None", "Soft", "Mature", "X", "Do not Skip"]
+    return order.index(current_level) >= order.index(selected_level)
 
 def preview_exists(model_path):
     """ Search for existing preview image. return True if it exists, else false """
@@ -387,15 +390,16 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, skip_nsfw_
             util.printD("Model Info is empty")
             return
 
-        if "images" in model_info.keys():
-            if model_info["images"]:
-                for img_dict in model_info["images"]:
-                    if "nsfw" in img_dict.keys():
-                        if img_dict["nsfw"] != "" and img_dict["nsfw"] != "None":
-                            util.printD(f'This image is NSFW: {img_dict["nsfw"]}')
-                            if skip_nsfw_preview:
-                                util.printD("Skip NSFW image")
-                                continue
+            if "images" in model_info.keys():
+                if model_info["images"]:
+                    for img_dict in model_info["images"]:
+                        if "nsfw" in img_dict.keys():
+                            if img_dict["nsfw"] != "None":
+                                util.printD("This image is NSFW: " + str(img_dict["nsfw"]))
+                                current_nsfw = img_dict.get("nsfw", "None")
+                                if should_skip(skip_nsfw_preview, current_nsfw):
+                                    util.printD("Skip NSFW image")
+                                    continue
 
                     if "url" in img_dict.keys():
                         img_url = img_dict["url"]
