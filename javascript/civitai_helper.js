@@ -60,7 +60,7 @@ function get_ch_py_msg(){
 
 // get msg from python side from a hidden textbox
 // it will try once in every sencond, until it reach the max try times
-const get_new_ch_py_msg = (max_count=3) => new Promise((resolve, reject) => {
+const get_new_ch_py_msg = (max_count=5) => new Promise((resolve, reject) => {
     console.log("run get_new_ch_py_msg");
 
     let count = 0;
@@ -178,7 +178,13 @@ async function open_model_url(event, model_type, search_term){
     event.preventDefault();
 
     //check response msg from python
-    let new_py_msg = await get_new_ch_py_msg();
+    let new_py_msg = null;
+    try {
+        new_py_msg = await get_new_ch_py_msg();
+    } catch (error) {
+        console.log(error);
+    }
+
     console.log("new_py_msg:");
     console.log(new_py_msg);
 
@@ -287,6 +293,88 @@ function use_preview_prompt(event, model_type, search_term){
 
 }
 
+
+async function remove_card(event, model_type, search_term){
+    console.log("start remove_card");
+
+    //get hidden components of extension
+    let js_remove_card_btn = gradioApp().getElementById("ch_js_remove_card_btn");
+    if (!js_remove_card_btn) {
+        return
+    }
+
+    // must confirm before removing
+    let rm_confirm = "\nConfirm to remove this model.\n\nCheck console log for detail.";
+    if (!confirm(rm_confirm)) {
+        return
+    }
+
+
+    //msg to python side
+    let msg = {
+        "action": "",
+        "model_type": "",
+        "search_term": "",
+    }
+
+
+    msg["action"] = "remove_card";
+    msg["model_type"] = model_type;
+    msg["search_term"] = search_term;
+    msg["prompt"] = "";
+    msg["neg_prompt"] = "";
+
+    // fill to msg box
+    send_ch_py_msg(msg)
+
+    //click hidden button
+    js_remove_card_btn.click();
+
+    // stop parent event
+    event.stopPropagation()
+    event.preventDefault()
+
+    //check response msg from python
+    let new_py_msg = "";
+    try {
+        new_py_msg = await get_new_ch_py_msg();
+    } catch (error) {
+        console.log(error);
+        new_py_msg = error;
+    }
+
+    console.log("new_py_msg:");
+    console.log(new_py_msg);
+
+    //check msg
+    let result = "Done";
+    //check msg
+    if (new_py_msg) {
+        result = new_py_msg;
+    }
+
+    // alert result
+    alert(result);
+
+    if (result=="Done"){
+        console.log("refresh card list");
+        //refresh card list
+        let active_tab = getActiveTabType();
+        console.log("get active tab id: " + active_tab);
+        if (active_tab){
+            let refresh_btn_id = active_tab + "_extra_refresh";
+            let refresh_btn = gradioApp().getElementById(refresh_btn_id);
+            if (refresh_btn){
+                console.log("click button: "+refresh_btn_id);
+                refresh_btn.click();
+            }
+        }
+    }
+
+    console.log("end remove_card");
+
+
+}
 
 
 // download model's new version into SD at python side
@@ -666,6 +754,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     open_url_node.href = "#";
     open_url_node.textContent = "🌐";
     open_url_node.className = "openurl";
+
     if (!is_thumb_mode) {
         open_url_node.style.fontSize = btn_fontSize;
         open_url_node.style.margin = btn_margin;
@@ -675,13 +764,15 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         open_url_node.style.position = btn_thumb_pos;
         open_url_node.style.backgroundImage = btn_thumb_backgroundImage;
     }
+
     open_url_node.title = "Open this model's civitai url";
-    open_url_node.setAttribute("onclick","open_model_url(event, '" + model_type + "', '" + search_term + "')");
+    open_url_node.setAttribute("onclick", `open_model_url(event, '${model_type}', '${search_term}')`);
 
     let add_trigger_words_node = document.createElement("a");
     add_trigger_words_node.href = "#";
     add_trigger_words_node.textContent = "💡";
     add_trigger_words_node.className = "addtriggerwords";
+
     if (!is_thumb_mode) {
         add_trigger_words_node.style.fontSize = btn_fontSize;
         add_trigger_words_node.style.margin = btn_margin;
@@ -693,12 +784,13 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     }
 
     add_trigger_words_node.title = "Add trigger words to prompt";
-    add_trigger_words_node.setAttribute("onclick","add_trigger_words(event, '" + model_type + "', '" + search_term + "')");
+    add_trigger_words_node.setAttribute("onclick", `add_trigger_words(event, '${model_type}', '${search_term}')`);
 
     let use_preview_prompt_node = document.createElement("a");
     use_preview_prompt_node.href = "#";
     use_preview_prompt_node.textContent = "🏷️";
     use_preview_prompt_node.className = "usepreviewprompt";
+
     if (!is_thumb_mode) {
         use_preview_prompt_node.style.fontSize = btn_fontSize;
         use_preview_prompt_node.style.margin = btn_margin;
@@ -708,17 +800,40 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         use_preview_prompt_node.style.position = btn_thumb_pos;
         use_preview_prompt_node.style.backgroundImage = btn_thumb_backgroundImage;
     }
+
     use_preview_prompt_node.title = "Use prompt from preview image";
-    use_preview_prompt_node.setAttribute("onclick","use_preview_prompt(event, '" + model_type + "', '" + search_term + "')");
+    use_preview_prompt_node.setAttribute("onclick", `use_preview_prompt(event, '${model_type}', '${search_term}')`);
+
+
+    let remove_card_node = document.createElement("a");
+    remove_card_node.href = "#";
+    remove_card_node.innerHTML = "❌";
+    remove_card_node.className = "card-button";
+
+
+    if (!is_thumb_mode) {
+        remove_card_node.style.fontSize = btn_fontSize;
+        remove_card_node.style.margin = btn_margin;
+    } else {
+        remove_card_node.style.display = btn_thumb_display;
+        remove_card_node.style.fontSize = btn_thumb_fontSize;
+        remove_card_node.style.position = btn_thumb_pos;
+        use_preview_prompt_node.style.backgroundImage = btn_thumb_backgroundImage;
+    }
+
+    remove_card_node.title = "Remove this model";
+    remove_card_node.setAttribute("onclick", `remove_card(event, '${model_type}', '${search_term}')`);
 
     //add to card
     ul_node.appendChild(open_url_node);
+
     //add br if metadata_button exists
     if (is_thumb_mode && metadata_button) {
         ul_node.appendChild(document.createElement("br"));
     }
     ul_node.appendChild(add_trigger_words_node);
     ul_node.appendChild(use_preview_prompt_node);
+    ul_node.appendChild(remove_card_node);s
 
     if (!ul_node.parentElement) {
         additional_node.appendChild(ul_node);
