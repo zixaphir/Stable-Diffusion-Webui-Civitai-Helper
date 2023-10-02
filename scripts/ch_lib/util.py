@@ -1,5 +1,6 @@
 # -*- coding: UTF-8 -*-
 import os
+import gradio as gr
 import sys
 import io
 import re
@@ -29,6 +30,15 @@ proxies = None
 # print for debugging
 def printD(msg):
     print(f"Civitai Helper: {msg}", file=sys.stderr)
+
+def info(msg):
+    gr.Info(msg)
+
+def warning(msg):
+    gr.Warning(msg)
+
+def error(msg):
+    gr.Error(msg)
 
 def download_error(download_url, msg):
     output = f"Download failed, check console log for detail. Download url: {download_url}"
