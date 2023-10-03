@@ -601,6 +601,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     let search_term = "";
     let model_type = active_extra_tab_type;
     let js_model_type = getLongModelTypeFromShort(model_type);
+    let addedNodes = [];
 
     let is_thumb_mode = isThumbMode(getModelCardsEl(active_tab_type, js_model_type));
 
@@ -613,7 +614,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     // replace preview text button
     replace_preview_btn = card.querySelector(".actions .additional a");
 
-    if (replace_preview_btn == null) {
+    if ((replace_preview_btn == null) && !("replace_preview_button" in opts["ch_hide_buttons"])) {
         /*
         * in sdwebui 1.5, the replace preview button has been
         * moved to a hard to reach location, so we have to do
@@ -683,7 +684,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     } else {
         // full preview mode
 
-        if (opts.ch_always_display) {
+        if (opts["ch_always_display"]) {
             additional_node.style.display = "block";
         } else {
             additional_node.style.display = null;
@@ -702,16 +703,23 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     }
 
     // change replace preview text button into icon
-    if (replace_preview_btn.textContent !== "🖼️") {
-        ul_node.appendChild(replace_preview_btn);
-        replace_preview_btn.textContent = "🖼️";
+    if (!opts["ch_hide_buttons"].includes("replace_preview_button")) {
+        if (replace_preview_btn.textContent !== "🖼️") {
+            replace_preview_btn.textContent = "🖼️";
+            addedNodes.push(replace_preview_btn);
+        }
+
+        replace_preview_btn.classList.add("card-button", "removecard");
+
+    } else if (replace_preview_btn.parentElement) {
+        replace_preview_btn.parentElement.removeChild(replace_preview_btn);
     }
 
-    replace_preview_btn.classList.add("card-button", "removecard");
-
-    if (ul_node.querySelector('.openurl')) {
+    if (ul_node.dataset.ch_helper) {
         return;
     }
+
+    ul_node.dataset.ch_helper = true;
 
     // search_term node
     // search_term = subfolder path + model name + ext
@@ -728,49 +736,59 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         return;
     }
 
-    // then we need to add 3 buttons to each ul node:
-    let open_url_node = document.createElement("a");
-    open_url_node.href = "#";
-    open_url_node.textContent = "🌐";
-    open_url_node.classList.add("card-button", "openurl");
-    open_url_node.title = "Open this model's civitai url";
-    open_url_node.setAttribute("onclick", `open_model_url(event, '${model_type}', '${search_term}')`);
-
-    let add_trigger_words_node = document.createElement("a");
-    add_trigger_words_node.href = "#";
-    add_trigger_words_node.textContent = "💡";
-    add_trigger_words_node.classList.add("card-button", "addtriggerwords");
-    add_trigger_words_node.title = "Add trigger words to prompt";
-    add_trigger_words_node.setAttribute("onclick", `add_trigger_words(event, '${model_type}', '${search_term}')`);
-
-    let use_preview_prompt_node = document.createElement("a");
-    use_preview_prompt_node.href = "#";
-    use_preview_prompt_node.textContent = "🏷️";
-    use_preview_prompt_node.classList.add("card-button", "usepreviewprompt");
-    use_preview_prompt_node.title = "Use prompt from preview image";
-    use_preview_prompt_node.setAttribute("onclick", `use_preview_prompt(event, '${model_type}', '${search_term}')`);
-
-
-    let remove_card_node = document.createElement("a");
-    remove_card_node.href = "#";
-    remove_card_node.innerHTML = "❌";
-    remove_card_node.classList.add("card-button", "removecard");
-    remove_card_node.title = "Remove this model";
-    remove_card_node.setAttribute("onclick", `remove_card(event, '${model_type}', '${search_term}')`);
-
-    //add to card
-    ul_node.appendChild(open_url_node);
-
-    //add br if metadata_button exists
-    if (is_thumb_mode && metadata_button) {
-        ul_node.appendChild(document.createElement("br"));
+    // then we need to add buttons to each ul node:
+    if (!opts["ch_hide_buttons"].includes("open_url_button")) {
+        let open_url_node = document.createElement("a");
+        open_url_node.href = "#";
+        open_url_node.textContent = "🌐";
+        open_url_node.classList.add("card-button", "openurl");
+        open_url_node.title = "Open this model's civitai url";
+        open_url_node.setAttribute("onclick", `open_model_url(event, '${model_type}', '${search_term}')`);
+        addedNodes.push(open_url_node);
     }
 
-    ul_node.appendChild(add_trigger_words_node);
-    ul_node.appendChild(use_preview_prompt_node);
-    ul_node.appendChild(remove_card_node);
+    // add br if metadata_button exists
+    if (is_thumb_mode && metadata_button) {
+        addedNodes.push(document.createElement("br"));
+    }
 
-    if (!ul_node.parentElement) {
+    if (!opts["ch_hide_buttons"].includes("add_trigger_words_button")) {
+        let add_trigger_words_node = document.createElement("a");
+        add_trigger_words_node.href = "#";
+        add_trigger_words_node.textContent = "💡";
+        add_trigger_words_node.classList.add("card-button", "addtriggerwords");
+        add_trigger_words_node.title = "Add trigger words to prompt";
+        add_trigger_words_node.setAttribute("onclick", `add_trigger_words(event, '${model_type}', '${search_term}')`);
+        addedNodes.push(add_trigger_words_node);
+    }
+
+    if (!opts["ch_hide_buttons"].includes("add_preview_prompt_button")) {
+        let use_preview_prompt_node = document.createElement("a");
+        use_preview_prompt_node.href = "#";
+        use_preview_prompt_node.textContent = "🏷️";
+        use_preview_prompt_node.classList.add("card-button", "usepreviewprompt");
+        use_preview_prompt_node.title = "Use prompt from preview image";
+        use_preview_prompt_node.setAttribute("onclick", `use_preview_prompt(event, '${model_type}', '${search_term}')`);
+        addedNodes.push(use_preview_prompt_node);
+    }
+
+    if (!opts["ch_hide_buttons"].includes("remove_model_button")) {
+        let remove_card_node = document.createElement("a");
+        remove_card_node.href = "#";
+        remove_card_node.innerHTML = "❌";
+        remove_card_node.classList.add("card-button", "removecard");
+        remove_card_node.title = "Remove this model";
+        remove_card_node.setAttribute("onclick", `remove_card(event, '${model_type}', '${search_term}')`);
+        addedNodes.push(remove_card_node);
+    }
+
+    // add to buttons row
+    for (const node of addedNodes) {
+        ul_node.appendChild(node);
+    }
+
+    // add buttons to card
+    if (!ul_node.parentElement && ul_node.children) {
         additional_node.appendChild(ul_node);
     }
 }

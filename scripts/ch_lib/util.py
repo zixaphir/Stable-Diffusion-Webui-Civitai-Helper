@@ -7,6 +7,7 @@ import re
 import hashlib
 import requests
 import shutil
+import launch
 from packaging.version import parse as parse_version
 
 # used to append extension information to JSON/INFO files
@@ -215,10 +216,12 @@ def trim_html(s):
     return s
 
 
-def newer_versions(ver1, ver2):
-    """ Returns true if the version of the extension is newer than
-        the version we're checking against.
+def newer_version(ver1, ver2, allow_equal=False):
+    """ Returns ver1 > ver2
+        if allow_equal, returns ver1 >= ver2
     """
+    if allow_equal:
+        return parse_version(ver1) >= parse_version(ver2)
 
     return parse_version(ver1) > parse_version(ver2)
 
@@ -257,4 +260,17 @@ def create_extension_block(data=None):
     return data
 
 
+def webui_version():
+    ''' Gets the current webui version using webui's launch tools
 
+        The version is expected to be in the format `v1.6.0-128-g792589fd`,
+        tho all that is explicitly required is `vX`.
+
+        returns the version in the form 'X.Y.Z'
+    '''
+    version = None
+    tag = launch.git_tag()
+    match = re.match(r"v([\d.]+)", tag)
+    if match:
+        version = match.group(1)
+    return version

@@ -117,7 +117,7 @@ def metadata_needed_for_type(path, meta_type, refetch_old):
 
         util.printD(f"{path}: {metadata_version}, {compat_version}")
 
-        return util.newer_versions(compat_version, metadata_version)
+        return util.newer_version(compat_version, metadata_version)
 
     return False
 

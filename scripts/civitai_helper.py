@@ -24,6 +24,15 @@ ROOT_PATH = os.getcwd()
 # extension path
 EXTENSION_PATH = scripts.basedir()
 
+# default hidden values for civitai helper buttons
+BUTTONS = {
+    "replace_preview_button": False,
+    "open_url_button": False,
+    "add_trigger_words_button": util.newer_version(util.webui_version(), '1.5.0', allow_equal=True),
+    "add_preview_prompt_button": False,
+    "remove_model_button": False,
+}
+
 model.get_custom_model_folder()
 
 
@@ -205,11 +214,20 @@ def on_ui_settings():
         "ch_open_url_with_js",
         shared.OptionInfo(
             True,
-            "Open model Url on the user's client side, rather than server side",
+            "Open model Url on the user's client side, rather than server side. If you are running WebUI locally, disabling this may open URLs in your default internet browser if it is different than the one you are running WebUI in",
             gr.Checkbox,
             {"interactive": True},
             section=section)
     )
+    shared.opts.add_option(
+        "ch_hide_buttons",
+        shared.OptionInfo(
+           [x for x in BUTTONS if BUTTONS[x]],
+           "Hide checked Civitai Helper buttons on model cards",
+           gr.CheckboxGroup,
+           {"choices": [x for x in BUTTONS]},
+           section=section)
+   )
     shared.opts.add_option(
         "ch_always_display",
         shared.OptionInfo(
