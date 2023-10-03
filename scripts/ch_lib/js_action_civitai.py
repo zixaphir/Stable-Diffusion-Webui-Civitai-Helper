@@ -281,11 +281,8 @@ def remove_model_by_path(msg):
 
     for file in model_files:
         if os.path.isfile(file):
-            related_paths.append(file)
             util.printD(f"Removing file {file}")
             os.remove(file)
-
-    util.printD(f"{len(related_paths)} file removed")
 
     util.printD("End remove_model_by_path")
     return output

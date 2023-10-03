@@ -351,7 +351,7 @@ def get_all_model_files(model_path):
     paths = [info_file, sd15_file, user_preview_path]
     preview_paths = get_potential_model_preview_files(model_path)
 
-    paths = paths + previews
+    paths = paths + preview_paths
 
     return paths
 
