@@ -253,10 +253,11 @@ def dl_model_new_version(msg, max_size_preview, skip_nsfw_preview):
 def remove_model_by_path(msg):
     util.printD("Start remove_model_by_path")
 
-    output = "Removed Files:"
+    output = ""
     result = msg_handler.parse_js_msg(msg)
     if not result:
         output = "Parsing js ms failed"
+        util.error(output)
         util.printD(output)
         return output
 
@@ -266,12 +267,14 @@ def remove_model_by_path(msg):
     model_path = model.get_model_path_by_search_term(model_type, search_term)
     if not model_path:
         output = f"Fail to get model for {model_type} {search_term}"
+        util.error(output)
         util.printD(output)
         return output
 
 
     if not os.path.isfile(model_path):
         output = f"Model {model_type} {search_term} does not exist, no need to remove"
+        util.error(output)
         util.printD(output)
         return output
 
@@ -279,10 +282,15 @@ def remove_model_by_path(msg):
     model_files = model.get_all_model_files(model_path)
     model_files.append(model_path)
 
+    removed = []
     for file in model_files:
         if os.path.isfile(file):
+            removed.append(file)
             util.printD(f"Removing file {file}")
             os.remove(file)
+
+    removed = "\n".join(removed)
+    util.info(f"The following files were removed: \n{removed}")
 
     util.printD("End remove_model_by_path")
     return output

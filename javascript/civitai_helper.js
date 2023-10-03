@@ -300,13 +300,13 @@ async function remove_card(event, model_type, search_term){
     //get hidden components of extension
     let js_remove_card_btn = gradioApp().getElementById("ch_js_remove_card_btn");
     if (!js_remove_card_btn) {
-        return
+        return;
     }
 
     // must confirm before removing
-    let rm_confirm = "\nConfirm to remove this model.\n\nCheck console log for detail.";
+    let rm_confirm = "\nConfirm to remove this model and all related files. This process is irreversible.";
     if (!confirm(rm_confirm)) {
-        return
+        return;
     }
 
 
@@ -353,19 +353,16 @@ async function remove_card(event, model_type, search_term){
         result = new_py_msg;
     }
 
-    // alert result
-    alert(result);
-
     if (result=="Done"){
         console.log("refresh card list");
         //refresh card list
         let active_tab = getActiveTabType();
-        console.log("get active tab id: " + active_tab);
+        console.log(`get active tab id: ${active_tab}`);
         if (active_tab){
-            let refresh_btn_id = active_tab + "_extra_refresh";
+            let refresh_btn_id = `${active_tab}_extra_refresh`;
             let refresh_btn = gradioApp().getElementById(refresh_btn_id);
-            if (refresh_btn){
-                console.log("click button: "+refresh_btn_id);
+            if (refresh_btn) {
+                console.log(`click button: ${refresh_btn_id}`);
                 refresh_btn.click();
             }
         }
@@ -458,7 +455,6 @@ function waitForExtraTabs(tab, extra_tabs) {
     function findTabs() {
         const tab_elements = [];
         for (const extra_tab of extra_tabs) {
-            const id = tab + "_" + extra_tab + "_cards";
             const extra_tab_el = getModelCardsEl(tab, extra_tab);
 
             if (extra_tab_el == null) {
@@ -805,11 +801,9 @@ onUiLoaded(() => {
             replace_preview_text = "replace preview";
         }
 
-        let extra_network_id = "";
         let extra_network_node = null;
         let model_type = "";
         let cards = null;
-        let is_thumb_mode = false;
 
         //get current tab
         let active_tab_type = getActiveTabType();
@@ -817,9 +811,6 @@ onUiLoaded(() => {
 
         for (const tab_prefix of tab_prefix_list) {
             if (tab_prefix != active_tab_type) {continue;}
-
-            //find out current selected model type tab
-            const extra_tabs = getExtraTabs(tab_prefix);
 
             //get active extratab
             const re = new RegExp(tab_prefix + "_(.+)_cards");
@@ -850,10 +841,6 @@ onUiLoaded(() => {
                 // console.log("searching extra_network_node: " + extra_network_id);
                 extra_network_node = getModelCardsEl(tab_prefix, js_model_type);
 
-                // check if extra network is under thumbnail mode
-                // XXX thumbnail mode removed in sd-webui v1.5.0
-                is_thumb_mode = isThumbMode(extra_network_node);
-
                 // get all card nodes
                 cards = extra_network_node.querySelectorAll(".card");
                 for (const card of cards) {
@@ -879,7 +866,7 @@ onUiLoaded(() => {
 
         // pre-1.6
         if (extra_networks_btn) {
-            function extraNetworksClick(e) {
+            function extraNetworksClick() {
                 waitForExtraTabs(prefix, model_type_list);
                 extra_networks_btn.removeEventListener("click", extraNetworksClick);
             }
@@ -897,7 +884,7 @@ onUiLoaded(() => {
         for (const header of headers) {
             const model_type = header.textContent.trim().replace(" ", "_").toLowerCase();
 
-            function extraNetworksClick(e) {
+            function extraNetworksClick() {
                 waitForExtraTabs(prefix, [model_type]);
                 header.removeEventListener("click", extraNetworksClick);
             }
@@ -907,11 +894,6 @@ onUiLoaded(() => {
 
         //get toolbar
         extra_networks_btn = gradioApp().getElementById(prefix + "_extra_networks");
-
-        function extraNetworksClick(e) {
-            waitForExtraTabs(prefix, model_type_list);
-            extra_networks_btn.removeEventListener("click", extraNetworksClick);
-        }
 
     }
 
