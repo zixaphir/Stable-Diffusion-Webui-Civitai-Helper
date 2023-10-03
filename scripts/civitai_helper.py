@@ -30,6 +30,7 @@ BUTTONS = {
     "open_url_button": False,
     "add_trigger_words_button": util.newer_version(util.webui_version(), '1.5.0', allow_equal=True),
     "add_preview_prompt_button": False,
+    "rename_model_button": False,
     "remove_model_button": False,
 }
 
@@ -178,6 +179,7 @@ def on_ui_tabs():
         js_add_trigger_words_btn = gr.Button(value="Add Trigger Words", visible=False, elem_id="ch_js_add_trigger_words_btn")
         js_use_preview_prompt_btn = gr.Button(value="Use Prompt from Preview Image", visible=False, elem_id="ch_js_use_preview_prompt_btn")
         js_dl_model_new_version_btn = gr.Button(value="Download Model's new version", visible=False, elem_id="ch_js_dl_model_new_version_btn")
+        js_rename_card_btn = gr.Button(value="Rename Card", visible=False, elem_id="ch_js_rename_card_btn")
         js_remove_card_btn = gr.Button(value="Remove Card", visible=False, elem_id="ch_js_remove_card_btn")
 
         # ====events====
@@ -202,6 +204,7 @@ def on_ui_tabs():
         js_add_trigger_words_btn.click(js_action_civitai.add_trigger_words, inputs=[js_msg_txtbox], outputs=[txt2img_prompt, img2img_prompt])
         js_use_preview_prompt_btn.click(js_action_civitai.use_preview_image_prompt, inputs=[js_msg_txtbox], outputs=[txt2img_prompt, txt2img_neg_prompt, img2img_prompt, img2img_neg_prompt])
         js_dl_model_new_version_btn.click(js_action_civitai.dl_model_new_version, inputs=[js_msg_txtbox, max_size_preview_ckb, skip_nsfw_preview_ckb], outputs=dl_log_md)
+        js_rename_card_btn.click(js_action_civitai.rename_model_by_path, inputs=[js_msg_txtbox], outputs=py_msg_txtbox)
         js_remove_card_btn.click(js_action_civitai.remove_model_by_path, inputs=[js_msg_txtbox], outputs=py_msg_txtbox)
 
     # the third parameter is the element id on html, with a "tab_" as prefix

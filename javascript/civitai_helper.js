@@ -294,7 +294,7 @@ function use_preview_prompt(event, model_type, search_term){
 }
 
 
-async function remove_card(event, model_type, search_term){
+async function remove_card(event, model_type, search_term) {
     console.log("start remove_card");
 
     //get hidden components of extension
@@ -309,7 +309,6 @@ async function remove_card(event, model_type, search_term){
         return;
     }
 
-
     //msg to python side
     let msg = {
         "action": "",
@@ -317,12 +316,9 @@ async function remove_card(event, model_type, search_term){
         "search_term": "",
     }
 
-
     msg["action"] = "remove_card";
     msg["model_type"] = model_type;
     msg["search_term"] = search_term;
-    msg["prompt"] = "";
-    msg["neg_prompt"] = "";
 
     // fill to msg box
     send_ch_py_msg(msg)
@@ -353,22 +349,78 @@ async function remove_card(event, model_type, search_term){
         result = new_py_msg;
     }
 
-    if (result=="Done"){
-        console.log("refresh card list");
-        //refresh card list
-        let active_tab = getActiveTabType();
-        console.log(`get active tab id: ${active_tab}`);
-        if (active_tab){
-            let refresh_btn_id = `${active_tab}_extra_refresh`;
-            let refresh_btn = gradioApp().getElementById(refresh_btn_id);
-            if (refresh_btn) {
-                console.log(`click button: ${refresh_btn_id}`);
-                refresh_btn.click();
-            }
-        }
+    if (result=="Done") {
+        refresh_cards_list();
     }
 
     console.log("end remove_card");
+
+}
+
+
+async function rename_card(event, model_type, search_term) {
+    console.log("start rename_card");
+
+    //get hidden components of extension
+    let js_rename_card_btn = gradioApp().getElementById("ch_js_rename_card_btn");
+    if (!js_rename_card_btn) {
+        return;
+    }
+
+    // must confirm before removing
+    let rename_prompt = "\nRename this model to:";
+    let new_name = prompt(rename_prompt);
+    if (!new_name) {
+        return;
+    }
+
+    //msg to python side
+    let msg = {
+        "action": "",
+        "model_type": "",
+        "search_term": "",
+        "new_name": "",
+    }
+
+    msg["action"] = "rename_card";
+    msg["model_type"] = model_type;
+    msg["search_term"] = search_term;
+    msg["new_name"] = new_name;
+
+    // fill to msg box
+    send_ch_py_msg(msg)
+
+    //click hidden button
+    js_rename_card_btn.click();
+
+    // stop parent event
+    event.stopPropagation()
+    event.preventDefault()
+
+    //check response msg from python
+    let new_py_msg = "";
+    try {
+        new_py_msg = await get_new_ch_py_msg();
+    } catch (error) {
+        console.log(error);
+        new_py_msg = error;
+    }
+
+    console.log("new_py_msg:");
+    console.log(new_py_msg);
+
+    //check msg
+    let result = "Done";
+    //check msg
+    if (new_py_msg) {
+        result = new_py_msg;
+    }
+
+    if (result=="Done") {
+        refresh_cards_list();
+    }
+
+    console.log("end rename_card");
 
 }
 
@@ -431,6 +483,22 @@ function ch_dl_model_new_version(event, model_path, version_id, download_url, mo
     event.preventDefault();
 
 
+}
+
+
+function refresh_cards_list() {
+    console.log("refresh card list");
+    //refresh card list
+    let active_tab = getActiveTabType();
+    console.log(`get active tab id: ${active_tab}`);
+    if (active_tab){
+        let refresh_btn_id = `${active_tab}_extra_refresh`;
+        let refresh_btn = gradioApp().getElementById(refresh_btn_id);
+        if (refresh_btn) {
+            console.log(`click button: ${refresh_btn_id}`);
+            refresh_btn.click();
+        }
+    }
 }
 
 function processCards(tab, extra_tab_els) {
@@ -770,6 +838,16 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         use_preview_prompt_node.title = "Use prompt from preview image";
         use_preview_prompt_node.setAttribute("onclick", `use_preview_prompt(event, '${model_type}', '${search_term}')`);
         addedNodes.push(use_preview_prompt_node);
+    }
+
+    if (!opts["ch_hide_buttons"].includes("rename_model_button")) {
+        let rename_card_node = document.createElement("a");
+        rename_card_node.href = "#";
+        rename_card_node.innerHTML = "✏️";
+        rename_card_node.classList.add("card-button", "renamecard");
+        rename_card_node.title = "Remove this model";
+        rename_card_node.setAttribute("onclick", `rename_card(event, '${model_type}', '${search_term}')`);
+        addedNodes.push(rename_card_node);
     }
 
     if (!opts["ch_hide_buttons"].includes("remove_model_button")) {

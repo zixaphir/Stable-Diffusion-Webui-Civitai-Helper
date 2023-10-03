@@ -432,24 +432,23 @@ def get_model_path_by_search_term(model_type, search_term):
     # for hyper: search_term = subfolderpath + model name
 
 
-
     model_sub_path = search_term.split()[0]
     if model_sub_path[:1] == "/":
         model_sub_path = model_sub_path[1:]
 
     if model_type == "hyper":
-        model_sub_path = model_sub_path+".pt"
+        model_sub_path = f"{model_sub_path}.pt"
 
     model_folder = folders[model_type]
 
     model_path = os.path.join(model_folder, model_sub_path)
 
-    print("model_folder: " + model_folder)
-    print("model_sub_path: " + model_sub_path)
-    print("model_path: " + model_path)
+    #print(f"model_folder: {model_folder}")
+    #print(f"model_sub_path: {model_sub_path}")
+    #print(f"model_path: {model_path}")
 
     if not os.path.isfile(model_path):
-        util.printD("Can not find model file: " + model_path)
+        util.printD(f"Can not find model file: {model_path}")
         return
 
     return model_path

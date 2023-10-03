@@ -17,8 +17,9 @@ blockquote ol {
 }
 
 .card-button {
-    margin: 0 5px;
-    font-size: 200%;
+    margin: 0px 2px;
+    padding: 2px;
+    font-size: 150%;
 }
 
 /* SD WebUI has not line height limit for model names.
