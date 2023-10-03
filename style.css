@@ -21,6 +21,18 @@ blockquote ol {
     font-size: 200%;
 }
 
+/* SD WebUI has not line height limit for model names.
+ * This can result in the model name filling the entire card,
+ * hiding our buttons. This is honestly a WebUI issue more
+ * than an issue on this end, but we can fix it anyways, so
+ * why not?
+ */
+.extra-network-cards .card .name:not(:hover) {
+    display: block;
+    overflow: hidden;
+    max-height: 3em;
+}
+
 .extra-network-thumbs .card-button {
     font-size: 100%;
     display: inline;
