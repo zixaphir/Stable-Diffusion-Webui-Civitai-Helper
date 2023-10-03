@@ -373,7 +373,22 @@ async function remove_card(event, model_type, search_term){
 
     console.log("end remove_card");
 
+}
 
+
+function replace_preview(e, page, type, name) {
+    // we have to create a whole hidden editor window to access preview replace functionality
+    extraNetworksEditUserMetadata(e, page, type, name);
+
+    // the editor window takes quite some time to populate
+    waitForEditor(page, type, name).then(editor => {
+        // Gather the buttons we need to both replace the preview and close the editor
+        let cancel_button = editor.querySelector('.edit-user-metadata-buttons button:first-of-type');
+        let replace_preview_button = editor.querySelector('.edit-user-metadata-buttons button:nth-of-type(2)');
+
+        replace_preview_button.click();
+        cancel_button.click();
+    });
 }
 
 
@@ -618,20 +633,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         replace_preview_btn = document.createElement("a");
 
         // create an event handler to redirect a click to the real replace_preview_button
-        replace_preview_btn.addEventListener("click", function(e) {
-            // we have to create a whole hidden editor window to access preview replace functionality
-            extraNetworksEditUserMetadata(e, page, type, name);
-
-            // the editor window takes quite some time to populate. What a waste.
-            waitForEditor(page, type, name).then(editor => {
-                // Gather the buttons we need to both replace the preview and close the editor
-                let cancel_button = editor.querySelector('.edit-user-metadata-buttons button:first-of-type');
-                let replace_preview_button = editor.querySelector('.edit-user-metadata-buttons button:nth-of-type(2)');
-
-                replace_preview_button.click();
-                cancel_button.click();
-            });
-        });
+        replace_preview_btn.setAttribute("onclick", `replace_preview(event, '${page}', '${type}', '${name}')`);
     }
 
     // check thumb mode
@@ -703,13 +705,13 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
 
     }
 
-    if (replace_preview_btn) {
-        // change replace preview text button into icon
-        if (replace_preview_btn.textContent !== "🖼️") {
-            ul_node.appendChild(replace_preview_btn);
-            replace_preview_btn.textContent = "🖼️";
-        }
+    // change replace preview text button into icon
+    if (replace_preview_btn.textContent !== "🖼️") {
+        ul_node.appendChild(replace_preview_btn);
+        replace_preview_btn.textContent = "🖼️";
     }
+
+    replace_preview_btn.classList.add("card-button", "removecard");
 
     if (ul_node.querySelector('.openurl')) {
         return;
@@ -770,7 +772,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
 
     ul_node.appendChild(add_trigger_words_node);
     ul_node.appendChild(use_preview_prompt_node);
-    ul_node.appendChild(remove_card_node);s
+    ul_node.appendChild(remove_card_node);
 
     if (!ul_node.parentElement) {
         additional_node.appendChild(ul_node);
@@ -883,7 +885,7 @@ onUiLoaded(() => {
             }
 
             // add listener to extra_networks_btn
-            extra_networks_btn.addEventListener('click', extraNetworksClick);
+            extra_networks_btn.addEventListener("click", extraNetworksClick);
             continue;
 
         }
@@ -900,7 +902,7 @@ onUiLoaded(() => {
                 header.removeEventListener("click", extraNetworksClick);
             }
 
-            header.addEventListener('click', extraNetworksClick);
+            header.addEventListener("click", extraNetworksClick);
         }
 
         //get toolbar
