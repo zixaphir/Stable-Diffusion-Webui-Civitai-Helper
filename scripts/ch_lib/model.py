@@ -327,6 +327,35 @@ def load_model_info(path):
     return model_info
 
 
+def get_potential_model_preview_files(model_path):
+    # Extensions from `find_preview` method in webui `modules/ui_extra_networks.py`
+    # gif added in https://github.com/AUTOMATIC1111/stable-diffusion-webui/commit/c602471b85d270e8c36707817d9bad92b0ff991e
+    preview_exts = ["png", "jpg", "jpeg", "webp", "gif"]
+    preview_files = []
+
+    base, _ = os.path.splitext(model_path)
+
+    for ext in preview_exts:
+        preview_files.append(f"{base}.preview.{ext}")
+
+    return preview_files
+
+
+def get_all_model_files(model_path):
+
+    base, ext = os.path.splitext(model_path)
+
+    info_file, sd15_file = get_model_info_paths(model_path)
+    user_preview_path = f"{base}.png"
+
+    paths = [info_file, sd15_file, user_preview_path]
+    preview_paths = get_potential_model_preview_files(model_path)
+
+    paths = paths + previews
+
+    return paths
+
+
 # get model file names by model type
 # parameter: model_type - string
 # return: model name list
@@ -396,7 +425,7 @@ def get_model_path_by_search_term(model_type, search_term):
     if model_type not in folders.keys():
         util.printD("unknow model type: " + model_type)
         return
-    
+
     # for lora: search_term = subfolderpath + model name + ext + " " + hash. And it always start with a / even there is no sub folder
     # for ckp: search_term = subfolderpath + model name + ext + " " + hash
     # for ti: search_term = subfolderpath + model name + ext + " " + hash
@@ -422,6 +451,6 @@ def get_model_path_by_search_term(model_type, search_term):
     if not os.path.isfile(model_path):
         util.printD("Can not find model file: " + model_path)
         return
-    
+
     return model_path
 
