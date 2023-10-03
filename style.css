@@ -16,3 +16,15 @@ blockquote ol {
     padding: 10px 0 !important;
 }
 
+.card-button {
+    margin: 0 5px;
+    font-size: 200%;
+}
+
+.extra-network-thumbs .card-button {
+    font-size: 100%;
+    display: inline;
+    position: static;
+    background-image: none;
+    background: rgba(0, 0, 0, 0.8);
+}

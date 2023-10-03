@@ -591,15 +591,6 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     let model_type = active_extra_tab_type;
     let js_model_type = getLongModelTypeFromShort(model_type);
 
-    //css
-    let btn_margin = "0px 5px";
-    let btn_fontSize = "200%";
-    let btn_thumb_fontSize = "100%";
-    let btn_thumb_display = "inline";
-    let btn_thumb_pos = "static";
-    let btn_thumb_backgroundImage = "none";
-    let btn_thumb_background = "rgba(0, 0, 0, 0.8)";
-
     let is_thumb_mode = isThumbMode(getModelCardsEl(active_tab_type, js_model_type));
 
     //metadata_buttoncard
@@ -717,16 +708,6 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         if (replace_preview_btn.textContent !== "🖼️") {
             ul_node.appendChild(replace_preview_btn);
             replace_preview_btn.textContent = "🖼️";
-            if (!is_thumb_mode) {
-                replace_preview_btn.style.fontSize = btn_fontSize;
-                replace_preview_btn.style.margin = btn_margin;
-            } else {
-                replace_preview_btn.style.display = btn_thumb_display;
-                replace_preview_btn.style.fontSize = btn_thumb_fontSize;
-                replace_preview_btn.style.position = btn_thumb_pos;
-                replace_preview_btn.style.backgroundImage = btn_thumb_backgroundImage;
-            }
-
         }
     }
 
@@ -753,54 +734,21 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     let open_url_node = document.createElement("a");
     open_url_node.href = "#";
     open_url_node.textContent = "🌐";
-    open_url_node.className = "openurl";
-
-    if (!is_thumb_mode) {
-        open_url_node.style.fontSize = btn_fontSize;
-        open_url_node.style.margin = btn_margin;
-    } else {
-        open_url_node.style.display = btn_thumb_display;
-        open_url_node.style.fontSize = btn_thumb_fontSize;
-        open_url_node.style.position = btn_thumb_pos;
-        open_url_node.style.backgroundImage = btn_thumb_backgroundImage;
-    }
-
+    open_url_node.classList.add("card-button", "openurl");
     open_url_node.title = "Open this model's civitai url";
     open_url_node.setAttribute("onclick", `open_model_url(event, '${model_type}', '${search_term}')`);
 
     let add_trigger_words_node = document.createElement("a");
     add_trigger_words_node.href = "#";
     add_trigger_words_node.textContent = "💡";
-    add_trigger_words_node.className = "addtriggerwords";
-
-    if (!is_thumb_mode) {
-        add_trigger_words_node.style.fontSize = btn_fontSize;
-        add_trigger_words_node.style.margin = btn_margin;
-    } else {
-        add_trigger_words_node.style.display = btn_thumb_display;
-        add_trigger_words_node.style.fontSize = btn_thumb_fontSize;
-        add_trigger_words_node.style.position = btn_thumb_pos;
-        add_trigger_words_node.style.backgroundImage = btn_thumb_backgroundImage;
-    }
-
+    add_trigger_words_node.classList.add("card-button", "addtriggerwords");
     add_trigger_words_node.title = "Add trigger words to prompt";
     add_trigger_words_node.setAttribute("onclick", `add_trigger_words(event, '${model_type}', '${search_term}')`);
 
     let use_preview_prompt_node = document.createElement("a");
     use_preview_prompt_node.href = "#";
     use_preview_prompt_node.textContent = "🏷️";
-    use_preview_prompt_node.className = "usepreviewprompt";
-
-    if (!is_thumb_mode) {
-        use_preview_prompt_node.style.fontSize = btn_fontSize;
-        use_preview_prompt_node.style.margin = btn_margin;
-    } else {
-        use_preview_prompt_node.style.display = btn_thumb_display;
-        use_preview_prompt_node.style.fontSize = btn_thumb_fontSize;
-        use_preview_prompt_node.style.position = btn_thumb_pos;
-        use_preview_prompt_node.style.backgroundImage = btn_thumb_backgroundImage;
-    }
-
+    use_preview_prompt_node.classList.add("card-button", "usepreviewprompt");
     use_preview_prompt_node.title = "Use prompt from preview image";
     use_preview_prompt_node.setAttribute("onclick", `use_preview_prompt(event, '${model_type}', '${search_term}')`);
 
@@ -808,19 +756,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     let remove_card_node = document.createElement("a");
     remove_card_node.href = "#";
     remove_card_node.innerHTML = "❌";
-    remove_card_node.className = "card-button";
-
-
-    if (!is_thumb_mode) {
-        remove_card_node.style.fontSize = btn_fontSize;
-        remove_card_node.style.margin = btn_margin;
-    } else {
-        remove_card_node.style.display = btn_thumb_display;
-        remove_card_node.style.fontSize = btn_thumb_fontSize;
-        remove_card_node.style.position = btn_thumb_pos;
-        use_preview_prompt_node.style.backgroundImage = btn_thumb_backgroundImage;
-    }
-
+    remove_card_node.classList.add("card-button", "removecard");
     remove_card_node.title = "Remove this model";
     remove_card_node.setAttribute("onclick", `remove_card(event, '${model_type}', '${search_term}')`);
 
@@ -831,6 +767,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     if (is_thumb_mode && metadata_button) {
         ul_node.appendChild(document.createElement("br"));
     }
+
     ul_node.appendChild(add_trigger_words_node);
     ul_node.appendChild(use_preview_prompt_node);
     ul_node.appendChild(remove_card_node);s
@@ -838,7 +775,6 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     if (!ul_node.parentElement) {
         additional_node.appendChild(ul_node);
     }
-
 }
 
 onUiLoaded(() => {
