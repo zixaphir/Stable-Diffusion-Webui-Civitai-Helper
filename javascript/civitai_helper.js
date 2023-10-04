@@ -173,6 +173,8 @@ window.open_model_url = async function(event, model_type, search_term) {
         }
     }
 
+    stopEvent(event);
+
     console.log("end open_model_url");
 }
 
@@ -205,9 +207,9 @@ window.add_trigger_words = function(event, model_type, search_term) {
     //click hidden button
     js_add_trigger_words_btn.click();
 
-    console.log("end add_trigger_words");
-
     stopEvent(event);
+
+    console.log("end add_trigger_words");
 }
 
 
@@ -239,9 +241,9 @@ window.use_preview_prompt = function(event, model_type, search_term) {
     //click hidden button
     js_use_preview_prompt_btn.click();
 
-    console.log("end use_preview_prompt");
-
     stopEvent(event);
+
+    console.log("end use_preview_prompt");
 }
 
 
