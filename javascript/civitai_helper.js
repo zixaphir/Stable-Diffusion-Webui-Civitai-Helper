@@ -371,7 +371,7 @@ window.rename_card = async function(event, model_type, search_term) {
 
 window.replace_preview = function(e, page, type, name) {
     // stop parent event
-    stopEvent(event);
+    stopEvent(e);
 
     // we have to create a whole hidden editor window to access preview replace functionality
     extraNetworksEditUserMetadata(e, page, type, name);
@@ -576,6 +576,21 @@ function getShortModelTypeFromFull(model_type_full) {
 }
 
 
+function getLongModelTypeFromShort(model_type_short) {
+    switch (model_type_short) {
+        case "ti":
+            return "textual_inversion";
+        case "hyper":
+            return "hypernetworks";
+        case "ckp":
+            return "checkpoints";
+        case "lora":
+        case "lycoris":
+            return model_type_short;
+    }
+}
+
+
 let createUI = function() {
     const ul_node = document.createElement('ul');
 
@@ -698,7 +713,10 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     for (const key in children) {
         const child = children[key];
         if (child.func == "replace_preview") {
-            child.el.setAttribute("onclick", `${child.func}(event, '${active_tab_type}', '${model_type}', '${search_term}')`);
+            let page = active_tab_type;
+            let type = getLongModelTypeFromShort(model_type);
+            let name = card.dataset.name;
+            child.el.setAttribute("onclick", `${child.func}(event, '${page}', '${type}', '${name}')`);
             continue;
         }
         child.el.setAttribute("onclick", `${child.func}(event, '${model_type}', '${search_term}')`);
