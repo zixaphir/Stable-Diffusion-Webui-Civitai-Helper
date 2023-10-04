@@ -136,6 +136,9 @@ function getActiveNegativePrompt() {
 window.open_model_url = async function(event, model_type, search_term) {
     console.log("start open_model_url");
 
+    // stop parent event
+    stopEvent(event);
+
     //get hidden components of extension
     let js_open_url_btn = gradioApp().getElementById("ch_js_open_url_btn");
     if (!js_open_url_btn) {
@@ -173,8 +176,6 @@ window.open_model_url = async function(event, model_type, search_term) {
         }
     }
 
-    stopEvent(event);
-
     console.log("end open_model_url");
 }
 
@@ -182,12 +183,14 @@ window.open_model_url = async function(event, model_type, search_term) {
 window.add_trigger_words = function(event, model_type, search_term) {
     console.log("start add_trigger_words");
 
+    // stop parent event
+    stopEvent(event);
+
     //get hidden components of extension
     let js_add_trigger_words_btn = gradioApp().getElementById("ch_js_add_trigger_words_btn");
     if (!js_add_trigger_words_btn) {
         return;
     }
-
 
     // get active prompt
     const act_prompt = getActivePrompt();
@@ -207,14 +210,15 @@ window.add_trigger_words = function(event, model_type, search_term) {
     //click hidden button
     js_add_trigger_words_btn.click();
 
-    stopEvent(event);
-
     console.log("end add_trigger_words");
 }
 
 
 window.use_preview_prompt = function(event, model_type, search_term) {
     console.log("start use_preview_prompt");
+
+    // stop parent event
+    stopEvent(event);
 
     //get hidden components of extension
     const js_use_preview_prompt_btn = gradioApp().getElementById("ch_js_use_preview_prompt_btn");
@@ -241,14 +245,15 @@ window.use_preview_prompt = function(event, model_type, search_term) {
     //click hidden button
     js_use_preview_prompt_btn.click();
 
-    stopEvent(event);
-
     console.log("end use_preview_prompt");
 }
 
 
 window.remove_card = async function(event, model_type, search_term) {
     console.log("start remove_card");
+
+    // stop parent event
+    stopEvent(event);
 
     //get hidden components of extension
     let js_remove_card_btn = gradioApp().getElementById("ch_js_remove_card_btn");
@@ -274,9 +279,6 @@ window.remove_card = async function(event, model_type, search_term) {
 
     //click hidden button
     js_remove_card_btn.click();
-
-    // stop parent event
-    stopEvent(event);
 
     //check response msg from python
     let new_py_msg = "";
@@ -309,6 +311,9 @@ window.remove_card = async function(event, model_type, search_term) {
 window.rename_card = async function(event, model_type, search_term) {
     console.log("start rename_card");
 
+    // stop parent event
+    stopEvent(event);
+
     //get hidden components of extension
     let js_rename_card_btn = gradioApp().getElementById("ch_js_rename_card_btn");
     if (!js_rename_card_btn) {
@@ -335,9 +340,6 @@ window.rename_card = async function(event, model_type, search_term) {
 
     //click hidden button
     js_rename_card_btn.click();
-
-    // stop parent event
-    stopEvent(event);
 
     //check response msg from python
     let new_py_msg = "";
@@ -368,6 +370,9 @@ window.rename_card = async function(event, model_type, search_term) {
 
 
 window.replace_preview = function(e, page, type, name) {
+    // stop parent event
+    stopEvent(event);
+
     // we have to create a whole hidden editor window to access preview replace functionality
     extraNetworksEditUserMetadata(e, page, type, name);
 
@@ -386,6 +391,9 @@ window.replace_preview = function(e, page, type, name) {
 // download model's new version into SD at python side
 window.ch_dl_model_new_version = function(event, model_path, version_id, download_url, model_type) {
     console.log("start ch_dl_model_new_version");
+
+    // stop parent event
+    stopEvent(event);
 
     // must confirm before downloading
     const dl_confirm = "\nConfirm to download.\n\nCheck Download Model Section's log and console log for detail.";
@@ -413,8 +421,6 @@ window.ch_dl_model_new_version = function(event, model_path, version_id, downloa
 
     //click hidden button
     js_dl_model_new_version_btn.click();
-
-    stopEvent(event);
 
     console.log("end dl_model_new_version");
 }
