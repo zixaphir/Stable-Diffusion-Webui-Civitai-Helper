@@ -1,6 +1,14 @@
 (function() {
-
 "use strict";
+
+const icons = {
+    replace_preview: '🖼️',
+    open_url: '🌐',
+    add_trigger_words: '💡',
+    use_preview_prompt: '🏷️',
+    rename_model: '✏️',
+    remove_model: '❌',
+};
 
 let replace_preview_text;
 
@@ -40,22 +48,6 @@ function send_ch_py_msg(msg) {
     }
 
 }
-
-/*
-// get msg from python side from a hidden textbox
-// normally this is an old msg, need to wait for a new msg
-function get_ch_py_msg() {
-    console.log("run get_ch_py_msg");
-    const py_msg_txtbox = gradioApp().querySelector("#ch_py_msg_txtbox textarea");
-    if (py_msg_txtbox && py_msg_txtbox.value) {
-        console.log("find py_msg_txtbox");
-        console.log("py_msg_txtbox value: ", py_msg_txtbox.value);
-        return py_msg_txtbox.value;
-    } else {
-        return "";
-    }
-}
-*/
 
 
 // get msg from python side from a hidden textbox
@@ -575,30 +567,6 @@ function getShortModelTypeFromFull(model_type_full) {
     }
 }
 
-/*
-function getLongModelTypeFromShort(model_type_short) {
-    switch (model_type_short) {
-        case "ti":
-            return "textual_inversion";
-        case "hyper":
-            return "hypernetworks";
-        case "ckp":
-            return "checkpoints";
-        case "lora":
-        case "lycoris":
-            return model_type_short;
-    }
-}
-*/
-
-const icons = {
-    replace_preview: '🖼️',
-    open_url: '🌐',
-    add_trigger_words: '💡',
-    use_preview_prompt: '🏷️',
-    rename_model: '✏️',
-    remove_model: '❌',
-};
 
 let createUI = function() {
     const ul_node = document.createElement('ul');
