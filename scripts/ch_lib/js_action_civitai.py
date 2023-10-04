@@ -246,3 +246,115 @@ def dl_model_new_version(msg, max_size_preview, skip_nsfw_preview):
     output = f"Done. Model downloaded to: {msg}"
     util.printD(output)
     return output
+
+
+# rename a model and all related files
+def rename_model_by_path(msg):
+    util.printD("Start rename_model_by_path")
+
+    output = ""
+    result = msg_handler.parse_js_msg(msg)
+    if not result:
+        output = "Parsing js ms failed"
+        util.error(output)
+        util.printD(output)
+        return output
+
+    model_type = result["model_type"]
+    search_term = result["search_term"]
+
+    new_name = result["new_name"]
+
+    model_path = model.get_model_path_by_search_term(model_type, search_term)
+    if not model_path:
+        output = f"Fail to get model for {model_type} {search_term}"
+        util.error(output)
+        util.printD(output)
+        return output
+
+    model_sub_path, model_file = os.path.split(model_path)
+    model_name, ext = os.path.splitext(model_file)
+
+    if not os.path.isfile(model_path):
+        output = f"Model {model_type} {search_term} does not exist, can't rename"
+        util.error(output)
+        util.printD(output)
+        return output
+
+    # all files need to be renamed
+    model_files = model.get_all_model_files(model_path)
+    model_files.append(model_path)
+
+    renamed = []
+    file_len = len(model_name)
+    for file in model_files:
+        if os.path.isfile(file):
+            head, tail = os.path.split(file)
+
+            old_name = tail[0:file_len]
+            if old_name != model_name:
+                continue
+
+            ext = tail[file_len:]
+            new_filename = f"{new_name}{ext}"
+            new_path = os.path.join(head, new_filename)
+
+            renamed.append(f"{file} to {new_path}")
+            util.printD(f"Renaming file {file} to {new_path}")
+            os.rename(file, new_path)
+
+    renamed = "\n".join(renamed)
+    util.info(f"The following files were renamed: \n{renamed}")
+
+    util.printD("End rename_model_by_path")
+    return output
+
+
+# remove a model and all related files
+def remove_model_by_path(msg):
+    util.printD("Start remove_model_by_path")
+
+    output = ""
+    result = msg_handler.parse_js_msg(msg)
+    if not result:
+        output = "Parsing js ms failed"
+        util.error(output)
+        util.printD(output)
+        return output
+
+    model_type = result["model_type"]
+    search_term = result["search_term"]
+
+    model_path = model.get_model_path_by_search_term(model_type, search_term)
+    if not model_path:
+        output = f"Fail to get model for {model_type} {search_term}"
+        util.error(output)
+        util.printD(output)
+        return output
+
+
+    if not os.path.isfile(model_path):
+        output = f"Model {model_type} {search_term} does not exist, no need to remove"
+        util.error(output)
+        util.printD(output)
+        return output
+
+    # all files need to be removed
+    model_files = model.get_all_model_files(model_path)
+    model_files.append(model_path)
+
+    removed = []
+    for file in model_files:
+        if os.path.isfile(file):
+            removed.append(file)
+            util.printD(f"Removing file {file}")
+            os.remove(file)
+
+    removed = "\n".join(removed)
+    util.info(f"The following files were removed: \n{removed}")
+
+    util.printD("End remove_model_by_path")
+    return output
+
+
+

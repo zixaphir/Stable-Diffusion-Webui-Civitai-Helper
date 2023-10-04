@@ -246,6 +246,15 @@ Since v1.5.5, we've already optimized the SHA256 function to the top. So the onl
 
 
 # Change Log
+##
+* Added "Remove Model" button.
+* Fix downloading size check issue.
+### This release pulls in new features from butaixianran's updates as of v1.8.2. Some changes were omitted for the following reasons:
+* Broke compatibility older sd webui versions.
+* Were already included.
+* Were incompatible with other changes.
+  * This mostly applies to moving the helper buttons to the top of the model card. We currently have too many buttons and moving them there made some unclickable.
+
 ## v1.7.3
 * Downloading webui model information (`[model_name].json`) is now optional and can be configured in the webui settings.
 * When a model is not found on Civitai, this extension will attempt to read the model header for activation keywords. This only works with safetensors files with kohya_ss metadata and may be inaccurate depending on how the model was trained. This method assumes the model was trained with each trained concept having its own training folder. This is not always the case.

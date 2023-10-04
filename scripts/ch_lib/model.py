@@ -97,11 +97,11 @@ def metadata_needed_for_type(path, meta_type, refetch_old):
     """ return True if metadata is needed for path
     """
 
-    if not os.path.isfile(path):
-        return True
-
     if meta_type == "sdwebui" and not opts.ch_dl_webui_metadata:
         return False
+
+    if not os.path.isfile(path):
+        return True
 
     if refetch_old:
         metadata = None
@@ -117,7 +117,7 @@ def metadata_needed_for_type(path, meta_type, refetch_old):
 
         util.printD(f"{path}: {metadata_version}, {compat_version}")
 
-        return util.newer_versions(compat_version, metadata_version)
+        return util.newer_version(compat_version, metadata_version)
 
     return False
 
@@ -327,6 +327,35 @@ def load_model_info(path):
     return model_info
 
 
+def get_potential_model_preview_files(model_path):
+    # Extensions from `find_preview` method in webui `modules/ui_extra_networks.py`
+    # gif added in https://github.com/AUTOMATIC1111/stable-diffusion-webui/commit/c602471b85d270e8c36707817d9bad92b0ff991e
+    preview_exts = ["png", "jpg", "jpeg", "webp", "gif"]
+    preview_files = []
+
+    base, _ = os.path.splitext(model_path)
+
+    for ext in preview_exts:
+        preview_files.append(f"{base}.preview.{ext}")
+
+    return preview_files
+
+
+def get_all_model_files(model_path):
+
+    base, ext = os.path.splitext(model_path)
+
+    info_file, sd15_file = get_model_info_paths(model_path)
+    user_preview_path = f"{base}.png"
+
+    paths = [info_file, sd15_file, user_preview_path]
+    preview_paths = get_potential_model_preview_files(model_path)
+
+    paths = paths + preview_paths
+
+    return paths
+
+
 # get model file names by model type
 # parameter: model_type - string
 # return: model name list
@@ -386,4 +415,41 @@ def get_model_path_by_type_and_name(model_type:str, model_name:str) -> str:
     return
 
 
+
+
+# get model path by model type and search_term
+# parameter: model_type, search_term
+# return: model_path
+def get_model_path_by_search_term(model_type, search_term):
+    util.printD(f"Search model of {search_term} in {model_type}")
+    if model_type not in folders.keys():
+        util.printD("unknow model type: " + model_type)
+        return
+
+    # for lora: search_term = subfolderpath + model name + ext + " " + hash. And it always start with a / even there is no sub folder
+    # for ckp: search_term = subfolderpath + model name + ext + " " + hash
+    # for ti: search_term = subfolderpath + model name + ext + " " + hash
+    # for hyper: search_term = subfolderpath + model name
+
+
+    model_sub_path = search_term.split()[0]
+    if model_sub_path[:1] == "/":
+        model_sub_path = model_sub_path[1:]
+
+    if model_type == "hyper":
+        model_sub_path = f"{model_sub_path}.pt"
+
+    model_folder = folders[model_type]
+
+    model_path = os.path.join(model_folder, model_sub_path)
+
+    #print(f"model_folder: {model_folder}")
+    #print(f"model_sub_path: {model_sub_path}")
+    #print(f"model_path: {model_path}")
+
+    if not os.path.isfile(model_path):
+        util.printD(f"Can not find model file: {model_path}")
+        return
+
+    return model_path
 

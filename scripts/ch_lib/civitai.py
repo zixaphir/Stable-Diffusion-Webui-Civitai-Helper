@@ -345,22 +345,13 @@ def get_model_id_from_url(url:str) -> str:
     return id
 
 
-def preview_filename(base, ext):
-    return f"{base}.preview.{ext}"
-
-
 def preview_exists(model_path):
-    """ Search for existing preview image by finding known filename mutations """
+    """ Search for existing preview image. return True if it exists, else false """
 
-    # Extensions from `find_preview` method in webui `modules/ui_extra_networks.py`
-    # gif added in https://github.com/AUTOMATIC1111/stable-diffusion-webui/commit/c602471b85d270e8c36707817d9bad92b0ff991e
-    preview_exts = ["png", "jpg", "jpeg", "webp", "gif"]
+    previews = model.get_potential_model_preview_files(model_path)
 
-    base, _ = os.path.splitext(model_path)
-
-    for ext in preview_exts:
-        file = preview_filename(base, ext)
-        if os.path.isfile(file):
+    for prev in previews:
+        if os.path.isfile(prev):
             return True
 
     return False

@@ -1,8 +1,17 @@
+/*eslint indent: [2, 4, {"SwitchCase": 1}]*/
+
 (function() {
 
 "use strict";
 
-let replace_preview_text = '';
+let replace_preview_text;
+
+
+function stopEvent(e) {
+    // stop parent event
+    e.stopPropagation();
+    e.preventDefault();
+}
 
 function ch_gradio_version() {
     let foot = gradioApp().getElementById("footer");
@@ -35,6 +44,7 @@ function send_ch_py_msg(msg) {
 
 }
 
+/*
 // get msg from python side from a hidden textbox
 // normally this is an old msg, need to wait for a new msg
 function get_ch_py_msg() {
@@ -48,11 +58,12 @@ function get_ch_py_msg() {
         return "";
     }
 }
+*/
 
 
 // get msg from python side from a hidden textbox
 // it will try once in every sencond, until it reach the max try times
-const get_new_ch_py_msg = (max_count=3) => new Promise((resolve, reject) => {
+const get_new_ch_py_msg = (max_count = 5) => new Promise((resolve, reject) => {
     console.log("run get_new_ch_py_msg");
 
     let count = 0;
@@ -87,7 +98,6 @@ const get_new_ch_py_msg = (max_count=3) => new Promise((resolve, reject) => {
             reject('');
             clearInterval(interval);
         }
-
     }, 1000);
 });
 
@@ -131,7 +141,7 @@ function getActiveNegativePrompt() {
 
 
 //button's click function
-async function open_model_url(event, model_type, search_term){
+window.open_model_url = async function(event, model_type, search_term) {
     console.log("start open_model_url");
 
     //get hidden components of extension
@@ -156,10 +166,6 @@ async function open_model_url(event, model_type, search_term){
     //click hidden button
     js_open_url_btn.click();
 
-    // stop parent event
-    event.stopPropagation();
-    event.preventDefault();
-
     //check response msg from python
     let new_py_msg = await get_new_ch_py_msg();
     console.log("new_py_msg: ", new_py_msg);
@@ -172,18 +178,14 @@ async function open_model_url(event, model_type, search_term){
             if (py_msg_json.content.url) {
                 window.open(py_msg_json.content.url, "_blank");
             }
-
         }
-
-
     }
-
 
     console.log("end open_model_url");
 }
 
 
-function add_trigger_words(event, model_type, search_term){
+window.add_trigger_words = function(event, model_type, search_term) {
     console.log("start add_trigger_words");
 
     //get hidden components of extension
@@ -213,12 +215,11 @@ function add_trigger_words(event, model_type, search_term){
 
     console.log("end add_trigger_words");
 
-    event.stopPropagation();
-    event.preventDefault();
+    stopEvent(event);
 }
 
 
-function use_preview_prompt(event, model_type, search_term){
+window.use_preview_prompt = function(event, model_type, search_term) {
     console.log("start use_preview_prompt");
 
     //get hidden components of extension
@@ -248,13 +249,157 @@ function use_preview_prompt(event, model_type, search_term){
 
     console.log("end use_preview_prompt");
 
-    event.stopPropagation();
-    event.preventDefault();
+    stopEvent(event);
+}
+
+
+window.remove_card = async function(event, model_type, search_term) {
+    console.log("start remove_card");
+
+    //get hidden components of extension
+    let js_remove_card_btn = gradioApp().getElementById("ch_js_remove_card_btn");
+    if (!js_remove_card_btn) {
+        return;
+    }
+
+    // must confirm before removing
+    let rm_confirm = "\nConfirm to remove this model and all related files. This process is irreversible.";
+    if (!confirm(rm_confirm)) {
+        return;
+    }
+
+    //msg to python side
+    let msg = {
+        "action": "",
+        "model_type": "",
+        "search_term": "",
+    }
+
+    msg["action"] = "remove_card";
+    msg["model_type"] = model_type;
+    msg["search_term"] = search_term;
+
+    // fill to msg box
+    send_ch_py_msg(msg)
+
+    //click hidden button
+    js_remove_card_btn.click();
+
+    // stop parent event
+    stopEvent(event);
+
+    //check response msg from python
+    let new_py_msg = "";
+    try {
+        new_py_msg = await get_new_ch_py_msg();
+    } catch (error) {
+        console.log(error);
+        new_py_msg = error;
+    }
+
+    console.log("new_py_msg:");
+    console.log(new_py_msg);
+
+    //check msg
+    let result = "Done";
+    //check msg
+    if (new_py_msg) {
+        result = new_py_msg;
+    }
+
+    if (result=="Done") {
+        refresh_cards_list();
+    }
+
+    console.log("end remove_card");
+
+}
+
+
+window.rename_card = async function(event, model_type, search_term) {
+    console.log("start rename_card");
+
+    //get hidden components of extension
+    let js_rename_card_btn = gradioApp().getElementById("ch_js_rename_card_btn");
+    if (!js_rename_card_btn) {
+        return;
+    }
+
+    // must confirm before removing
+    let rename_prompt = "\nRename this model to:";
+    let new_name = prompt(rename_prompt);
+    if (!new_name) {
+        return;
+    }
+
+    //msg to python side
+    let msg = {
+        "action": "",
+        "model_type": "",
+        "search_term": "",
+        "new_name": "",
+    }
+
+    msg["action"] = "rename_card";
+    msg["model_type"] = model_type;
+    msg["search_term"] = search_term;
+    msg["new_name"] = new_name;
+
+    // fill to msg box
+    send_ch_py_msg(msg)
+
+    //click hidden button
+    js_rename_card_btn.click();
+
+    // stop parent event
+    stopEvent(event);
+
+    //check response msg from python
+    let new_py_msg = "";
+    try {
+        new_py_msg = await get_new_ch_py_msg();
+    } catch (error) {
+        console.log(error);
+        new_py_msg = error;
+    }
+
+    console.log("new_py_msg:");
+    console.log(new_py_msg);
+
+    //check msg
+    let result = "Done";
+    //check msg
+    if (new_py_msg) {
+        result = new_py_msg;
+    }
+
+    if (result=="Done") {
+        refresh_cards_list();
+    }
+
+    console.log("end rename_card");
+
+}
+
+
+window.replace_preview = function(e, page, type, name) {
+    // we have to create a whole hidden editor window to access preview replace functionality
+    extraNetworksEditUserMetadata(e, page, type, name);
+
+    // the editor window takes quite some time to populate
+    waitForEditor(page, type, name).then(editor => {
+        // Gather the buttons we need to both replace the preview and close the editor
+        let cancel_button = editor.querySelector('.edit-user-metadata-buttons button:first-of-type');
+        let replace_preview_button = editor.querySelector('.edit-user-metadata-buttons button:nth-of-type(2)');
+
+        replace_preview_button.click();
+        cancel_button.click();
+    });
 }
 
 
 // download model's new version into SD at python side
-function ch_dl_model_new_version(event, model_path, version_id, download_url, model_type){
+window.ch_dl_model_new_version = function(event, model_path, version_id, download_url, model_type) {
     console.log("start ch_dl_model_new_version");
 
     // must confirm before downloading
@@ -284,10 +429,25 @@ function ch_dl_model_new_version(event, model_path, version_id, download_url, mo
     //click hidden button
     js_dl_model_new_version_btn.click();
 
-    console.log("end dl_model_new_version");
+    stopEvent(event);
 
-    event.stopPropagation();
-    event.preventDefault();
+    console.log("end dl_model_new_version");
+}
+
+
+function refresh_cards_list() {
+    console.log("refresh card list");
+    //refresh card list
+    let active_tab = getActiveTabType();
+    console.log(`get active tab id: ${active_tab}`);
+    if (active_tab) {
+        let refresh_btn_id = `${active_tab}_extra_refresh`;
+        let refresh_btn = gradioApp().getElementById(refresh_btn_id);
+        if (refresh_btn) {
+            console.log(`click button: ${refresh_btn_id}`);
+            refresh_btn.click();
+        }
+    }
 }
 
 function processCards(tab, extra_tab_els) {
@@ -424,7 +584,7 @@ function getShortModelTypeFromFull(model_type_full) {
     }
 }
 
-
+/*
 function getLongModelTypeFromShort(model_type_short) {
     switch (model_type_short) {
         case "ti":
@@ -438,155 +598,127 @@ function getLongModelTypeFromShort(model_type_short) {
             return model_type_short;
     }
 }
+*/
 
-const buttons = {
+const icons = {
     replace_preview: '🖼️',
     open_url: '🌐',
     add_trigger_words: '💡',
-    use_preview_prompt: '🏷️'
+    use_preview_prompt: '🏷️',
+    rename_model: '✏️',
+    remove_model: '❌',
 };
 
-const createUI = (function() {
-    let assignStyle = (el) => {
-        //css
-        const btn_margin = "0px 5px";
-        const btn_fontSize = "200%";
-
-        el.style.fontSize = btn_fontSize;
-        el.style.margin = btn_margin;
-    };
-
+let createUI = function() {
     const ul_node = document.createElement('ul');
-
-    const appendChildren = function(parent, els) {
-        for (const el of els) {
-            parent.appendChild(el);
-        }
-    };
-
-    // default mode
-    let replace_preview_btn;
-    let open_url_node;
-    let add_trigger_words_node;
-    let use_preview_prompt_node;
 
     const template = document.createElement("a");
     template.href = "#";
 
-    replace_preview_btn = template.cloneNode();
-    replace_preview_btn.textContent = buttons.replace_preview;
-
-    open_url_node = template.cloneNode();
-    open_url_node.textContent = buttons.open_url;
-    open_url_node.className = "openurl";
-    open_url_node.title = "Open this model's civitai url";
-
-    add_trigger_words_node = template.cloneNode();
-    add_trigger_words_node.textContent = buttons.add_trigger_words;
-    add_trigger_words_node.className = "addtriggerwords";
-    add_trigger_words_node.title = "Add trigger words to prompt";
-
-    use_preview_prompt_node = template.cloneNode();
-    use_preview_prompt_node.textContent = buttons.use_preview_prompt;
-    use_preview_prompt_node.className = "usepreviewprompt";
-    use_preview_prompt_node.title = "Use prompt from preview image";
-
-    assignStyle(replace_preview_btn);
-    assignStyle(open_url_node);
-    assignStyle(add_trigger_words_node);
-    assignStyle(use_preview_prompt_node);
-
-    //add to card
-    appendChildren(ul_node, [
-        replace_preview_btn,
-        open_url_node,
-        add_trigger_words_node,
-        use_preview_prompt_node
-    ]);
-
-    const createUI = function() {
-        const el = ul_node.cloneNode(true);
-        const children = el.children;
-
-        return {
-            ul:                    el,
-            replace_preview:       children[0],
-            open_url:              children[1],
-            add_trigger_words:     children[2],
-            use_preview_prompt:    children[3],
-        };
+    // default mode
+    const ch_buttons = {
+        replace_preview_button: {
+            title: "Replace model preview with currently selected generated image",
+            icon: icons.replace_preview,
+            className: "replacepreview",
+            func: "replace_preview"
+        },
+        open_url_button: {
+            title: "Open this model's civitai url",
+            icon: icons.open_url,
+            className: "openurl",
+            func: "open_model_url"
+        },
+        add_trigger_words_button: {
+            title: "Add trigger words to prompt",
+            icon: icons.add_trigger_words,
+            className: "addtriggerwords",
+            func: "add_trigger_words"
+        },
+        add_preview_prompt_button: {
+            title: "Use prompt from preview image",
+            icon: icons.use_preview_prompt,
+            className: "usepreviewprompt",
+            func: "use_preview_prompt"
+        },
+        rename_model_button: {
+            title: "Rename this model and related files",
+            icon: icons.rename_model,
+            className: "renamecard",
+            func: "rename_card"
+        },
+        remove_model_button: {
+            title: "Remove this model and related files",
+            icon: icons.remove_model,
+            className: "removecard",
+            func: "remove_card"
+        }
     };
 
-    return createUI;
-})();
+    let children = {};
+    for (const key in ch_buttons) {
+        if (opts.ch_hide_buttons.includes(key)) {
+            continue;
+        }
+
+        let button = ch_buttons[key];
+        let el = template.cloneNode();
+        el.title = button.title;
+        el.textContent = button.icon;
+        el.classList.add("card-button", button.className);
+
+        children[key] = button;
+        ul_node.appendChild(el);
+    }
+
+    createUI = function() {
+        const buttons_el = ul_node.cloneNode(true);
+        const nodes = {
+            parent: buttons_el,
+            children: children
+        };
+
+        for (const key in children) {
+            const child = children[key];
+            child.el = buttons_el.querySelector(`.${child.className}`);
+        }
+
+        return nodes;
+    };
+
+    return createUI();
+};
 
 function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     let additional_node = null;
     let ul_node = null;
-    let replace_preview_btn = null;
     let search_term_node = null;
     let search_term = "";
-
-    if(card.querySelector(".actions .additional ul") != null) {
-        // buttons have already been added to this card.
-        return;
-    }
-
-    const model_type = active_extra_tab_type;
-    const js_model_type = getLongModelTypeFromShort(model_type);
-
-    let open_url_node;
-    let add_trigger_words_node;
-    let use_preview_prompt_node;
-
-    //metadata_buttoncard
-    metadata_button = card.querySelector(".metadata-button");
+    let nodes;
+    let model_type;
 
     //additional node
     additional_node = card.querySelector(".actions .additional");
 
-    const nodes = createUI();
-    ul_node = nodes.ul;
-
-    {
-        // waste memory by keeping all of this in scope, per card.
-        const page = active_tab_type;
-        const type = js_model_type;
-        const name = card.dataset.name;
-
-        // create the replace_preview_btn, as it no longer exists
-        replace_preview_btn = nodes.replace_preview;
-
-        // create an event handler to redirect a click to the real replace_preview_button
-        replace_preview_btn.addEventListener("click", function(e) {
-            // we have to create a whole hidden editor window to access preview replace functionality
-            extraNetworksEditUserMetadata(e, page, type, name);
-
-            // the editor window takes quite some time to populate. What a waste.
-            waitForEditor(page, type, name).then(editor => {
-                // Gather the buttons we need to both replace the preview and close the editor
-                const editor_cancel_button = editor.querySelector('.edit-user-metadata-buttons button:first-of-type');
-                const editor_replace_preview_button = editor.querySelector('.edit-user-metadata-buttons button:nth-of-type(2)');
-
-                editor_replace_preview_button.click();
-                editor_cancel_button.click();
-            });
-        });
+    if (additional_node.querySelector("ul") != null) {
+        // buttons have already been added to this card.
+        return;
     }
 
     additional_node.style.display = opts.ch_always_display ? "block" : null;
 
+    model_type = active_extra_tab_type;
+
+    nodes = createUI();
+    ul_node = nodes.parent;
+
     // search_term node
     // search_term = subfolder path + model name + ext
     search_term_node = card.querySelector(".actions .additional .search_term");
-    if (!search_term_node){
+    if (!search_term_node) {
         console.log("can not find search_term node for cards in " + active_tab_type + "_" + active_extra_tab_type + "_cards");
         return;
     }
-
-    open_url_node =             nodes.open_url;
-    add_trigger_words_node =    nodes.add_trigger_words;
-    use_preview_prompt_node =   nodes.use_preview_prompt;
 
     // get search_term
     search_term = search_term_node.textContent;
@@ -595,49 +727,47 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         return;
     }
 
-    open_url_node.addEventListener('click', e => {
-        open_model_url(e, model_type, search_term);
-    });
-
-    add_trigger_words_node.addEventListener('click', e => {
-        add_trigger_words(e, model_type, search_term);
-    });
-
-    use_preview_prompt_node.addEventListener('click', e => {
-        use_preview_prompt(e, model_type, search_term);
-    });
+    const children = nodes.children;
+    for (const key in children) {
+        const child = children[key];
+        if (child.func == "replace_preview") {
+            child.el.setAttribute("onclick", `${child.func}(event, '${active_tab_type}', '${model_type}', '${search_term}')`);
+            continue;
+        }
+        child.el.setAttribute("onclick", `${child.func}(event, '${model_type}', '${search_term}')`);
+    }
 
     additional_node.appendChild(ul_node);
-
 }
 
 onUiLoaded(() => {
     //get gradio version
     const gradio_ver = ch_gradio_version();
-    console.log("Running Stable-Diffusion-Webui-Civitai-Helper on Gradio Version: " + gradio_ver);
+    console.log(`Running Stable-Diffusion-Webui-Civitai-Helper on Gradio Version: ${gradio_ver}`);
+
+    // console.log(window.opts);
+    // createUI = createUI();
 
     // get all extra network tabs
     const tab_prefix_list = ["txt2img", "img2img"];
     const model_type_list = ["textual_inversion", "hypernetworks", "checkpoints", "lora", "lycoris"];
 
     // update extra network tab pages' cards
-    // * replace "replace preview" text button into the icon from `buttons.replace_preview`.
+    // * replace "replace preview" text button into the icon from `icons.replace_preview`.
     // * add 3 button to each card:
-    //  - open model url:               `buttons.open_url`
-    //  - add trigger words:            `buttons.add_trigger_words`
-    //  - use preview image's prompt    `buttons.use_preview_prompt`
+    //  - open model url:               `icons.open_url`
+    //  - add trigger words:            `icons.add_trigger_words`
+    //  - use preview image's prompt    `icons.use_preview_prompt`
     //
     // notice: javascript can not get response from python side
     // so, these buttons just sent request to python
     // then, python side gonna open url and update prompt text box, without telling js side.
-    function update_card_for_civitai(){
+    function update_card_for_civitai() {
         replace_preview_text = getTranslation("replace preview");
 
         if (!replace_preview_text) {
             replace_preview_text = "replace preview";
         }
-
-        ch_always_display_ckb = gradioApp().querySelector("#ch_always_display_ckb input");
 
         let extra_network_node = null;
         let model_type = "";
@@ -653,7 +783,7 @@ onUiLoaded(() => {
             }
 
             //get active extratab
-            const re = new RegExp(tab_prefix + "_(.+)_cards_html$");
+            const re = new RegExp(`${tab_prefix}_(.+)_cards_html$`);
             const active_extra_tab = Array.from(get_uiCurrentTabContent().querySelectorAll('.extra-network-cards'))
                 .find(el => el.closest('.tabitem').style.display === 'block')
                 ?.id.match(re)[1];
@@ -665,10 +795,9 @@ onUiLoaded(() => {
                 model_type = getShortModelTypeFromFull(js_model_type);
 
                 if (!model_type) {
-                    console.log("can not get model_type from: " + js_model_type);
+                    console.log(`Can not get model_type from: ${js_model_type}`);
                     continue;
                 }
-
 
                 //only handle current sub-tab
                 if (model_type != active_extra_tab_type) {
@@ -682,11 +811,8 @@ onUiLoaded(() => {
                 for (const card of cards) {
                     processSingleCard(active_tab_type, active_extra_tab_type, card);
                 }
-
             }
-
         }
-
     }
 
     //add refresh button to extra network's toolbar
@@ -702,10 +828,9 @@ onUiLoaded(() => {
                 header.removeEventListener("click", extraNetworksClick);
             };
 
-            header.addEventListener('click', extraNetworksClick);
+            header.addEventListener("click", extraNetworksClick);
         }
     }
-
 
     //run it once
     update_card_for_civitai();
