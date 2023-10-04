@@ -1,11 +1,8 @@
-/*eslint indent: [2, 4, {"SwitchCase": 1}]*/
-
 (function() {
 
 "use strict";
 
 let replace_preview_text;
-
 
 function stopEvent(e) {
     // stop parent event
@@ -113,9 +110,11 @@ function getActiveTabType() {
     return null;
 }
 
+
 function getExtraTabs(prefix) {
     return gradioApp().getElementById(prefix + "_extra_tabs");
 }
+
 
 function getActivePrompt() {
     const currentTab = get_uiCurrentTabContent();
@@ -127,6 +126,7 @@ function getActivePrompt() {
     }
     return null;
 }
+
 
 function getActiveNegativePrompt() {
     const currentTab = get_uiCurrentTabContent();
@@ -269,15 +269,11 @@ window.remove_card = async function(event, model_type, search_term) {
     }
 
     //msg to python side
-    let msg = {
-        "action": "",
-        "model_type": "",
-        "search_term": "",
+    const msg = {
+        action: "remove_card",
+        model_type: model_type,
+        search_term: search_term,
     }
-
-    msg["action"] = "remove_card";
-    msg["model_type"] = model_type;
-    msg["search_term"] = search_term;
 
     // fill to msg box
     send_ch_py_msg(msg)
@@ -333,17 +329,12 @@ window.rename_card = async function(event, model_type, search_term) {
     }
 
     //msg to python side
-    let msg = {
-        "action": "",
-        "model_type": "",
-        "search_term": "",
-        "new_name": "",
+    const msg = {
+        action: "rename_card",
+        model_type: model_type,
+        search_term: search_term,
+        new_name: new_name,
     }
-
-    msg["action"] = "rename_card";
-    msg["model_type"] = model_type;
-    msg["search_term"] = search_term;
-    msg["new_name"] = new_name;
 
     // fill to msg box
     send_ch_py_msg(msg)
@@ -836,5 +827,3 @@ onUiLoaded(() => {
     update_card_for_civitai();
 
 });})();
-
-
