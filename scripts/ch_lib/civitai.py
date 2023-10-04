@@ -370,7 +370,7 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, skip_nsfw_
         return
 
     base, ext = os.path.splitext(model_path)
-    preview = preview_filename(base, "png") # XXX png not strictly required
+    preview =  f"{base}.preview.png" # XXX png not strictly required
     info_file = f"{base}{SUFFIX}{model.CIVITAI_EXT}"
 
     # need to download preview image
