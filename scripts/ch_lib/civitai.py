@@ -391,16 +391,15 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, skip_nsfw_
             return
 
         if "images" in model_info.keys():
-            if "images" in model_info.keys():
-                if model_info["images"]:
-                    for img_dict in model_info["images"]:
-                        if "nsfw" in img_dict.keys():
-                            if img_dict["nsfw"] != "None":
-                                util.printD("This image is NSFW: " + str(img_dict["nsfw"]))
-                                current_nsfw = img_dict.get("nsfw", "None")
-                                if should_skip(skip_nsfw_preview, current_nsfw):
-                                    util.printD("Skip NSFW image")
-                                    continue
+            if model_info["images"]:
+                for img_dict in model_info["images"]:
+                    if "nsfw" in img_dict.keys():
+                        if img_dict["nsfw"] != "None":
+                            util.printD("This image is NSFW: " + str(img_dict["nsfw"]))
+                            current_nsfw = img_dict.get("nsfw", "None")
+                            if should_skip(skip_nsfw_preview, current_nsfw):
+                                util.printD("Skip NSFW image")
+                                continue
 
                     if "url" in img_dict.keys():
                         img_url = img_dict["url"]
