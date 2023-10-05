@@ -1,12 +1,14 @@
-# -*- coding: UTF-8 -*-
+""" -*- coding: UTF-8 -*-
+Utility functions for Stable Diffusion Civitai Helper
+"""
 import os
-import gradio as gr
 import sys
 import io
 import re
 import hashlib
-import requests
 import shutil
+import requests
+import gradio as gr
 import launch
 from packaging.version import parse as parse_version
 
@@ -22,26 +24,31 @@ COMPAT_VERSION_CIVITAI = "1.7.2"
 # SD webui model info JSON below this version will be regenerated
 COMPAT_VERSION_SDWEBUI = "1.7.2"
 
-def_headers = {'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'}
-
+def_headers = {
+    'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
+}
 
 proxies = None
 
-
 # print for debugging
 def printD(msg):
+    """ Print a message to stderr """
     print(f"Civitai Helper: {msg}", file=sys.stderr)
 
 def info(msg):
+    """ Display an info smessage on the client DOM """
     gr.Info(msg)
 
 def warning(msg):
+    """ Display a warning message on the client DOM """
     gr.Warning(msg)
 
 def error(msg):
+    """ Display an error message on the client DOM """
     gr.Error(msg)
 
 def download_error(download_url, msg):
+    """ Display a download error """
     output = f"Download failed, check console log for detail. Download url: {download_url}"
     printD(output)
     printD(msg)
@@ -56,57 +63,66 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
             break
         yield chunk
 
-# Now, hashing use the same way as pip's source code.
 def gen_file_sha256(filname):
+    """ pip-style sha256 hash generation"""
     printD("Use Memory Optimized SHA256")
     blocksize=1 << 20
-    h = hashlib.sha256()
+    sha256_hash = hashlib.sha256()
     length = 0
-    with open(os.path.realpath(filname), 'rb') as f:
-        for block in read_chunks(f, size=blocksize):
+    with open(os.path.realpath(filname), 'rb') as read_file:
+        for block in read_chunks(read_file, size=blocksize):
             length += len(block)
-            h.update(block)
+            sha256_hash.update(block)
 
-    hash_value =  h.hexdigest()
+    hash_value =  sha256_hash.hexdigest()
     printD(f"sha256: {hash_value}")
     printD(f"length: {length}")
     return hash_value
 
 
-# get preview image
 def download_file(url, path):
+    """ Download a preview image """
+
     printD(f"Downloading file from: {url}")
+
     # get file
-    r = requests.get(url, stream=True, headers=def_headers, proxies=proxies)
-    if not r.ok:
-        printD(f"Get error code: {r.status_code}")
-        printD(r.text)
+    request = requests.get(
+        url,
+        stream=True,
+        headers=def_headers,
+        proxies=proxies,
+        timeout=10
+    )
+
+    if not request.ok:
+        printD(f"Get error code: {request.status_code}")
+        printD(request.text)
         return
 
     # write to file
-    with open(os.path.realpath(path), 'wb') as f:
-        r.raw.decode_content = True
-        shutil.copyfileobj(r.raw, f)
+    with open(os.path.realpath(path), 'wb') as writefile:
+        request.raw.decode_content = True
+        shutil.copyfileobj(request.raw, writefile)
 
     printD(f"File downloaded to: {path}")
 
 
-# get subfolder list
 def get_subfolders(folder:str) -> list:
+    """ return: list of subfolders """
     printD(f"Get subfolder for: {folder}")
     if not folder:
         printD("folder can not be None")
-        return
+        return None
 
     if not os.path.isdir(folder):
         printD("path is not a folder")
-        return
+        return None
 
     prefix_len = len(folder)
     subfolders = []
-    for root, dirs, files in os.walk(folder, followlinks=True):
-        for dir in dirs:
-            full_dir_path = os.path.join(root, dir)
+    for root, dirs, _ in os.walk(folder, followlinks=True):
+        for directory in dirs:
+            full_dir_path = os.path.join(root, directory)
             # get subfolder path from it
             subfolder = full_dir_path[prefix_len:]
             subfolders.append(subfolder)
@@ -116,14 +132,17 @@ def get_subfolders(folder:str) -> list:
 
 # get relative path
 def get_relative_path(item_path:str, parent_path:str) -> str:
-    # printD(f"item_path: {item_path}")
-    # printD(f"parent_path: {parent_path}")
-    # item path must start with parent_path
-    if not item_path:
+    """
+    Gets a relative path from an absolute path and its parent_path
+    item path must start with parent_path
+    return: relative_path:str
+    """
+
+    if not (item_path and parent_path):
         return ""
-    if not parent_path:
-        return ""
+
     if not item_path.startswith(parent_path):
+        # return absolute path
         return item_path
 
     relative = item_path[len(parent_path):]
@@ -134,7 +153,10 @@ def get_relative_path(item_path:str, parent_path:str) -> str:
     return relative
 
 
+# Allowed HTML tags
 whitelist = re.compile(r"</?(a|img|br|p|b|strong|i|h[0-9]|code)[^>]*>")
+
+# Allowed HTML attributes
 attrs = re.compile(r"""(?:href|src|target)=['"]?[^\s'"]*['"]?""")
 
 def safe_html_replace(match):
@@ -145,36 +167,36 @@ def safe_html_replace(match):
     attr = None
     close = False
 
-    m = whitelist.match(match.group(0))
-    if m is not None:
-        el = m.group(0)
-        tag = m.group(1)
-        close = el[1] == "/"
+    match = whitelist.match(match.group(0))
+    if match is not None:
+        html_elem = match.group(0)
+        tag = match.group(1)
+        close = html_elem[1] == "/"
         if (tag in ["a", "img"]) and not close:
-            m2 = attrs.findall(el)
-            if m2 is not None:
-                attr = " ".join(m2)
+            sub_match = attrs.findall(html_elem)
+            if sub_match is not None:
+                attr = " ".join(sub_match)
 
         if close:
             return f"</{tag}>"
-        else:
-            return f"<{tag} {attr}>" if attr else f"<{tag}>"
+
+        return f"<{tag} {attr}>" if attr else f"<{tag}>"
 
     return ""
 
-def safe_html(s):
+def safe_html(html):
     """ whitelist only HTML I"m comfortable displaying in webui """
 
-    return re.sub("<[^<]+?>", safe_html_replace, s)
+    return re.sub("<[^<]+?>", safe_html_replace, html)
 
 
-def trim_html(s):
+def trim_html(html):
     """ Remove any HTML for a given string and, if needed, replace it with
         a comparable plain-text alternative.
     """
 
-    def sub_tag(m):
-        tag = m.group(1)
+    def sub_tag(match):
+        tag = match.group(1)
         if tag == "/p":
             return "\n\n"
         if tag == "br":
@@ -185,8 +207,8 @@ def trim_html(s):
             return "`"
         return ''
 
-    def sub_escaped(m):
-        escaped = m.group(1)
+    def sub_escaped(match):
+        escaped = match.group(1)
         unescaped = {
             "gt": ">",
             "lt": "<",
@@ -196,25 +218,17 @@ def trim_html(s):
         return unescaped.get(escaped, "")
 
     # non-breaking space. Useless unstyled content
-    s = s.replace("\u00a0", "")
+    html = html.replace("\u00a0", "")
 
     # remove non-whitelisted HTML tags,
     # replace whitelisted tags with text-equivalents
-    s = re.sub(r"<(/?[a-zA-Z]+)(?:[^>]+)?>", sub_tag, s)
+    html = re.sub(r"<(/?[a-zA-Z]+)(?:[^>]+)?>", sub_tag, html)
 
     # Replace HTML-escaped characters with displayables.
-    s = re.sub(r"\&(gt|lt|quot|amp)\;", sub_escaped, s)
-
-    # remove trailing line breaks
-    count = -1
-    while s[count] == "\n":
-        count = count - 1
-
-    if count < -1:
-        s = s[0:count + 1]
+    html = re.sub(r"\&(gt|lt|quot|amp)\;", sub_escaped, html)
 
     # https://github.com/AUTOMATIC1111/stable-diffusion-webui/pull/13241
-    return f"<!--\n{s.strip()}\n-->"
+    return f"<!--\n{html.strip()}\n-->"
 
 
 def newer_version(ver1, ver2, allow_equal=False):
@@ -233,7 +247,7 @@ def metadata_version(metadata):
     """
     try:
         return metadata["extensions"][SHORT_NAME]["version"]
-    except:
+    except KeyError:
         return False
 
 
