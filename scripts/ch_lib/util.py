@@ -213,7 +213,8 @@ def trim_html(s):
     if count < -1:
         s = s[0:count + 1]
 
-    return s
+    # https://github.com/AUTOMATIC1111/stable-diffusion-webui/pull/13241
+    return f"<!--\n{s.strip()}\n-->"
 
 
 def newer_version(ver1, ver2, allow_equal=False):
