@@ -247,13 +247,13 @@ Since v1.5.5, we've already optimized the SHA256 function to the top. So the onl
 
 # Change Log
 ##
-* Added "Remove Model" button.
-* Fix downloading size check issue.
-### This release pulls in new features from butaixianran's updates as of v1.8.2. Some changes were omitted for the following reasons:
-* Broke compatibility older sd webui versions.
-* Were already included.
-* Were incompatible with other changes.
-  * This mostly applies to moving the helper buttons to the top of the model card. We currently have too many buttons and moving them there made some unclickable.
+* Added "Remove Model" button. From butaixianran's repo.
+* Added "Rename Model" button.
+* NSFW previews can now be skipped based on how NSFW they are. From sdy623's repo.
+* New `.json` files will now have their descriptions surrounded by HTML comments as to not break model cards when card descriptions are enabled. If you want to display these descriptions on cards, you can remove the leading `<!--` and tailing `-->`, but you will be responsible for any issues that arise.
+* Card buttons can now be hidden individually. By default, the "insert trigger words" button is hidden on newer versions of sdwebui, where this functionality happens automatically if the metadata `JSON` exists, which is created when models are scanned with default settings.
+* Model names on cards now have a maximum height when not hovered, which should prevent the model name from occupying the whole card.
+* Fix downloading size check issue. From butaixianran's repo.
 
 ## v1.7.3
 * Downloading webui model information (`[model_name].json`) is now optional and can be configured in the webui settings.
