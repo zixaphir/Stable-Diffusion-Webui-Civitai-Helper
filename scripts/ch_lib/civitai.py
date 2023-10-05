@@ -390,6 +390,7 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, skip_nsfw_
             util.printD("Model Info is empty")
             return
 
+        if "images" in model_info.keys():
             if "images" in model_info.keys():
                 if model_info["images"]:
                     for img_dict in model_info["images"]:
