@@ -1,11 +1,13 @@
-# -*- coding: UTF-8 -*-
-# handle msg between js and python side
+""" -*- coding: UTF-8 -*-
+Handle model operations
+"""
 import os
 import json
+from modules import shared
+from modules import paths_internal
 from modules.shared import opts
 from . import civitai
 from . import util
-from modules import shared, paths_internal
 
 
 # this is the default root path
@@ -18,7 +20,8 @@ SDWEBUI_EXT = ".json"
 """
 If command line arguement is used to change model folder,
 then model folder is in absolute path, not based on this root path anymore.
-so to make extension work with those absolute model folder paths, model folder also need to be in absolute path
+so to make extension work with those absolute model folder paths, model
+folder also need to be in absolute path
 """
 folders = {
     "ti": os.path.join(ROOT_PATH, "embeddings"),
@@ -30,17 +33,21 @@ folders = {
 
 
 class VersionMismatchException(Exception):
-    # Constructor or Initializer
+    """ Used for version comarison failures """
+
     def __init__(self, value):
         self.value = value
 
-    # __str__ is to print() the value
     def __str__(self):
-        return(repr(self.value))
+        return repr(self.value)
 
 
 def get_model_info_paths(model_path):
-    base, ext = os.path.splitext(model_path)
+    """
+    Retrieve model info paths
+    return: (info_file:str, sd15_file:str)
+    """
+    base, _ = os.path.splitext(model_path)
     info_file = f"{base}{civitai.SUFFIX}{CIVITAI_EXT}"
     sd15_file = f"{base}{SDWEBUI_EXT}"
     return (info_file, sd15_file)
@@ -48,9 +55,10 @@ def get_model_info_paths(model_path):
 
 # get custom model path
 def get_custom_model_folder():
+    """
+    Update extra network directories with user-specified values.
+    """
     util.printD("Get Custom Model Folder")
-
-    global folders
 
     if shared.cmd_opts.embeddings_dir and os.path.isdir(shared.cmd_opts.embeddings_dir):
         folders["ti"] = shared.cmd_opts.embeddings_dir
@@ -66,21 +74,18 @@ def get_custom_model_folder():
 
     try:
         # pre-1.5.0
-        if shared.cmd_opts.lyco_dir and os.path.isdir(shared.cmd_opts.lyco_dir):
+        if os.path.isdir(shared.cmd_opts.lyco_dir):
             folders["lycoris"] = shared.cmd_opts.lyco_dir
 
-    except:
+    except AttributeError:
         try:
             # sd-webui v1.5.1 added a backcompat option for lyco.
-            if shared.cmd_opts.lyco_dir_backcompat and os.path.isdir(shared.cmd_opts.lyco_dir_backcompat):
+            if os.path.isdir(shared.cmd_opts.lyco_dir_backcompat):
                 folders["lycoris"] = shared.cmd_opts.lyco_dir_backcompat
-        except:
-            # XXX v1.5.0 has no options for the Lyco dir: it is hardcoded as 'os.path.join(paths.models_path, "LyCORIS")'
-            pass
-
-
-def process_key_error(note:str):
-    util.printD(f"Failed to process {note}. Continuing.")
+        except AttributeError:
+            # v1.5.0 has no options for the Lyco dir:
+            # it is hardcoded as 'os.path.join(paths.models_path, "LyCORIS")'
+            return
 
 
 def metadata_needed(info_file, sd15_file, refetch_old):
@@ -113,7 +118,10 @@ def metadata_needed_for_type(path, meta_type, refetch_old):
         if not metadata_version:
             return True
 
-        compat_version = util.COMPAT_VERSION_CIVITAI if meta_type == "civitai" else util.COMPAT_VERSION_SDWEBUI
+        if meta_type == "civitai":
+            compat_version = util.COMPAT_VERSION_CIVITAI
+        else:
+            compat_version = util.COMPAT_VERSION_SDWEBUI
 
         util.printD(f"{path}: {metadata_version}, {compat_version}")
 
@@ -123,6 +131,11 @@ def metadata_needed_for_type(path, meta_type, refetch_old):
 
 
 def verify_overwrite_eligibility(path, new_data):
+    """
+    Verifies a file is valid to be overwritten
+    Throws an error if the model ID does not match the new version's model ID
+    return: True if valid, False if not.
+    """
     if not os.path.isfile(path):
         return True
 
@@ -134,77 +147,72 @@ def verify_overwrite_eligibility(path, new_data):
         old_id = old_data.get("id", "")
         if new_id != old_id:
             if old_id != "":
-                raise VersionMismatchException(f"New metadata id ({new_id}) does not match old metadata id ({old_id})")
+                raise VersionMismatchException(
+                    f"New metadata id ({new_id}) does not match old metadata id ({old_id})"
+                )
 
-    if new_data.get("description", "") == "" and old_data.get("description", "") != "":
-        util.printD(f"New description is blank while old description contains data. Skipping {path}")
+    new_description = new_data.get("description", "")
+    old_description = old_data.get("description", "")
+    if new_description == "" and old_description != "":
+        util.printD(
+            f"New description is blank while old description contains data. Skipping {path}"
+        )
         return False
 
     return True
 
 
+def write_info(data, path, info_type):
+    """ Writes model info to a file """
+    util.printD(f"Write model {info_type} info to file: {path}")
+    with open(os.path.realpath(path), 'w') as info_file:
+        info_file.write(json.dumps(data, indent=4))
+
+
 def process_model_info(model_path, model_info, model_type="ckp", refetch_old=False):
-    """ Write model info to file
+    """
+    Write model info to file
 
-        SD1.5 Webui added saving model information to JSON files.
-        Much of this extension's metadata management is replicated
-        by this new functionality, including automatically adding
-        activator keywords to the prompt. It also provides a much
-        cleaner UI than civitai (not a high bar to clear) to
-        simply read a model's description.
+    SD1.5 Webui added saving model information to JSON files.
+    Much of this extension's metadata management is replicated
+    by this new functionality, including automatically adding
+    activator keywords to the prompt. It also provides a much
+    cleaner UI than civitai (not a high bar to clear) to
+    simply read a model's description.
 
-        So why not populate it with useful information?
+    So why not populate it with useful information?
 
-        Returns True if successful, otherwise an error message.
+    Returns True if successful, otherwise an error message.
     """
 
-    def write_info(data, path, info_type):
-        util.printD(f"Write model {info_type} info to file: {path}")
-        with open(os.path.realpath(path), 'w') as f:
-            f.write(json.dumps(data, indent=4))
-
     if model_info is None:
-        util.printD(f"Failed to get model info.")
+        util.printD("Failed to get model info.")
         return
 
     info_file, sd15_file = get_model_info_paths(model_path)
 
     parent = model_info["model"]
 
-    try:
-        parent["description"] = util.trim_html(parent["description"])
-
-    except Exception:
+    description = parent.get("description", None)
+    if description:
+        parent["description"] = util.trim_html(description)
+    else:
         parent["description"] = ""
-        process_key_error("model description")
 
-    try:
-        model_info["description"] = util.trim_html(model_info["description"])
-
-    except Exception:
+    version_description = model_info.get("description", None)
+    if description:
+        model_info["description"] = util.trim_html(version_description)
+    else:
         model_info["description"] = ""
-        process_key_error("version description")
 
-    try:
-        tags = parent["tags"]
-        data = []
-        for tag in tags:
-            data.append(tag)
+    tags = parent.get("tags", [])
+    parent["tags"] = tags
 
-        parent["tags"] = data
-
-    except Exception as e:
-        parent["tags"] = []
-        process_key_error("tags")
-
-    """
-    I'm already running into issues with people asking for breaking
-    changes, so I just want to have this for reference later down
-    the line
-    """
+    # Create extension versioning information so that users
+    # can replace stale info files without newer entries.
     model_info["extensions"] = util.create_extension_block(model_info.get("extensions", {}))
 
-    ### civitai model info file
+    # civitai model info file
     if metadata_needed_for_type(info_file, "civitai", refetch_old):
         if refetch_old:
             try:
@@ -225,82 +233,73 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
         util.printD(f"Metadata not needed for: {sd15_file}.")
         return
 
-    ### sd v1.5 model info file
+    process_sd15_info(sd15_file, model_info, parent, model_type, refetch_old)
+
+
+def process_sd15_info(sd15_file, model_info, parent, model_type, refetch_old):
+    """ Creates/Processes [model_name].json """
+
+    # sd v1.5 model info file
     sd_data = {}
 
     util.printD(f"Write model SD webui info to file: {sd15_file}")
 
     sd_data["description"] = parent.get("description", "")
 
-    """
-    I suppose notes are more for user notes, but populating it
-    with potentially useful information about this particular
-    version of the model is fine too, right? The user can
-    always replace these if they're unneeded or add to them
-    """
+    # I suppose notes are more for user notes, but populating it
+    # with potentially useful information about this particular
+    # version of the model is fine too, right? The user can
+    # always replace these if they're unneeded or add to them
     version_info = model_info.get("description", None)
     if version_info is not None:
         sd_data["notes"] = version_info
 
-    """
-    AFAIK civitai model versions are currently:
-    SD 1.4, SD 1.5, SD 2.0, SD 2.0 786, SD 2.1, SD 2.1 786
-    SD 2.1 Unclip, SDXL 0.9, SDXL 1.0, and Other.
-    Conveniently, the 4th character is all we need for webui.
-
-    INFO: On Civitai, all models list base model/"sd version".
-    The SD WebUI interface only displays them for Lora/Lycoris.
-    I'm populating the field anyways in hopes it eventually gets
-    added.
-    """
+    # AFAIK civitai model versions are currently:
+    # SD 1.4, SD 1.5, SD 2.0, SD 2.0 786, SD 2.1, SD 2.1 786
+    # SD 2.1 Unclip, SDXL 0.9, SDXL 1.0, and Other.
+    # Conveniently, the 4th character is all we need for webui.
+    #
+    # INFO: On Civitai, all models list base model/"sd version".
+    # The SD WebUI interface only displays them for Lora/Lycoris.
+    # I'm populating the field anyways in hopes it eventually gets
+    # added.
     base_model = model_info.get("baseModel", None)
+    sd_version = 'Unknown'
     if base_model:
-        sd_version = base_model[3]
+        version = base_model[3]
 
-        if sd_version == '1':
-            sd_version = 'SD1'
-        elif sd_version ==  '2':
-            sd_version = 'SD2'
-        elif sd_version == 'L':
-            sd_version = 'SDXL'
-        else:
-            sd_version = 'Unknown'
-    else:
-        sd_version = 'Unknown'
+        sd_version = {
+            "1": 'SD1',
+            "2": 'SD2',
+            "L": 'SDXL',
+        }.get(version, 'Unknown')
 
     sd_data["sd version"] = sd_version
 
-    """
-    INFO: On Civitai, all non-checkpoint models can have trained words.
-    The SD WebUI interface only displays them for Lora/Lycoris.
-    I'm populating the field anyways in hopes it eventually gets
-    added.
-
-    "trained words" usage is inconsistent among model authors.
-    Some use each entry as an individual activator, while others
-    use them as entire prompts
-    """
+    # INFO: On Civitai, all non-checkpoint models can have trained words.
+    # The SD WebUI interface only displays them for Lora/Lycoris.
+    # I'm populating the field anyways in hopes it eventually gets
+    # added.
+    #
+    # "trained words" usage is inconsistent among model authors.
+    # Some use each entry as an individual activator, while others
+    # use them as entire prompts
     activator = model_info.get("trainedWords", [])
     if (activator and activator[0]):
         if "," in activator[0]:
             # assume trainedWords is a prompt list
 
-            """
-            XXX webui does not support newlines in activator text
-            so this is the best hinting I can give the user at the
-            moment that these are mutually-exclusive prompts.
-            """
+            # webui does not support newlines in activator text
+            # so this is the best hinting I can give the user at the
+            # moment that these are mutually-exclusive prompts.
             sd_data["activation text"] = " || ".join(activator)
         else:
             # assume trainedWords are single keywords
             sd_data["activation text"] = ", ".join(activator)
 
-    """
-    Sadly, Civitai does not provide default weight information,
-    So 0 disables this functionality on webui's end
-    (Tho 1 would also work?)
-    """
-
+    # Sadly, Civitai does not provide default weight information,
+    # So 0 disables this functionality on webui's end and uses
+    # the user's global setting
     if model_type in ["lora", "lycoris"]:
         sd_data["preferred weight"] = 0
 
@@ -314,22 +313,28 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
 
 
 def load_model_info(path):
-    # util.printD(f"Load model info from file: {path}")
+    """ Opens a JSON file and loads its JSON """
     model_info = None
-    with open(os.path.realpath(path), 'r') as f:
+    with open(os.path.realpath(path), 'r') as json_file:
         try:
-            model_info = json.load(f)
-        except Exception as e:
+            model_info = json.load(json_file)
+        except ValueError as e:
             util.printD(f"Selected file is not json: {path}")
             util.printD(e)
-            return
+            return None
 
     return model_info
 
 
 def get_potential_model_preview_files(model_path):
-    # Extensions from `find_preview` method in webui `modules/ui_extra_networks.py`
-    # gif added in https://github.com/AUTOMATIC1111/stable-diffusion-webui/commit/c602471b85d270e8c36707817d9bad92b0ff991e
+    """
+    Find existing preview images, if any.
+
+    Extensions from `find_preview` method in webui `modules/ui_extra_networks.py`
+    gif added in webui commit c602471b85d270e8c36707817d9bad92b0ff991e
+
+    return: preview_files
+    """
     preview_exts = ["png", "jpg", "jpeg", "webp", "gif"]
     preview_files = []
 
@@ -342,8 +347,9 @@ def get_potential_model_preview_files(model_path):
 
 
 def get_all_model_files(model_path):
+    """ return: list of paths """
 
-    base, ext = os.path.splitext(model_path)
+    base, _ = os.path.splitext(model_path)
 
     info_file, sd15_file = get_model_info_paths(model_path)
     user_preview_path = f"{base}.png"
@@ -360,6 +366,7 @@ def get_all_model_files(model_path):
 # parameter: model_type - string
 # return: model name list
 def get_model_names_by_type(model_type:str) -> list:
+    """ return: list of model_names of a given model_type """
 
     if model_type == "lora" and folders['lycoris']:
         model_folders = [folders[model_type], folders['lycoris']]
@@ -370,29 +377,29 @@ def get_model_names_by_type(model_type:str) -> list:
     # only get those model names don't have a civitai model info file
     model_names = []
     for model_folder in model_folders:
-        for root, dirs, files in os.walk(model_folder, followlinks=True):
+        for root, _, files in os.walk(model_folder, followlinks=True):
             for filename in files:
                 item = os.path.join(root, filename)
                 # check extension
-                base, ext = os.path.splitext(item)
+                _, ext = os.path.splitext(item)
                 if ext in EXTS:
                     # find a model
                     model_names.append(filename)
-
 
     return model_names
 
 
 # return 2 values: (model_root, model_path)
 def get_model_path_by_type_and_name(model_type:str, model_name:str) -> str:
+    """ return: model_path:str matching model_name and model_type """
     util.printD("Run get_model_path_by_type_and_name")
-    if model_type not in folders.keys():
+    if folders.get(model_type, None) is None:
         util.printD(f"unknown model_type: {model_type}")
-        return
+        return None
 
     if not model_name:
         util.printD("model name can not be empty")
-        return
+        return None
 
     if model_type == "lora" and folders['lycoris']:
         model_folders = [folders[model_type], folders['lycoris']]
@@ -404,7 +411,7 @@ def get_model_path_by_type_and_name(model_type:str, model_name:str) -> str:
     model_root = ""
     model_path = ""
     for folder in model_folders:
-        for root, dirs, files in os.walk(folder, followlinks=True):
+        for root, _, files in os.walk(folder, followlinks=True):
             for filename in files:
                 if filename == model_name:
                     # find model
@@ -412,25 +419,28 @@ def get_model_path_by_type_and_name(model_type:str, model_name:str) -> str:
                     model_path = os.path.join(root, filename)
                     return (model_root, model_path)
 
-    return
-
-
+    return None
 
 
 # get model path by model type and search_term
 # parameter: model_type, search_term
 # return: model_path
 def get_model_path_by_search_term(model_type, search_term):
-    util.printD(f"Search model of {search_term} in {model_type}")
-    if model_type not in folders.keys():
-        util.printD("unknow model type: " + model_type)
-        return
+    """
+    Gets a model path based on the webui search term.
 
-    # for lora: search_term = subfolderpath + model name + ext + " " + hash. And it always start with a / even there is no sub folder
+    return: model_path
+    """
+    util.printD(f"Search model of {search_term} in {model_type}")
+    if folders.get(model_type, None) is None:
+        util.printD("unknow model type: " + model_type)
+        return None
+
+    # for lora: search_term = subfolderpath + model name + ext + " " + hash.
+    #   And it always start with a / even there is no sub folder
     # for ckp: search_term = subfolderpath + model name + ext + " " + hash
     # for ti: search_term = subfolderpath + model name + ext + " " + hash
     # for hyper: search_term = subfolderpath + model name
-
 
     model_sub_path = search_term.split()[0]
     if model_sub_path[:1] == "/":
@@ -449,7 +459,6 @@ def get_model_path_by_search_term(model_type, search_term):
 
     if not os.path.isfile(model_path):
         util.printD(f"Can not find model file: {model_path}")
-        return
+        return None
 
     return model_path
-
