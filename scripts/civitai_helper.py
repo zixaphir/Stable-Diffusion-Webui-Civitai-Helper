@@ -430,7 +430,7 @@ def on_ui_tabs():
         )
 
     # the third parameter is the element id on html, with a "tab_" as prefix
-    return (civitai_helper, "Civitai Helper", "civitai_helper"), # pylint: disable=trailing-comma-tuple
+    return ((civitai_helper, "Civitai Helper", "civitai_helper"),)
 
 
 def on_ui_settings():
