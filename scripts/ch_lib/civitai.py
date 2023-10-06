@@ -8,6 +8,7 @@ import re
 import requests
 from . import util
 from . import model
+from . import templates
 
 SUFFIX = ".civitai"
 
@@ -149,7 +150,7 @@ def get_model_info_by_id(model_id:str) -> dict:
 
     if not model_id:
         util.printD("model_id is empty")
-        return None
+        return False
 
     content = civitai_get(f'{URLS["modelId"]}{model_id}')
 
@@ -187,31 +188,20 @@ def get_version_info_by_model_id(model_id:str) -> dict:
         return None
 
     # check content to get version id
-    if "modelVersions" not in model_info.keys():
-        util.printD("There is no modelVersions in this model_info")
+    versions = model_info.get("modelVersions", [])
+    if len(versions) == 0:
+        util.printD("Found no model versions")
         return None
 
-    if not model_info["modelVersions"]:
-        util.printD("modelVersions is None")
-        return None
-
-    if len(model_info["modelVersions"])==0:
-        util.printD("modelVersions is Empty")
-        return None
-
-    def_version = model_info["modelVersions"][0]
+    def_version = versions[0]
     if not def_version:
         util.printD("default version is None")
         return None
 
-    if "id" not in def_version.keys():
-        util.printD("default version has no id")
-        return None
-
-    version_id = def_version["id"]
+    version_id = def_version.get("id", "")
 
     if not version_id:
-        util.printD("default version's id is None")
+        util.printD("Could not get valid version id")
         return None
 
     # get version info
@@ -348,15 +338,15 @@ def get_model_id_from_url(url:str) -> str:
         model_id = f"{url}"
         return model_id
 
-    s = re.sub("\\?.+$", "", url).split("/")
-    if len(s) < 2:
+    split_url = re.sub("\\?.+$", "", url).split("/")
+    if len(split_url) < 2:
         util.printD("url is not valid")
         return ""
 
-    if s[-2].isnumeric():
-        model_id  = s[-2]
-    elif s[-1].isnumeric():
-        model_id  = s[-1]
+    if split_url[-2].isnumeric():
+        model_id  = split_url[-2]
+    elif split_url[-1].isnumeric():
+        model_id  = split_url[-1]
     else:
         util.printD("There is no model id in this url")
         return ""
@@ -535,11 +525,7 @@ def check_model_new_version_by_path(model_path:str, delay:float=0.2) -> tuple:
     )
     """
 
-    if not model_path:
-        util.printD("model_path is empty")
-        return None
-
-    if not os.path.isfile(model_path):
+    if not (model_path and os.path.isfile(model_path)):
         util.printD(f"model_path is not a file: {model_path}")
         return None
 
@@ -559,9 +545,9 @@ def check_model_new_version_by_path(model_path:str, delay:float=0.2) -> tuple:
     if not model_info:
         return None
 
-    model_versions = model_info.get("modelVersions", None)
+    model_versions = model_info.get("modelVersions", [])
 
-    if not model_versions or len(model_versions) == 0:
+    if len(model_versions) == 0:
         return None
 
     current_version = model_versions[0]
@@ -570,12 +556,9 @@ def check_model_new_version_by_path(model_path:str, delay:float=0.2) -> tuple:
 
     current_version_id = current_version.get("id", False)
 
-    if not current_version_id:
-        return None
+    util.printD(f"Compare version id, local: {local_version_id}, remote: {current_version_id}")
 
-    util.printD(f"Compare version id, local: {local_version_id}, remote: {current_version_id} ")
-
-    if current_version_id == local_version_id:
+    if not (current_version_id and current_version_id != local_version_id):
         return None
 
     model_name = model_info.get("name", "")

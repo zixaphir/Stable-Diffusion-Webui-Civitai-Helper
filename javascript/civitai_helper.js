@@ -1,37 +1,35 @@
 "use strict";
 
 
-function ch_convert_file_path_to_url(path){
+function ch_convert_file_path_to_url(path) {
     let prefix = "file=";
     let path_to_url = path.replaceAll('\\', '/');
     return prefix+path_to_url;
 }
 
-function ch_img_node_str(path){
+function ch_img_node_str(path) {
     return `<img src='${ch_convert_file_path_to_url(path)}' style="width:24px"/>`;
 }
 
-
-function ch_gradio_version(){
+function ch_gradio_version() {
     let foot = gradioApp().getElementById("footer");
-    if (!foot){return null;}
+    if (!foot) { return null; }
 
     let versions = foot.querySelector(".versions");
-    if (!versions){return null;}
+    if (!versions) { return null; }
 
     if (versions.textContent.indexOf("gradio: 3.16.2")>0) {
         return "3.16.2";
     } else {
         return "3.23.0";
     }
-
 }
 
 
 // send msg to python side by filling a hidden text box
 // then will click a button to trigger an action
 // msg is an object, not a string, will be stringify in this function
-function send_ch_py_msg(msg){
+function send_ch_py_msg(msg) {
     console.log("run send_ch_py_msg");
     let js_msg_txtbox = gradioApp().querySelector("#ch_js_msg_txtbox textarea");
     if (js_msg_txtbox && msg) {
@@ -44,7 +42,7 @@ function send_ch_py_msg(msg){
 
 // get msg from python side from a hidden textbox
 // normally this is an old msg, need to wait for a new msg
-function get_ch_py_msg(){
+function get_ch_py_msg() {
     console.log("run get_ch_py_msg");
     const py_msg_txtbox = gradioApp().querySelector("#ch_py_msg_txtbox textarea");
     if (py_msg_txtbox && py_msg_txtbox.value) {
@@ -140,7 +138,7 @@ function getActiveNegativePrompt() {
 
 
 //button's click function
-async function open_model_url(event, model_type, search_term){
+async function open_model_url(event, model_type, search_term) {
     console.log("start open_model_url");
 
     //get hidden components of extension
@@ -208,7 +206,7 @@ async function open_model_url(event, model_type, search_term){
 
 }
 
-function add_trigger_words(event, model_type, search_term){
+function add_trigger_words(event, model_type, search_term) {
     console.log("start add_trigger_words");
 
     //get hidden components of extension
@@ -250,7 +248,7 @@ function add_trigger_words(event, model_type, search_term){
 
 }
 
-function use_preview_prompt(event, model_type, search_term){
+function use_preview_prompt(event, model_type, search_term) {
     console.log("start use_preview_prompt");
 
     //get hidden components of extension
@@ -349,7 +347,7 @@ async function remove_card(event, model_type, search_term) {
         result = new_py_msg;
     }
 
-    if (result=="Done") {
+    if (result == "Done") {
         refresh_cards_list();
     }
 
@@ -416,7 +414,7 @@ async function rename_card(event, model_type, search_term) {
         result = new_py_msg;
     }
 
-    if (result=="Done") {
+    if (result == "Done") {
         refresh_cards_list();
     }
 
@@ -442,7 +440,7 @@ function replace_preview(e, page, type, name) {
 
 
 // download model's new version into SD at python side
-function ch_dl_model_new_version(event, model_path, version_id, download_url, model_type){
+function ch_dl_model_new_version(event, model_path, version_id, download_url, model_type) {
     console.log("start ch_dl_model_new_version");
 
     // must confirm before downloading
@@ -491,7 +489,7 @@ function refresh_cards_list() {
     //refresh card list
     let active_tab = getActiveTabType();
     console.log(`get active tab id: ${active_tab}`);
-    if (active_tab){
+    if (active_tab) {
         let refresh_btn_id = `${active_tab}_extra_refresh`;
         let refresh_btn = gradioApp().getElementById(refresh_btn_id);
         if (refresh_btn) {
@@ -792,7 +790,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     // search_term node
     // search_term = subfolder path + model name + ext
     search_term_node = card.querySelector(".actions .additional .search_term");
-    if (!search_term_node){
+    if (!search_term_node) {
         console.log("can not find search_term node for cards in " + active_tab_type + "_" + active_extra_tab_type + "_cards");
         return;
     }

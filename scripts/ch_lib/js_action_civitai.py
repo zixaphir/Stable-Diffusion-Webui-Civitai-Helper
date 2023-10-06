@@ -311,7 +311,7 @@ def rename_model_by_path(msg):
     # all files need to be renamed
     model_files = model.get_model_files_from_model_path(model_path)
     model_name = Path(model_path).stem
-    new_name = result["new_name"]
+    new_name = util.bash_filename(result["new_name"])
 
     renamed = []
     for candidate_file in model_files:
@@ -324,8 +324,8 @@ def rename_model_by_path(msg):
         os.rename(candidate_file, new_path)
 
     renamed = "\n".join(renamed)
-    output = f"The following files were renamed: \n{renamed}"
-    util.info(output)
+    status = f"The following files were renamed: \n{renamed}"
+    util.info(status)
 
     util.printD("End rename_model_by_path")
     return output
@@ -357,8 +357,8 @@ def remove_model_by_path(msg):
         os.remove(candidate_file)
 
     removed = "\n".join(removed)
-    output = f"The following files were removed: \n{removed}"
-    util.info(output)
+    status = f"The following files were removed: \n{removed}"
+    util.info(status)
 
     util.printD("End remove_model_by_path")
     return output

@@ -26,7 +26,10 @@ COMPAT_VERSION_CIVITAI = "1.7.2"
 COMPAT_VERSION_SDWEBUI = "1.7.2"
 
 def_headers = {
-    'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
+    "User-Agent": (
+        "Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) "
+        "AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
+    )
 }
 
 PROXIES = {
@@ -296,3 +299,14 @@ def webui_version():
     if match:
         version = match.group(1)
     return version
+
+filename_re = re.compile(r"[^A-Za-z\d\^\-_.\(\)\[\]]")
+def bash_filename(filename):
+    """
+    Bashes a filename with a large fish until I'm comfortable using it.
+    """
+    filename = re.sub(filename_re, "", filename)
+
+    # sd_webui struggles with spaces
+    filename = filename.replace(' ','_')
+    return filename

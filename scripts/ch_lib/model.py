@@ -441,20 +441,36 @@ def get_model_path_by_search_term(model_type, search_term):
     # for ti: search_term = subfolderpath + model name + ext + " " + hash
     # for hyper: search_term = subfolderpath + model name
 
-    model_sub_path = search_term.split()[0]
+    # this used to be
+    # `model_sub_path = search_term.split()[0]`
+    # but it was failing on models containing spaces.
+    model_hash = search_term.split()[-1]
+    model_sub_path = search_term.replace(f" {model_hash}", "")
+
+    if model_type == "hyper":
+        model_sub_path = f"{search_term}.pt"
+
     if model_sub_path[:1] == "/":
         model_sub_path = model_sub_path[1:]
 
-    if model_type == "hyper":
-        model_sub_path = f"{model_sub_path}.pt"
+    if model_type == "lora" and folders['lycoris']:
+        model_folders = [folders[model_type], folders['lycoris']]
+    else:
+        model_folders = [folders[model_type]]
 
-    model_folder = folders[model_type]
+    for folder in model_folders:
+        model_folder = folder
+        model_path = os.path.join(model_folder, model_sub_path)
 
-    model_path = os.path.join(model_folder, model_sub_path)
+        if os.path.isfile(model_path):
+            break
 
-    #print(f"model_folder: {model_folder}")
-    #print(f"model_sub_path: {model_sub_path}")
-    #print(f"model_path: {model_path}")
+    util.printD(util.dedent(f"""
+        Got following info:")
+        * model_folder: {model_folder}
+        * model_sub_path: {model_sub_path}
+        * model_path: {model_path}
+    """))
 
     if not os.path.isfile(model_path):
         util.printD(f"Can not find model file: {model_path}")
