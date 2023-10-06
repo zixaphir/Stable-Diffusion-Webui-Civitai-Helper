@@ -7,6 +7,7 @@ import io
 import re
 import hashlib
 import shutil
+import textwrap
 import requests
 import gradio as gr
 import launch
@@ -28,7 +29,10 @@ def_headers = {
     'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
 }
 
-proxies = None
+PROXIES = {
+    "http": None,
+    "https": None,
+}
 
 # print for debugging
 def printD(msg):
@@ -47,13 +51,16 @@ def error(msg):
     """ Display an error message on the client DOM """
     gr.Error(msg)
 
+def dedent(text):
+    """ alias for textwrap.dedent """
+    return textwrap.dedent(text)
+
 def download_error(download_url, msg):
     """ Display a download error """
     output = f"Download failed, check console log for detail. Download url: {download_url}"
     printD(output)
     printD(msg)
     return output
-
 
 def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
     """Yield pieces of data from a file-like object until EOF."""
@@ -90,7 +97,7 @@ def download_file(url, path):
         url,
         stream=True,
         headers=def_headers,
-        proxies=proxies,
+        proxies=PROXIES,
         timeout=10
     )
 

@@ -26,6 +26,7 @@ MODEL_TYPES = {
     "LoCon": "lycoris",
 }
 
+NSFW_LEVELS = ["None", "Soft", "Mature", "X", "Allow All"]
 
 def civitai_get(civitai_url:str):
     """
@@ -37,7 +38,7 @@ def civitai_get(civitai_url:str):
         request = requests.get(
             civitai_url,
             headers=util.def_headers,
-            proxies=util.proxies,
+            proxies=util.PROXIES,
             timeout=5
         )
 
@@ -377,40 +378,41 @@ def preview_exists(model_path):
 
 def should_skip(user_rating, image_rating):
     """ return: True if preview_nsfw level higher than user threshold """
-    order = ["None", "Soft", "Mature", "X", "Do not Skip"]
+    order = NSFW_LEVELS
     return order.index(image_rating) >= order.index(user_rating)
 
 
-def verify_preview(preview, img_dict, max_size_preview, skip_nsfw_preview):
+def verify_preview(preview, img_dict, max_size_preview, nsfw_preview_threshold):
     """
     Downloads a preview image if it meets the user's requirements.
     """
-    if "nsfw" in img_dict.keys():
-        if img_dict.get("nsfw", "None") != "None":
-            util.printD(f"This image is NSFW: {img_dict.get('nsfw', 'None')}")
-            image_rating = img_dict.get("nsfw", "None")
-            if should_skip(skip_nsfw_preview, image_rating):
-                util.printD("Skip NSFW image")
-                return False
 
-    if "url" in img_dict.keys():
-        img_url = img_dict["url"]
-        if max_size_preview:
-            # use max width
-            if "width" in img_dict.keys():
-                if img_dict["width"]:
-                    img_url = get_full_size_image_url(img_url, img_dict["width"])
+    img_url = img_dict.get("url", None)
+    if img_url is None:
+        return False
 
-        util.download_file(img_url, preview)
-        # we only need 1 preview image
-        return True
+    image_rating = img_dict.get("nsfw", "None")
+    if image_rating != "None":
+        util.printD(f"This image is NSFW: {image_rating}")
+        if should_skip(nsfw_preview_threshold, image_rating):
+            util.printD("Skip NSFW image")
+            return False
 
-    return False
+    if max_size_preview:
+        # use max width
+        if "width" in img_dict.keys():
+            if img_dict["width"]:
+                img_url = get_full_size_image_url(img_url, img_dict["width"])
+
+    util.download_file(img_url, preview)
+
+    # we only need 1 preview image
+    return True
 
 
 # get preview image by model path
 # image will be saved to file, so no return
-def get_preview_image_by_model_path(model_path:str, max_size_preview, skip_nsfw_preview):
+def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_preview_threshold):
     """
     Downloads a preview image for a model if one doesn't already exist.
     Skips images that are more NSFW than the user's NSFW threshold
@@ -449,7 +451,7 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, skip_nsfw_
             return
 
         for img_dict in model_info["images"]:
-            success = verify_preview(preview, img_dict, max_size_preview, skip_nsfw_preview)
+            success = verify_preview(preview, img_dict, max_size_preview, nsfw_preview_threshold)
             if success:
                 break
 
