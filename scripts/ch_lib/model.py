@@ -193,17 +193,15 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
 
     parent = model_info["model"]
 
-    description = parent.get("description", None)
+    description = parent.get("description", "")
     if description:
-        parent["description"] = util.trim_html(description)
-    else:
-        parent["description"] = ""
+        description = util.trim_html(description)
+    parent["description"] = description
 
-    version_description = model_info.get("description", None)
-    if description:
-        model_info["description"] = util.trim_html(version_description)
-    else:
-        model_info["description"] = ""
+    version_description = model_info.get("description", "")
+    if version_description:
+        version_description = util.trim_html(version_description)
+    model_info["description"] = version_description
 
     tags = parent.get("tags", [])
     parent["tags"] = tags
@@ -346,7 +344,7 @@ def get_potential_model_preview_files(model_path):
     return preview_files
 
 
-def get_all_model_files(model_path):
+def get_model_files_from_model_path(model_path):
     """ return: list of paths """
 
     base, _ = os.path.splitext(model_path)
@@ -354,19 +352,20 @@ def get_all_model_files(model_path):
     info_file, sd15_file = get_model_info_paths(model_path)
     user_preview_path = f"{base}.png"
 
-    paths = [info_file, sd15_file, user_preview_path]
+    paths = [model_path, info_file, sd15_file, user_preview_path]
     preview_paths = get_potential_model_preview_files(model_path)
 
     paths = paths + preview_paths
 
-    return paths
+    return [path for path in paths if os.path.isfile(path)]
 
 
-# get model file names by model type
-# parameter: model_type - string
-# return: model name list
 def get_model_names_by_type(model_type:str) -> list:
-    """ return: list of model_names of a given model_type """
+    """
+    get model file names by model type
+    parameter: model_type - string
+    return: model name list
+    """
 
     if model_type == "lora" and folders['lycoris']:
         model_folders = [folders[model_type], folders['lycoris']]
@@ -442,20 +441,36 @@ def get_model_path_by_search_term(model_type, search_term):
     # for ti: search_term = subfolderpath + model name + ext + " " + hash
     # for hyper: search_term = subfolderpath + model name
 
-    model_sub_path = search_term.split()[0]
+    # this used to be
+    # `model_sub_path = search_term.split()[0]`
+    # but it was failing on models containing spaces.
+    model_hash = search_term.split()[-1]
+    model_sub_path = search_term.replace(f" {model_hash}", "")
+
+    if model_type == "hyper":
+        model_sub_path = f"{search_term}.pt"
+
     if model_sub_path[:1] == "/":
         model_sub_path = model_sub_path[1:]
 
-    if model_type == "hyper":
-        model_sub_path = f"{model_sub_path}.pt"
+    if model_type == "lora" and folders['lycoris']:
+        model_folders = [folders[model_type], folders['lycoris']]
+    else:
+        model_folders = [folders[model_type]]
 
-    model_folder = folders[model_type]
+    for folder in model_folders:
+        model_folder = folder
+        model_path = os.path.join(model_folder, model_sub_path)
 
-    model_path = os.path.join(model_folder, model_sub_path)
+        if os.path.isfile(model_path):
+            break
 
-    #print(f"model_folder: {model_folder}")
-    #print(f"model_sub_path: {model_sub_path}")
-    #print(f"model_path: {model_path}")
+    util.printD(util.dedent(f"""
+        Got following info:")
+        * model_folder: {model_folder}
+        * model_sub_path: {model_sub_path}
+        * model_path: {model_path}
+    """))
 
     if not os.path.isfile(model_path):
         util.printD(f"Can not find model file: {model_path}")

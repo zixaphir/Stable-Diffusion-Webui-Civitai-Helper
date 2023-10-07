@@ -299,7 +299,7 @@ window.remove_card = async function(event, model_type, search_term) {
         result = new_py_msg;
     }
 
-    if (result=="Done") {
+    if (result == "Done") {
         refresh_cards_list();
     }
 
@@ -360,7 +360,7 @@ window.rename_card = async function(event, model_type, search_term) {
         result = new_py_msg;
     }
 
-    if (result=="Done") {
+    if (result == "Done") {
         refresh_cards_list();
     }
 

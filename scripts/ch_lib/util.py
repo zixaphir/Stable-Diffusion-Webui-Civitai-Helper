@@ -7,6 +7,7 @@ import io
 import re
 import hashlib
 import shutil
+import textwrap
 import requests
 import gradio as gr
 import launch
@@ -25,10 +26,16 @@ COMPAT_VERSION_CIVITAI = "1.7.2"
 COMPAT_VERSION_SDWEBUI = "1.7.2"
 
 def_headers = {
-    'User-Agent': 'Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
+    "User-Agent": (
+        "Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) "
+        "AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
+    )
 }
 
-proxies = None
+PROXIES = {
+    "http": None,
+    "https": None,
+}
 
 # print for debugging
 def printD(msg):
@@ -47,13 +54,16 @@ def error(msg):
     """ Display an error message on the client DOM """
     gr.Error(msg)
 
+def dedent(text):
+    """ alias for textwrap.dedent """
+    return textwrap.dedent(text)
+
 def download_error(download_url, msg):
     """ Display a download error """
     output = f"Download failed, check console log for detail. Download url: {download_url}"
     printD(output)
     printD(msg)
     return output
-
 
 def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
     """Yield pieces of data from a file-like object until EOF."""
@@ -90,7 +100,7 @@ def download_file(url, path):
         url,
         stream=True,
         headers=def_headers,
-        proxies=proxies,
+        proxies=PROXIES,
         timeout=10
     )
 
@@ -289,3 +299,14 @@ def webui_version():
     if match:
         version = match.group(1)
     return version
+
+filename_re = re.compile(r"[^A-Za-z\d\^\-_.\(\)\[\]]")
+def bash_filename(filename):
+    """
+    Bashes a filename with a large fish until I'm comfortable using it.
+    """
+    filename = re.sub(filename_re, "", filename)
+
+    # sd_webui struggles with spaces
+    filename = filename.replace(' ','_')
+    return filename

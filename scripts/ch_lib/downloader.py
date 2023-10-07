@@ -3,7 +3,6 @@ Used for downloading files
 """
 import os
 #import sys
-import textwrap
 from tqdm import tqdm
 import requests
 import urllib3
@@ -26,7 +25,7 @@ def request_get(url, headers):
             stream=True,
             verify=False,
             headers=headers,
-            proxies=util.proxies,
+            proxies=util.PROXIES,
             timeout=10
         )
     except TimeoutError:
@@ -81,7 +80,7 @@ def download_file(url, file_path, total_size):
     # check file size
     downloaded_size = os.path.getsize(dl_file_path)
     if downloaded_size < total_size:
-        return textwrap.dedent(
+        return util.dedent(
             f"""
             File is not the correct size.
             Expected {total_size:d}, got {downloaded_size:d}.

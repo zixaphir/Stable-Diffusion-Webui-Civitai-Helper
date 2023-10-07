@@ -34,8 +34,6 @@ BUTTONS = {
     "remove_model_button": False,
 }
 
-NSFW_LEVELS = ["Soft", "Mature", "X", "Do not Skip"]
-
 model.get_custom_model_folder()
 
 def on_ui_tabs():
@@ -50,10 +48,8 @@ def on_ui_tabs():
     proxy = opts.ch_proxy
     if proxy:
         util.printD(f"Set Proxy: {proxy}")
-        util.proxies = {
-            "http": proxy,
-            "https": proxy,
-        }
+        util.PROXIES.http = proxy
+        util.PROXIES.https = proxy
 
     # get prompt textarea
     # check modules/ui.py, search for txt2img_paste_fields
@@ -100,7 +96,7 @@ def on_ui_tabs():
 
         # init
         max_size_preview = opts.ch_max_size_preview
-        skip_nsfw_preview = opts.ch_skip_nsfw_preview
+        nsfw_preview_threshold = opts.ch_nsfw_preview_threshold
         proxy = opts.ch_proxy
 
         model_types = list(model.folders.keys())
@@ -120,11 +116,11 @@ def on_ui_tabs():
                             elem_id="ch_max_size_preview_ckb"
                         )
                     with gr.Column():
-                        skip_nsfw_preview_ckb = gr.Dropdown(
+                        nsfw_preview_threshold_drop = gr.Dropdown(
                             label="Block NSFW Level Above",
-                            choices=NSFW_LEVELS,
-                            value=skip_nsfw_preview,
-                            elem_id="ch_skip_nsfw_preview_ckb"
+                            choices=civitai.NSFW_LEVELS[1:],
+                            value=nsfw_preview_threshold,
+                            elem_id="ch_nsfw_preview_threshold_drop"
                         )
                     with gr.Column():
                         refetch_old_ckb = gr.Checkbox(
@@ -270,7 +266,9 @@ def on_ui_tabs():
                         variant="primary"
                     )
 
-                check_models_new_version_log_md = gr.HTML("It takes time, just wait. Check console log for detail")
+                check_models_new_version_log_md = gr.HTML(
+                    "It takes time, just wait. Check console log for detail"
+                )
 
         # ====Footer====
         gr.HTML(f"<center>{util.SHORT_NAME} version: {util.VERSION}</center>")
@@ -328,7 +326,7 @@ def on_ui_tabs():
             model_action_civitai.scan_model,
             inputs=[
                 scan_model_types_drop, max_size_preview_ckb,
-                skip_nsfw_preview_ckb, refetch_old_ckb
+                nsfw_preview_threshold_drop, refetch_old_ckb
             ],
             outputs=scan_model_log_md
         )
@@ -354,7 +352,7 @@ def on_ui_tabs():
             inputs=[
                 model_type_drop, model_name_drop,
                 model_url_or_id_txtbox, max_size_preview_ckb,
-                skip_nsfw_preview_ckb
+                nsfw_preview_threshold_drop
             ],
             outputs=get_model_by_id_log_md
         )
@@ -377,7 +375,7 @@ def on_ui_tabs():
                 dl_model_info, dl_model_type_txtbox,
                 dl_subfolder_drop, dl_version_drop,
                 dl_all_ckb, max_size_preview_ckb,
-                skip_nsfw_preview_ckb, dl_duplicate_drop
+                nsfw_preview_threshold_drop, dl_duplicate_drop
             ],
             outputs=dl_log_md
         )
@@ -414,7 +412,7 @@ def on_ui_tabs():
             js_action_civitai.dl_model_new_version,
             inputs=[
                 js_msg_txtbox, max_size_preview_ckb,
-                skip_nsfw_preview_ckb
+                nsfw_preview_threshold_drop
             ],
             outputs=dl_log_md
         )
@@ -430,7 +428,7 @@ def on_ui_tabs():
         )
 
     # the third parameter is the element id on html, with a "tab_" as prefix
-    return (civitai_helper, "Civitai Helper", "civitai_helper"), # pylint: disable=trailing-comma-tuple
+    return ((civitai_helper, "Civitai Helper", "civitai_helper"),)
 
 
 def on_ui_settings():
@@ -439,7 +437,12 @@ def on_ui_settings():
         "ch_open_url_with_js",
         shared.OptionInfo(
             True,
-            "Open model Url on the user's client side, rather than server side. If you are running WebUI locally, disabling this may open URLs in your default internet browser if it is different than the one you are running WebUI in",
+            (
+                "Open model Url on the user's client side, rather than server side."
+                "If you are running WebUI locally, disabling this may open URLs in your"
+                "default internet browser if it is different than the one you are running"
+                "WebUI in"
+            ),
             gr.Checkbox,
             {"interactive": True},
             section=section
@@ -476,13 +479,20 @@ def on_ui_settings():
         )
     )
     shared.opts.add_option(
-        "ch_skip_nsfw_preview",
+        "ch_nsfw_preview_threshold",
         shared.OptionInfo(
-            "Do not Skip",
-            "Skip NSFW Preview Images",
+            civitai.NSFW_LEVELS[-1], # Allow all
+            util.dedent("""
+                Block NSFW images of a certain threshold and higher.
+                Civitai marks all images for NSFW models as also being NSFW.
+                These ratings do not seem to be explicitly defined on Civitai's
+                end, but "Soft" seems to be suggestive, with NSFW elements but
+                not explicit nudity, "Mature" seems to include nudity but not
+                always, and "X" seems to be explicitly adult content.
+            """),
             gr.Dropdown,
             {
-                "choices": NSFW_LEVELS,
+                "choices": civitai.NSFW_LEVELS[1:],
                 "interactive": True
             },
             section=section
