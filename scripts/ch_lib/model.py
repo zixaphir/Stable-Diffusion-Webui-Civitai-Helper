@@ -524,28 +524,35 @@ def sd_format(data):
 
 
 def Read_remote_image_info(img_src):
-	response = requests.get(img_src, timeout=(5, 10))
-	files=BytesIO(response.content)
-	with Image.open(files) as f:
-		try:
-			exif = json.loads(f.getexif().get(0x0110))
-		except TypeError:
-			if f.format == "PNG":
-				data=f.info.get("parameters")
-			elif f.format == "JPEG" or f.format == "WEBP":
-				try:
-					exif = piexif.load(f.info.get("exif")) or {}
-					datajpeg = piexif.helper.UserComment.load(
-						exif.get("Exif").get(piexif.ExifIFD.UserComment)
-					)
-					data = datajpeg
-				except Exception:
-					pass
-		try:
-			_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size= sd_format(data)
-			return (_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size)
-		except Exception:
-			print(f"{img_src} not generate information")
+	_check = 0
+	try:
+		response = requests.get(img_src, timeout=(5, 10))
+		files=BytesIO(response.content)
+		with Image.open(files) as f:
+			try:
+				exif = json.loads(f.getexif().get(0x0110))
+			except TypeError:
+				if f.format == "PNG":
+					data=f.info.get("parameters")
+				elif f.format == "JPEG" or f.format == "WEBP":
+					try:
+						exif = piexif.load(f.info.get("exif")) or {}
+						datajpeg = piexif.helper.UserComment.load(
+							exif.get("Exif").get(piexif.ExifIFD.UserComment)
+						)
+						data = datajpeg
+					except Exception:
+						pass
+			try:
+				_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size= sd_format(data)
+				_check = 1
+				return (_check,_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size)
+			except Exception:
+				_check = 2
+				print(f"{img_src} not generate information")
+				return (_check,"","","","","","","")
+	except Exception:
+				print(f"{img_src} read failed")
 
 def Update_civitai_info_image_meta(file):
 	need_update = False
@@ -558,18 +565,23 @@ def Update_civitai_info_image_meta(file):
 			for i, image in enumerate(data.get('images',[])):
 				meta_data = image.get('meta', None)
 				if not meta_data:
+					print(f"{file} is being updated")
 					meta_data = {}
 					try:
-						_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size = Read_remote_image_info(image.get('url',''))
-						meta_data["prompt"] = _prompt
-						meta_data["negative"] = _negative
-						meta_data["Steps"] = _Steps
-						meta_data["Sampler"] = _CFG_scale
-						meta_data["CFG_scale"] = _CFG_scale
-						meta_data["Seed"] = _Seed
-						meta_data["Size"] = _Size
-						image["meta"] = meta_data
-						need_update = True
+						_check,_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size = Read_remote_image_info(image.get('url',''))
+						if _check == 1:
+							meta_data["prompt"] = _prompt
+							meta_data["negative"] = _negative
+							meta_data["Steps"] = _Steps
+							meta_data["Sampler"] = _CFG_scale
+							meta_data["CFG_scale"] = _CFG_scale
+							meta_data["Seed"] = _Seed
+							meta_data["Size"] = _Size
+							image["meta"] = meta_data
+							need_update = True
+						if _check == 2:
+							image["meta"] = "None"
+							need_update = True
 					except Exception:
 						pass
 		except Exception:
@@ -595,6 +607,6 @@ def Scan_civitai_info_image_meta():
 			if file.endswith('.civitai.info'):
 				Update_civitai_info_image_meta(os.path.join(root, file))
 				count = count + 1
-	output = f"Done. Scanned {count} images."
+	output = f"Done. Scanned {count} files."
 	util.printD(output)
 	return output
