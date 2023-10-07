@@ -466,7 +466,7 @@ def get_model_path_by_search_term(model_type, search_term):
             break
 
     util.printD(util.dedent(f"""
-        Got following info:")
+        Got following info:
         * model_folder: {model_folder}
         * model_sub_path: {model_sub_path}
         * model_path: {model_path}

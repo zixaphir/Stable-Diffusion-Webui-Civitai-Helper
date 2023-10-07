@@ -371,8 +371,8 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
     # add default root folder
     subfolders.append("/")
 
-    util.printD(util.dedent("""
-        Got following info for downloading:")
+    util.printD(util.dedent(f"""
+        Got following info for downloading:
         * model_name: {model_name}
         * model_type: {model_type}
         * subfolders: {subfolders}
