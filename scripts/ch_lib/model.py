@@ -3,11 +3,18 @@ Handle model operations
 """
 import os
 import json
+import glob
+import re
+import requests
+import piexif
+import piexif.helper
 from modules import shared
 from modules import paths_internal
 from modules.shared import opts
 from . import civitai
 from . import util
+from io import BytesIO
+from PIL import Image
 
 
 # this is the default root path
@@ -477,3 +484,117 @@ def get_model_path_by_search_term(model_type, search_term):
         return None
 
     return model_path
+
+def sd_format(data):
+	steps_index = data.find("\nSteps:")
+
+	if steps_index != -1:
+		_prompt = data[:steps_index].strip()
+		_setting = data[steps_index:].strip()
+
+	if "Negative prompt:" in data:
+		prompt_index = data.find("\nNegative prompt:")
+
+		if steps_index != -1:
+			_negative = data[
+				prompt_index + len("Negative prompt:") + 1 : steps_index
+			].strip()
+
+		else:
+			_negative = data[
+				prompt_index + len("Negative prompt:") + 1 :
+			].strip()
+		_prompt = data[:prompt_index].strip()
+
+	elif steps_index == -1:
+		_prompt = data
+
+	string_list = _setting.split(",")
+	pattern = r"\s*([^:,]+):\s*([^,]+)"
+	setting_dict = dict(re.findall(pattern, _setting))
+
+	_Steps = setting_dict.get("Steps")
+	_Sampler = setting_dict.get("Sampler")
+	_CFG_scale = setting_dict.get("CFG scale")
+	_Seed = setting_dict.get("Seed")
+	_Size = setting_dict.get("Size")
+
+
+	return (_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size)
+
+
+def Read_remote_image_info(img_src):
+	response = requests.get(img_src, timeout=(5, 10))
+	files=BytesIO(response.content)
+	with Image.open(files) as f:
+		try:
+			exif = json.loads(f.getexif().get(0x0110))
+		except TypeError:
+			if f.format == "PNG":
+				data=f.info.get("parameters")
+			elif f.format == "JPEG" or f.format == "WEBP":
+				try:
+					exif = piexif.load(f.info.get("exif")) or {}
+					datajpeg = piexif.helper.UserComment.load(
+						exif.get("Exif").get(piexif.ExifIFD.UserComment)
+					)
+					data = datajpeg
+				except Exception:
+					pass
+		try:
+			_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size= sd_format(data)
+			return (_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size)
+		except Exception:
+			print(f"{img_src} not generate information")
+
+def Update_civitai_info_image_meta(file):
+	need_update = False
+	data = {}
+	if os.path.isfile(file):
+		try:
+			with open(file, 'r') as f:
+				data = json.load(f)
+				f.close()
+			for i, image in enumerate(data.get('images',[])):
+				meta_data = image.get('meta', None)
+				if not meta_data:
+					meta_data = {}
+					try:
+						_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size = Read_remote_image_info(image.get('url',''))
+						meta_data["prompt"] = _prompt
+						meta_data["negative"] = _negative
+						meta_data["Steps"] = _Steps
+						meta_data["Sampler"] = _CFG_scale
+						meta_data["CFG_scale"] = _CFG_scale
+						meta_data["Seed"] = _Seed
+						meta_data["Size"] = _Size
+						image["meta"] = meta_data
+						need_update = True
+					except Exception:
+						pass
+		except Exception:
+			pass
+			print(f"{file} is Error")
+	if need_update:
+		with open(file, 'w') as f:
+			json.dump(data, f, indent=4)
+			f.close()
+def Scan_civitai_info_image_meta():
+	util.printD("Start Scan_civitai_info_image_meta")
+	output = ""
+	count = 0
+	embeddings_path = os.path.join(paths_internal.data_path, "embeddings")
+	for root, dirs, files in os.walk(embeddings_path):
+		for file in files:
+			if file.endswith('.civitai.info'):
+				Update_civitai_info_image_meta(os.path.join(root, file))
+				count = count + 1
+	models_path = os.path.join(paths_internal.data_path, "models")
+	for root, dirs, files in os.walk(models_path):
+		for file in files:
+			if file.endswith('.civitai.info'):
+				Update_civitai_info_image_meta(os.path.join(root, file))
+				count = count + 1
+	output = f"Done. Scanned {count} images."
+	util.printD(output)
+	return output
