@@ -138,11 +138,18 @@ def on_ui_tabs():
                             value=model_types
                         )
 
+
                 # with gr.Row():
                 scan_model_civitai_btn = gr.Button(
                     value="Scan",
                     variant="primary",
                     elem_id="ch_scan_model_civitai_btn"
+                )
+
+                Scan_civitai_info_image_meta_btn = gr.Button(
+                    value="Update image generation information(Experimental)",
+                    variant="primary",
+                    elem_id="ch_Scan_civitai_info_image_meta_btn"
                 )
                 # with gr.Row():
                 scan_model_log_md = gr.Markdown(
@@ -328,6 +335,11 @@ def on_ui_tabs():
                 scan_model_types_drop, max_size_preview_ckb,
                 nsfw_preview_threshold_drop, refetch_old_ckb
             ],
+            outputs=scan_model_log_md
+        )
+
+        Scan_civitai_info_image_meta_btn.click(
+            model.Scan_civitai_info_image_meta,
             outputs=scan_model_log_md
         )
 
