@@ -89,6 +89,8 @@ Move your mouse on to the bottom of a model card. It will show 4 icon buttons:
   - 🌐: Open this model's Civitai url in a new tab
   - 💡: Add this model's trigger words to prompt
   - 🏷: Use this model's preview image's prompt
+  - ✏️: Rename model
+  - ❌: Remove/Delete model
 
 ![](img/model_card.jpg)
 
@@ -240,20 +242,24 @@ Since v1.5.5, we've already optimized the SHA256 function to the top. So the onl
 * or use a pro account of colab.
 
 # Change Log
-##
+## 1.7.4
 * Added "Remove Model" button. From butaixianran's repo.
 * Added "Rename Model" button.
-* NSFW previews can now be skipped based on how NSFW they are. From sdy623's repo.
 * New `.json` files will now have their descriptions surrounded by HTML comments as to not break model cards when card descriptions are enabled. If you want to display these descriptions on cards, you can remove the leading `<!--` and tailing `-->`, but you will be responsible for any issues that arise.
 * Card buttons can now be hidden individually. By default, the "insert trigger words" button is hidden on newer versions of sdwebui, where this functionality happens automatically if the metadata `JSON` exists, which is created when models are scanned with default settings.
 * Model names on cards now have a maximum height when not hovered, which should prevent the model name from occupying the whole card.
 * Fix downloading size check issue. From butaixianran's repo.
+* NSFW previews can now be blocked by severity, from Soft, Mature, X, and Allow All. From sdy623's repo. These don't seem to be documented on Civitai's end, but here's what I've been able to gather by pinging the API and seeing what images were returned.
+  * Soft images do not appear to contain explicit nudity, but may have implicitly suggestive elements or clothing that outline the underlying body closely enough that details underneath poke out or have their silhoutte visible.
+  * Mature images may contain nudity, but could just as easily show a little too much cleavage or are otherwise actively sexually suggestive.
+  * X are explicitly pornographic.
 
 ## v1.7.3
 * Downloading webui model information (`[model_name].json`) is now optional and can be configured in the webui settings.
 * When a model is not found on Civitai, this extension will attempt to read the model header for activation keywords. This only works with safetensors files with kohya_ss metadata and may be inaccurate depending on how the model was trained. This method assumes the model was trained with each trained concept having its own training folder. This is not always the case.
   * This information can also be found in webui without any extensions by clicking the :information_source: button and reading the `"ss_tag_frequency":` section. This section may prove more helpful on models that are trained on multiple concepts but with all the training data under one directory. For instance, if it was trained for certain characters, search the list for that character's name. Often model authors will use a name plus a unique identifier as to not cause the character to "bleed into" other characters with the same name. For instance, we can the [All The Mothers](https://civitai.com/models/48200) lora has all of its trained characters as tagged images under one dataset:
-  ![](img/all_the_mothers.png)
+
+![](img/all_the_mothers.png)
 
 ## v1.7.2
 * Better HTML sanitization/removal from Descrition/Note fields.
