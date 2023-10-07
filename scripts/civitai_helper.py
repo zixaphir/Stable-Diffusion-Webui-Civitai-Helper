@@ -76,7 +76,7 @@ def on_ui_tabs():
             model_info, model_name, model_type, subfolders, version_strs = request
 
         if subfolder == "" or subfolder not in subfolders:
-            subfolder = subfolders[0]
+            subfolder = "/"
 
         return [
             model_info, model_name, model_type,
