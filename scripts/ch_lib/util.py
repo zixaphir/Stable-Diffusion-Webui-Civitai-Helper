@@ -310,8 +310,4 @@ def bash_filename(filename):
     """
     Bashes a filename with a large fish until I'm comfortable using it.
     """
-    filename = re.sub(filename_re, "", filename)
-
-    # sd_webui struggles with spaces
-    filename = filename.replace(' ','_')
-    return filename
+    return re.sub(filename_re, "", filename.replace(' ','_'))
