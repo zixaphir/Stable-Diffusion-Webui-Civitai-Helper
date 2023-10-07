@@ -100,9 +100,10 @@ def metadata_needed(info_file, sd15_file, refetch_old):
     """
 
     need_civitai = metadata_needed_for_type(info_file, "civitai", refetch_old)
-    need_sdwebui = metadata_needed_for_type(sd15_file, "sdwebui", refetch_old)
+    #need_sdwebui = metadata_needed_for_type(sd15_file, "sdwebui", refetch_old)
 
-    return need_civitai or need_sdwebui
+    return need_civitai# or need_sdwebui
+
 
 
 def metadata_needed_for_type(path, meta_type, refetch_old):
@@ -210,6 +211,9 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
         version_description = util.trim_html(version_description)
     model_info["description"] = version_description
 
+    import re
+    model_info["description"] = re.sub(r'[<>]', "", model_info["description"] + parent["description"])
+
     tags = parent.get("tags", [])
     parent["tags"] = tags
 
@@ -310,11 +314,11 @@ def process_sd15_info(sd15_file, model_info, parent, model_type, refetch_old):
 
     sd_data["extensions"] = util.create_extension_block(sd_data.get("extensions", None))
 
-    if refetch_old:
-        if verify_overwrite_eligibility(sd15_file, sd_data):
-            write_info(sd_data, sd15_file, "webui")
-    else:
-        write_info(sd_data, sd15_file, "webui")
+    #if refetch_old:
+        #if verify_overwrite_eligibility(sd15_file, sd_data):
+            #write_info(sd_data, sd15_file, "webui")
+    #else:
+        #write_info(sd_data, sd15_file, "webui")
 
 
 def load_model_info(path):
@@ -551,26 +555,30 @@ def Update_civitai_info_image_meta(file):
 	need_update = False
 	data = {}
 	if os.path.isfile(file):
-		with open(file, 'r') as f:
-			data = json.load(f)
-			f.close()
-		for i, image in enumerate(data.get('images',[])):
-			meta_data = image.get('meta', None)
-			if not meta_data:
-				meta_data = {}
-				try:
-					_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size = Read_remote_image_info(image.get('url',''))
-					meta_data["prompt"] = _prompt
-					meta_data["negative"] = _negative
-					meta_data["Steps"] = _Steps
-					meta_data["Sampler"] = _CFG_scale
-					meta_data["CFG_scale"] = _CFG_scale
-					meta_data["Seed"] = _Seed
-					meta_data["Size"] = _Size
-					image["meta"] = meta_data
-					need_update = True
-				except Exception:
-					print(f"{image.get('url')} is Error")
+		try:
+			with open(file, 'r') as f:
+				data = json.load(f)
+				f.close()
+			for i, image in enumerate(data.get('images',[])):
+				meta_data = image.get('meta', None)
+				if not meta_data:
+					meta_data = {}
+					try:
+						_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size = Read_remote_image_info(image.get('url',''))
+						meta_data["prompt"] = _prompt
+						meta_data["negative"] = _negative
+						meta_data["Steps"] = _Steps
+						meta_data["Sampler"] = _CFG_scale
+						meta_data["CFG_scale"] = _CFG_scale
+						meta_data["Seed"] = _Seed
+						meta_data["Size"] = _Size
+						image["meta"] = meta_data
+						need_update = True
+					except Exception:
+						pass
+		except Exception:
+			pass
+			print(f"{file} is Error")
 	if need_update:
 		with open(file, 'w') as f:
 			json.dump(data, f, indent=4)
@@ -591,6 +599,7 @@ def Scan_civitai_info_image_meta():
 			if file.endswith('.civitai.info'):
 				Update_civitai_info_image_meta(os.path.join(root, file))
 				count = count + 1
-	output = f"Done. Scanned {count} models."
+	output = f"Done. Scanned {count} images."
 	util.printD(output)
 	return output
+
