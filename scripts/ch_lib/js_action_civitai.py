@@ -195,11 +195,11 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
 
     # check data
     if not (model_path and version_id and download_url):
-        output = util.dedent(f"""
+        output = util.indented_msg(f"""
             Missing parameter:
-            * model_path: {model_path}
-            * version_id: {version_id}
-            * download_url: {download_url}
+            {model_path=}
+            {version_id=}
+            {download_url=}
         """)
         util.printD(output)
         return output
@@ -273,13 +273,12 @@ def make_new_filename(candidate_file, model_name, new_name):
     path, filename = os.path.split(candidate_file)
 
     if filename.index(model_name) != 0:
-        output = util.dedent(f"""
-                Could not find model_name in candidate file
-                * Model: {model_name}
-                * File:  {candidate_file}
-                * Name:  {new_name}
-            """
-        )
+        output = util.indented_msg(f"""
+            Could not find model_name in candidate file
+            {model_name=}
+            {candidate_file=}
+            {new_name=}
+        """)
         util.error(output)
         util.printD(output)
         return None

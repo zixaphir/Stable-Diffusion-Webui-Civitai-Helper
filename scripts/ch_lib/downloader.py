@@ -80,7 +80,7 @@ def download_file(url, file_path, total_size):
     # check file size
     downloaded_size = os.path.getsize(dl_file_path)
     if downloaded_size < total_size:
-        return util.dedent(
+        return util.indented_msg(
             f"""
             File is not the correct size.
             Expected {total_size:d}, got {downloaded_size:d}.

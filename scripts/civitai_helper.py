@@ -499,7 +499,7 @@ def on_ui_settings():
                 end, but "Soft" seems to be suggestive, with NSFW elements but
                 not explicit nudity, "Mature" seems to include nudity but not
                 always, and "X" seems to be explicitly adult content.
-            """),
+            """.strip()),
             gr.Dropdown,
             {
                 "choices": civitai.NSFW_LEVELS[1:],

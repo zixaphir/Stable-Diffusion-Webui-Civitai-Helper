@@ -44,7 +44,7 @@ def printD(msg):
     """ Print a message to stderr """
     print(f"Civitai Helper: {msg}", file=sys.stderr)
 
-def indented_print(msg:str):
+def indented_msg(msg:str):
     """
     Clean up and then print an indented message in the format of
     [header]
@@ -58,6 +58,8 @@ def indented_print(msg:str):
         var1: var1
         var2: var2
         var3: var3
+
+    return: msg:str
     """
 
     msg_parts = textwrap.dedent(msg.strip()).split('\n')
@@ -65,8 +67,9 @@ def indented_print(msg:str):
     for part in msg_parts:
         part = ": ".join(part.split("="))
         msg.append(f"   {part}")
-    msg = "".join(msg)
-    printD(msg)
+    msg = "\n".join(msg)
+
+    return msg
 
 def info(msg):
     """ Display an info smessage on the client DOM """
@@ -162,20 +165,39 @@ def get_subfolders(folder:str) -> list:
     printD(f"Get subfolder for: {folder}")
     if not folder:
         printD("folder can not be None")
-        return None
+        return []
 
     if not os.path.isdir(folder):
         printD("path is not a folder")
-        return None
+        return []
 
     prefix_len = len(folder)
+    full_dirs_searched = []
     subfolders = []
     for root, dirs, _ in os.walk(folder, followlinks=True):
+        if root == folder:
+            continue
+
+        # Prevent following recursive symlinks
+        follow = []
         for directory in dirs:
             full_dir_path = os.path.join(root, directory)
-            # get subfolder path from it
-            subfolder = full_dir_path[prefix_len:]
-            subfolders.append(subfolder)
+            try:
+                canonical_dir = os.path.realpath(full_dir_path, strict=True)
+                if canonical_dir not in full_dirs_searched:
+                    full_dirs_searched.append(canonical_dir)
+                    follow.append(path)
+
+            except OSError:
+                printD(f"Symlink loop: {directory}")
+                continue
+
+        # Get subfolder path
+        subfolder = root[prefix_len:]
+        subfolders.append(subfolder)
+
+        # Update dirs parameter to prevent following recursive symlinks
+        dirs[:] = follow
 
     return subfolders
 

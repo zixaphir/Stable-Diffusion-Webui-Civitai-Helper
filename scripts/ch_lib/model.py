@@ -408,10 +408,11 @@ def get_model_path_by_type_and_name(model_type:str, model_name:str) -> str:
     # model could be in subfolder, need to walk.
     model_path = util.find_file_in_folders(model_folders, model_name)
 
-    util.indented_print(f"""
+    msg = util.indented_msg(f"""
         Got following info:
         {model_path=}
     """)
+    util.printD(msg)
 
     # May return `None`
     return model_path
@@ -461,12 +462,13 @@ def get_model_path_by_search_term(model_type, search_term):
         if os.path.isfile(model_path):
             break
 
-    util.indented_print(f"""
+    msg = util.indented_msg(f"""
         Got following info:
         {model_folder=}
         {model_sub_path=}
         {model_path=}
     """)
+    util.printD(msg)
 
     if not os.path.isfile(model_path):
         util.printD(f"Can not find model file: {model_path}")

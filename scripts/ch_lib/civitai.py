@@ -8,7 +8,6 @@ import re
 import requests
 from . import util
 from . import model
-from . import templates
 
 SUFFIX = ".civitai"
 
@@ -607,7 +606,7 @@ def check_single_model_new_version(root, filename, model_type, delay):
     # search this new version id to check if this model is already downloaded
     target_model_info = search_local_model_info_by_version_id(root, version_id)
     if target_model_info:
-        util.printD("New version is already existed")
+        util.printD("New version is already exists")
         return False
 
     return request

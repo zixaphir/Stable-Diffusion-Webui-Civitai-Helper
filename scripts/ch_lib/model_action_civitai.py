@@ -281,17 +281,15 @@ def check_models_new_version_to_md(model_types:list) -> str:
     """
     new_versions = civitai.check_models_new_version_by_model_types(model_types, 0.2)
 
-    count = 0
     if not new_versions:
         util.printD("Done: no new versions found.")
         return "No models have new versions"
 
     articles = []
-    for new_version in new_versions:
+    count = 0
+    for count, new_version in enumerate(new_versions):
         article = build_article_from_version(new_version)
         articles.append(article)
-
-        count = count+1
 
     output = f"Found new versions for following models: <section>{''.join(articles)}</section>"
 
@@ -359,21 +357,18 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
 
     # get folder by model type
     folder = model.folders[model_type]
+
     # get subfolders
-    subfolders = util.get_subfolders(folder)
-    if not subfolders:
-        subfolders = []
+    subfolders = ["/"] + util.get_subfolders(folder)
 
-    # add default root folder
-    subfolders.append("/")
-
-    util.indented_print(f"""
+    msg = util.indented_msg(f"""
         Got following info for downloading:
         {model_name=}
         {model_type=}
-        {subfolders=}
         {version_strs=}
+        {subfolders=}
     """)
+    util.printD(msg)
 
     return (model_info, model_name, model_type, subfolders, version_strs)
 
@@ -386,10 +381,10 @@ def get_ver_info_by_ver_str(version_str:str, model_info:dict) -> dict:
     """
 
     if not (version_str and model_info):
-        output = util.dedent(f"""
+        output = util.indented_msg(f"""
             Missing Parameter:
-            * model_info: {model_info}
-            * version_str: {version_str}
+            {model_info=}
+             {version_str=}
         """)
         util.printD(output)
         return None
@@ -425,10 +420,10 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
     return - (version_id, download_url)
     """
     if not (version_str and model_info):
-        output = util.dedent(f"""
+        output = util.indented_msg(f"""
             Missing Parameter:
-            * model_info: {model_info}
-            * version_str: {version_str}
+            {model_info=}
+            {version_str=}
         """)
         util.printD(output)
         return None
@@ -458,11 +453,11 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
         version_id = version.get("id", None)
 
     if None in [version, version_id, download_url]:
-        output = util.dedent(f"""
+        output = util.indented_msg(f"""
             Invalid Version Information:
-            * version: {version}
-            * version_id: {version_id}
-            * download_url: {download_url}
+            {version=}
+            {version_id=}
+            {download_url=}
         """)
         util.printD(output)
         return None
@@ -509,15 +504,15 @@ def download_all(model_folder, version_id, ver_info, duplicate):
     return None
 
 
-def download_one(model_folder, ver_info, duplicate):
+def download_one(model_folder, download_url, duplicate):
     """
     only download one file
     get download url
     """
 
-    url = ver_info["downloadUrl"]
+    url = download_url
     if not url:
-        output = "Fail to get download url, check console log for detail"
+        output = "Failed to get download url, check console log for detail"
         util.printD(output)
         return None
 
@@ -544,13 +539,20 @@ def dl_model_by_input(
         output to markdown log
     """
     if not (model_info and model_type and subfolder_str and version_str):
-        output = util.dedent(f"""
-            Missing Parameter:
-            * model_info: {model_info}
-            * model_type: {model_type}
-            * subfolder_str: {subfolder_str}
-            * version_str: {version_str}
+        output = util.indented_msg(f"""
+            Missing Required Parameter in dl_model_by_input. Parameters given:
+            {model_type=}
+            {subfolder_str=}
+            {version_str=}
+            {dl_all_bool=}
+            {max_size_preview=}
+            {nsfw_preview_threshold=}
+            {duplicate=}
         """)
+
+        # Keep model info away from util.indented_msg
+        # which can screw with complex strings
+        msg = f"{msg}\n\t{model_info=}"
         util.printD(output)
         return output
 
@@ -560,10 +562,16 @@ def dl_model_by_input(
         util.printD(output)
         return output
 
+
+    folder = ""
+    subfolder = ""
+    version_id = ""
+    filepath = None
+    version_info = None
+
     model_root_folder = model.folders[model_type]
 
     # get subfolder
-    subfolder = ""
     if subfolder_str in ["/", "\\"]:
         subfolder = ""
     elif subfolder_str[:1] in ["/", "\\"]:
@@ -572,9 +580,9 @@ def dl_model_by_input(
         subfolder = subfolder_str
 
     # get model folder for downloading
-    model_folder = os.path.join(model_root_folder, subfolder)
-    if not os.path.isdir(model_folder):
-        output = f"Model folder is not a dir: {model_folder}"
+    folder = os.path.join(model_root_folder, subfolder)
+    if not os.path.isdir(folder):
+        output = f"Model folder is not a dir: {folder}"
         util.printD(output)
         return output
 
@@ -587,17 +595,14 @@ def dl_model_by_input(
 
     version_id = ver_info["id"]
 
-    filepath = None
-    msg = None
-
     if dl_all_bool:
-        filepath = download_all(model_folder, version_id, ver_info, duplicate)
+        filepath = download_all(folder, version_id, ver_info, duplicate)
 
     else:
-        filepath = download_one(model_folder, ver_info, duplicate)
+        filepath = download_one(folder, ver_info["downloadUrl"], duplicate)
 
     if filepath is None:
-        filepath = msg
+        return "Download Failed. Please check console log for more information."
 
     # get version info
     version_info = civitai.get_version_info_by_version_id(version_id)
