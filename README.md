@@ -32,6 +32,8 @@ Civitai: ![Civitai Url](https://civitai.com/models/16768/civitai-helper-sd-webui
   - 🌐: Open this model's Civitai url in a new tab
   - 💡: Add this model's trigger words to prompt
   - 🏷️: Use this model's preview image's prompt
+  - ✏️: Rename model
+  - ❌: Remove/Delete model
 * Above buttons support thumbnail mode of Extra Network in versions of webui prior to 1.5.0.
     * Thumbnail mode was removed in v1.5.0 of webui and replaced customizable model card sizes.
 * Option to always show additional buttons, to work with touchscreen.
