@@ -58,7 +58,8 @@ def indented_print(msg:str):
         var1: var1
         var2: var2
         var3: var3
- """
+    """
+
     msg_parts = textwrap.dedent(msg.strip()).split('\n')
     msg = [msg_parts.pop(0)]
     for part in msg_parts:
@@ -99,6 +100,8 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
         yield chunk
 
 def get_name(model_path):
+    """ return: lora/{model_name}:str """
+
     _, filename = os.path.split(model_path)
     model_name, _ = os.path.splitext(filename)
     return f"lora/{model_name}"
@@ -107,7 +110,7 @@ def gen_file_sha256(filename):
     """ return a sha256 hash for a file """
 
     if opts.ch_use_sdwebui_sha256:
-        printD(f"Using SD Webui SHA256")
+        printD("Using SD Webui SHA256")
         name = get_name(filename)
         return hashes.sha256(filename, name, use_addnet_hash=False)
 
@@ -178,12 +181,18 @@ def get_subfolders(folder:str) -> list:
 
 
 def find_file_in_folders(folders:list, filename:str) -> str:
+    """
+    Searches a directory for a filename,
+
+    return: filename:str or None
+    """
     for folder in folders:
         for root, _, files in os.walk(folder, followlinks=True):
             if filename in files:
                 # found file
-                model_folder = root
                 return os.path.join(root, filename)
+
+    return None
 
 
 # get relative path
