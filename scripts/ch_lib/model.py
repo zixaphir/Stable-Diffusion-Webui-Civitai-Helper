@@ -564,7 +564,7 @@ def Update_civitai_info_image_meta(file):
 				f.close()
 			for i, image in enumerate(data.get('images',[])):
 				meta_data = image.get('meta', None)
-				if not meta_data:
+				if not meta_data and meta_data != {}:
 					print(f"{file} is being updated")
 					meta_data = {}
 					try:
@@ -580,7 +580,7 @@ def Update_civitai_info_image_meta(file):
 							image["meta"] = meta_data
 							need_update = True
 						if _check == 2:
-							image["meta"] = "None"
+							image["meta"] = {}
 							need_update = True
 					except Exception:
 						pass
