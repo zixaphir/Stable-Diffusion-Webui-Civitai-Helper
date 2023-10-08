@@ -39,6 +39,9 @@ PROXIES = {
     "https": None,
 }
 
+REQUEST_TIMEOUT = 300  # 5 minutes
+REQUEST_RETRIES = 5
+
 # print for debugging
 def printD(msg):
     """ Print a message to stderr """
@@ -133,24 +136,33 @@ def gen_file_sha256(filename):
     return hash_value
 
 
-def download_file(url, path):
+def download_preview(url, path, retries=0):
     """ Download a preview image """
 
     printD(f"Downloading file from: {url}")
 
-    # get file
-    request = requests.get(
-        url,
-        stream=True,
-        headers=def_headers,
-        proxies=PROXIES,
-        timeout=10
-    )
+    try:
+        # get file
+        request = requests.get(
+            url,
+            stream=True,
+            headers=def_headers,
+            proxies=PROXIES,
+            timeout=REQUEST_TIMEOUT
+        )
+
+    except TimeoutError:
+        if retries < REQUEST_RETRIES:
+            retries = retries + 1
+            printD(f"GET Request timed out. Trying again. Attempt {retries}/{REQUEST_RETRIES}")
+            return download_preview(url, path, retries=retries)
+
+        printD(f"GET Request timed out. Maximum retries reached. Aborting download of {url}")
 
     if not request.ok:
         printD(f"Get error code: {request.status_code}")
         printD(request.text)
-        return
+        return request.status_code
 
     # write to file
     with open(os.path.realpath(path), 'wb') as writefile:
@@ -158,6 +170,7 @@ def download_file(url, path):
         shutil.copyfileobj(request.raw, writefile)
 
     printD(f"File downloaded to: {path}")
+    return path
 
 
 def get_subfolders(folder:str) -> list:

@@ -26,7 +26,7 @@ def request_get(url, headers):
             verify=False,
             headers=headers,
             proxies=util.PROXIES,
-            timeout=10
+            timeout=util.REQUEST_TIMEOUT
         )
     except TimeoutError:
         return None
@@ -59,7 +59,7 @@ def download_file(url, file_path, total_size):
     # download with header
     request = request_get(
         url,
-        headers
+        headers,
     )
 
     # write to file

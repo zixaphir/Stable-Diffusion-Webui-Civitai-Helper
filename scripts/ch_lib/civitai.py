@@ -8,6 +8,7 @@ import re
 import requests
 from . import util
 from . import model
+from . import downloader
 
 SUFFIX = ".civitai"
 
@@ -34,17 +35,10 @@ def civitai_get(civitai_url:str):
     return: dict:json or None
     """
 
-    try:
-        request = requests.get(
-            civitai_url,
-            headers=util.def_headers,
-            proxies=util.PROXIES,
-            timeout=5
-        )
-
-    except TimeoutError:
-        util.printD("Could not connect to Civitai servers")
-        return None
+    request = downloader.request_get(
+        civitai_url,
+        util.def_headers
+    )
 
     if not request.ok:
         if request.status_code == 404:
@@ -393,10 +387,10 @@ def verify_preview(preview, img_dict, max_size_preview, nsfw_preview_threshold):
             if img_dict["width"]:
                 img_url = get_full_size_image_url(img_url, img_dict["width"])
 
-    util.download_file(img_url, preview)
+    preview = util.download_preview(img_url, preview)
 
     # we only need 1 preview image
-    return True
+    return preview
 
 
 # get preview image by model path
@@ -440,8 +434,15 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
             return
 
         for img_dict in model_info["images"]:
-            success = verify_preview(preview, img_dict, max_size_preview, nsfw_preview_threshold)
-            if success:
+            preview = verify_preview(preview, img_dict, max_size_preview, nsfw_preview_threshold)
+            if preview and preview is not None:
+                if preview.isdigit():
+                    # HTTP Error Code
+                    if preview == "404":
+                        continue
+                break
+            if preview is None:
+                # HTTP Timeout
                 break
 
 
