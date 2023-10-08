@@ -10,6 +10,8 @@ import shutil
 import textwrap
 import requests
 import gradio as gr
+from modules.shared import opts
+from modules import hashes
 import launch
 from packaging.version import parse as parse_version
 
@@ -73,13 +75,25 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
             break
         yield chunk
 
-def gen_file_sha256(filname):
-    """ pip-style sha256 hash generation"""
+def get_name(model_path):
+    _, filename = os.path.split(model_path)
+    model_name, _ = os.path.splitext(filename)
+    return f"lora/{model_name}"
+
+def gen_file_sha256(filename):
+    """ return a sha256 hash for a file """
+
+    if opts.ch_use_sdwebui_sha256:
+        printD(f"Using SD Webui SHA256")
+        name = get_name(filename)
+        return hashes.sha256(filename, name, use_addnet_hash=False)
+
+    # pip-style sha256 hash generation
     printD("Use Memory Optimized SHA256")
     blocksize=1 << 20
     sha256_hash = hashlib.sha256()
     length = 0
-    with open(os.path.realpath(filname), 'rb') as read_file:
+    with open(os.path.realpath(filename), 'rb') as read_file:
         for block in read_chunks(read_file, size=blocksize):
             length += len(block)
             sha256_hash.update(block)
