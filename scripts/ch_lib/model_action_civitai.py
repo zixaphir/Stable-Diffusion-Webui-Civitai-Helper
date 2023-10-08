@@ -203,11 +203,7 @@ def get_model_info_by_input(
 
     # get model file path
     # model could be in subfolder
-    result = model.get_model_path_by_type_and_name(model_type, model_name)
-
-    model_path = None
-    if result:
-        _, model_path = result
+    model_path = model.get_model_path_by_type_and_name(model_type, model_name)
 
     if model_path is None:
         output = "Could not get Model Path"
@@ -371,13 +367,13 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
     # add default root folder
     subfolders.append("/")
 
-    util.printD(util.dedent(f"""
+    util.indented_print(f"""
         Got following info for downloading:
-        * model_name: {model_name}
-        * model_type: {model_type}
-        * subfolders: {subfolders}
-        * version_strs: {version_strs}
-    """))
+        {model_name=}
+        {model_type=}
+        {subfolders=}
+        {version_strs=}
+    """)
 
     return (model_info, model_name, model_type, subfolders, version_strs)
 

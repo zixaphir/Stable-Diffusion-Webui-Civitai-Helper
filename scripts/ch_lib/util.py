@@ -44,6 +44,29 @@ def printD(msg):
     """ Print a message to stderr """
     print(f"Civitai Helper: {msg}", file=sys.stderr)
 
+def indented_print(msg:str):
+    """
+    Clean up and then print an indented message in the format of
+    [header]
+    var1=var1
+    var2=var2
+    var3=var3
+
+    Printed Result:
+
+    Civitai Helper: [header]
+        var1: var1
+        var2: var2
+        var3: var3
+ """
+    msg_parts = textwrap.dedent(msg.strip()).split('\n')
+    msg = [msg_parts.pop(0)]
+    for part in msg_parts:
+        part = ": ".join(part.split("="))
+        msg.append(f"   {part}")
+    msg = "".join(msg)
+    printD(msg)
+
 def info(msg):
     """ Display an info smessage on the client DOM """
     gr.Info(msg)
@@ -152,6 +175,15 @@ def get_subfolders(folder:str) -> list:
             subfolders.append(subfolder)
 
     return subfolders
+
+
+def find_file_in_folders(folders:list, filename:str) -> str:
+    for folder in folders:
+        for root, _, files in os.walk(folder, followlinks=True):
+            if filename in files:
+                # found file
+                model_folder = root
+                return os.path.join(root, filename)
 
 
 # get relative path

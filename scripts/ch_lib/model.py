@@ -82,6 +82,7 @@ def get_custom_model_folder():
             # sd-webui v1.5.1 added a backcompat option for lyco.
             if os.path.isdir(shared.cmd_opts.lyco_dir_backcompat):
                 folders["lycoris"] = shared.cmd_opts.lyco_dir_backcompat
+
         except AttributeError:
             # v1.5.0 has no options for the Lyco dir:
             # it is hardcoded as 'os.path.join(paths.models_path, "LyCORIS")'
@@ -316,9 +317,8 @@ def load_model_info(path):
     with open(os.path.realpath(path), 'r') as json_file:
         try:
             model_info = json.load(json_file)
-        except ValueError as e:
+        except ValueError:
             util.printD(f"Selected file is not json: {path}")
-            util.printD(e)
             return None
 
     return model_info
@@ -392,33 +392,29 @@ def get_model_names_by_type(model_type:str) -> list:
 def get_model_path_by_type_and_name(model_type:str, model_name:str) -> str:
     """ return: model_path:str matching model_name and model_type """
     util.printD("Run get_model_path_by_type_and_name")
-    if folders.get(model_type, None) is None:
-        util.printD(f"unknown model_type: {model_type}")
-        return None
-
     if not model_name:
         util.printD("model name can not be empty")
         return None
 
-    if model_type == "lora" and folders['lycoris']:
-        model_folders = [folders[model_type], folders['lycoris']]
-    else:
-        model_folders = [folders[model_type]]
+    model_folders = [folders.get(model_type, None)]
 
+    if model_folders[0] is None:
+        util.printD(f"unknown model_type: {model_type}")
+        return None
+
+    if model_type == "lora" and folders['lycoris']:
+        model_folders.append(folders['lycoris'])
 
     # model could be in subfolder, need to walk.
-    model_root = ""
-    model_path = ""
-    for folder in model_folders:
-        for root, _, files in os.walk(folder, followlinks=True):
-            for filename in files:
-                if filename == model_name:
-                    # find model
-                    model_root = root
-                    model_path = os.path.join(root, filename)
-                    return (model_root, model_path)
+    model_path = util.find_file_in_folders(model_folders, model_name)
 
-    return None
+    util.indented_print(f"""
+        Got following info:
+        {model_path=}
+    """)
+
+    # May return `None`
+    return model_path
 
 
 # get model path by model type and search_term
@@ -465,12 +461,12 @@ def get_model_path_by_search_term(model_type, search_term):
         if os.path.isfile(model_path):
             break
 
-    util.printD(util.dedent(f"""
+    util.indented_print(f"""
         Got following info:
-        * model_folder: {model_folder}
-        * model_sub_path: {model_sub_path}
-        * model_path: {model_path}
-    """))
+        {model_folder=}
+        {model_sub_path=}
+        {model_path=}
+    """)
 
     if not os.path.isfile(model_path):
         util.printD(f"Can not find model file: {model_path}")
