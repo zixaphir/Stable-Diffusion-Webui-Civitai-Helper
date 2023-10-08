@@ -80,6 +80,12 @@ If a model info file already exists, by default it will be skipped. If a model c
 When you have some new models, just click scan button again to get new model's information and preview images. Only new models will be scanned with default options.
 
 ## Model Card
+
+### The following section is outdated!
+The following text block and image only applies to Stable Diffution Webui versions before v1.5.0. While the added buttons are still up-to-date, the "Extra Networks" tab button has been removed and is now always active by default.
+
+---
+
 **(Use this only after scanning finished)**
 Open SD webui's build-in "Extra Network" tab, to show model cards.
 
