@@ -302,6 +302,9 @@ def webui_version():
     match = re.match(r"v([\d.]+)", tag)
     if match:
         version = match.group(1)
+    else:
+        # XXX assume a modern SD Webui version if one cannot be found.
+        version = "1.6.0"
     return version
 
 
