@@ -677,27 +677,6 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     additional_node = card.querySelector(".actions .additional");
     //get ul node, which is the parent of all buttons
     ul_node = card.querySelector(".actions .additional ul");
-    // replace preview text button
-    replace_preview_btn = card.querySelector(".actions .additional a");
-
-    if ((replace_preview_btn == null) && !("replace_preview_button" in opts["ch_hide_buttons"])) {
-        /*
-        * in sdwebui 1.5, the replace preview button has been
-        * moved to a hard to reach location, so we have to do
-        * quite a lot to get to its functionality.
-        */
-
-        // waste memory by keeping all of this in scope, per card.
-        let page = active_tab_type;
-        let type = js_model_type;
-        let name = card.dataset.name;
-
-        // create the replace_preview_btn, as it no longer exists
-        replace_preview_btn = document.createElement("a");
-
-        // create an event handler to redirect a click to the real replace_preview_button
-        replace_preview_btn.setAttribute("onclick", `replace_preview(event, '${page}', '${type}', '${name}')`);
-    }
 
     // check thumb mode
     if (is_thumb_mode) {
@@ -711,7 +690,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         if (opts["ch_show_btn_on_thumb"]) {
             ul_node.style.background = btn_thumb_background;
         } else {
-            let ch_btn_txts = ['🌐', '💡', '🏷️'];
+            let ch_btn_txts = ["💡", "🌐", "🏷️", "✏️", "❌"];
 
             // remove existed buttons
             //reset
@@ -768,6 +747,34 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
 
     }
 
+    if (ul_node.dataset.ch_helper) {
+        return;
+    }
+
+    ul_node.dataset.ch_helper = true;
+
+    // replace preview text button
+    replace_preview_btn = card.querySelector(".actions .additional a");
+
+    if ((replace_preview_btn == null) && !("replace_preview_button" in opts["ch_hide_buttons"])) {
+        /*
+        * in sdwebui 1.5, the replace preview button has been
+        * moved to a hard to reach location, so we have to do
+        * quite a lot to get to its functionality.
+        */
+
+        // waste memory by keeping all of this in scope, per card.
+        let page = active_tab_type;
+        let type = js_model_type;
+        let name = card.dataset.name;
+
+        // create the replace_preview_btn, as it no longer exists
+        replace_preview_btn = document.createElement("a");
+
+        // create an event handler to redirect a click to the real replace_preview_button
+        replace_preview_btn.setAttribute("onclick", `replace_preview(event, '${page}', '${type}', '${name}')`);
+    }
+
     // change replace preview text button into icon
     if (!opts["ch_hide_buttons"].includes("replace_preview_button")) {
         if (replace_preview_btn.textContent !== "🖼️") {
@@ -780,12 +787,6 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     } else if (replace_preview_btn.parentElement) {
         replace_preview_btn.parentElement.removeChild(replace_preview_btn);
     }
-
-    if (ul_node.dataset.ch_helper) {
-        return;
-    }
-
-    ul_node.dataset.ch_helper = true;
 
     // search_term node
     // search_term = subfolder path + model name + ext
@@ -843,7 +844,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         rename_card_node.href = "#";
         rename_card_node.innerHTML = "✏️";
         rename_card_node.classList.add("card-button", "renamecard");
-        rename_card_node.title = "Remove this model";
+        rename_card_node.title = "Rename this model";
         rename_card_node.setAttribute("onclick", `rename_card(event, '${model_type}', '${search_term}')`);
         addedNodes.push(rename_card_node);
     }
