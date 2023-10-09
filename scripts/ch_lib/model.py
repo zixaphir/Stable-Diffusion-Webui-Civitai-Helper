@@ -6,6 +6,7 @@ import json
 import glob
 import re
 import requests
+from PIL import Image
 import piexif
 import piexif.helper
 from modules import shared
@@ -13,8 +14,6 @@ from modules import paths_internal
 from modules.shared import opts
 from . import civitai
 from . import util
-from io import BytesIO
-from PIL import Image
 
 
 # this is the default root path
@@ -483,128 +482,150 @@ def get_model_path_by_search_term(model_type, search_term):
 
     return model_path
 
+
 def sd_format(data):
-	steps_index = data.find("\nSteps:")
+    """
+    Parse image exif data for image creation parameters.
 
-	if steps_index != -1:
-		_prompt = data[:steps_index].strip()
-		_setting = data[steps_index:].strip()
+    return parameters:dict or None
+    """
 
-	if "Negative prompt:" in data:
-		prompt_index = data.find("\nNegative prompt:")
+    if not data:
+        return None
 
-		if steps_index != -1:
-			_negative = data[
-				prompt_index + len("Negative prompt:") + 1 : steps_index
-			].strip()
+    steps_index = data.find("\nSteps:")
 
-		else:
-			_negative = data[
-				prompt_index + len("Negative prompt:") + 1 :
-			].strip()
-		_prompt = data[:prompt_index].strip()
+    if steps_index != -1:
+        prompt = data[:steps_index].strip()
+        setting = data[steps_index:].strip()
 
-	elif steps_index == -1:
-		_prompt = data
+    if "Negative prompt:" in data:
+        prompt_index = data.find("\nNegative prompt:")
 
-	string_list = _setting.split(",")
-	pattern = r"\s*([^:,]+):\s*([^,]+)"
-	setting_dict = dict(re.findall(pattern, _setting))
+        if steps_index != -1:
+            negative = data[
+                prompt_index + len("Negative prompt:") + 1 : steps_index
+            ].strip()
 
-	_Steps = setting_dict.get("Steps")
-	_Sampler = setting_dict.get("Sampler")
-	_CFG_scale = setting_dict.get("CFG scale")
-	_Seed = setting_dict.get("Seed")
-	_Size = setting_dict.get("Size")
+        else:
+            negative = data[
+                prompt_index + len("Negative prompt:") + 1 :
+            ].strip()
+
+        prompt = data[:prompt_index].strip()
+
+    elif steps_index == -1:
+        prompt = data
+
+    pattern = r"\s*([^:,]+):\s*([^,]+)"
+    setting_dict = dict(re.findall(pattern, setting))
+
+    data = {
+         "prompt": prompt,
+         "negative": negative,
+         "Steps": setting_dict.get("Steps", ""),
+         "Sampler": setting_dict.get("Sampler", ""),
+         "CFG_scale": setting_dict.get("CFG scale", ""),
+         "Seed": setting_dict.get("Seed", ""),
+         "Size": setting_dict.get("Size", ""),
+    }
+
+    return data
 
 
-	return (_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size)
+def read_remote_image_info(img_src):
+    """
+    Download a remote image and parse out its creation parameters
+
+    return parameters:dict or None
+    """
+    try:
+        response = requests.get(
+            img_src,
+            timeout=5
+        )
+
+        if response.status_code != 200:
+            return None
+
+        image_file = response.raw
+        with Image.open(image_file) as image:
+            if image.format == "PNG":
+                data = image.info.get("parameters")
+
+            elif image.format in ["JPEG", "WEBP"]:
+                try:
+                    usercomment = piexif.ExifIFD.UserComment
+                    exif = piexif.load(image.info.get("exif")) or {}
+                    data = piexif.helper.UserComment.load(
+                        exif.get("Exif", {}).get(usercomment, None)
+                    )
+                except ValueError:
+                    return None
+
+            if data:
+                sd_data = sd_format(data)
+                return sd_data
+
+    except TimeoutError:
+        print(f"{img_src} read failed")
+
+    return None
 
 
-def Read_remote_image_info(img_src):
-	_check = 0
-	try:
-		response = requests.get(img_src, timeout=(5, 10))
-		files=BytesIO(response.content)
-		with Image.open(files) as f:
-			try:
-				exif = json.loads(f.getexif().get(0x0110))
-			except TypeError:
-				if f.format == "PNG":
-					data=f.info.get("parameters")
-				elif f.format == "JPEG" or f.format == "WEBP":
-					try:
-						exif = piexif.load(f.info.get("exif")) or {}
-						datajpeg = piexif.helper.UserComment.load(
-							exif.get("Exif").get(piexif.ExifIFD.UserComment)
-						)
-						data = datajpeg
-					except Exception:
-						pass
-			try:
-				_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size= sd_format(data)
-				_check = 1
-				return (_check,_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size)
-			except Exception:
-				_check = 2
-				print(f"{img_src} not generate information")
-				return (_check,"","","","","","","")
-	except Exception:
-				print(f"{img_src} read failed")
+def update_civitai_info_image_meta(filename):
+    """
+    Read model metadata and update missing image creation parameters,
+    if available.
+    """
+    need_update = False
+    data = {}
 
-def Update_civitai_info_image_meta(file):
-	need_update = False
-	data = {}
-	if os.path.isfile(file):
-		try:
-			with open(file, 'r') as f:
-				data = json.load(f)
-				f.close()
-			for i, image in enumerate(data.get('images',[])):
-				meta_data = image.get('meta', None)
-				if not meta_data and meta_data != {}:
-					print(f"{file} is being updated")
-					meta_data = {}
-					try:
-						_check,_prompt,_negative,_Steps,_Sampler,_CFG_scale,_Seed,_Size = Read_remote_image_info(image.get('url',''))
-						if _check == 1:
-							meta_data["prompt"] = _prompt
-							meta_data["negative"] = _negative
-							meta_data["Steps"] = _Steps
-							meta_data["Sampler"] = _CFG_scale
-							meta_data["CFG_scale"] = _CFG_scale
-							meta_data["Seed"] = _Seed
-							meta_data["Size"] = _Size
-							image["meta"] = meta_data
-							need_update = True
-						if _check == 2:
-							image["meta"] = {}
-							need_update = True
-					except Exception:
-						pass
-		except Exception:
-			pass
-			print(f"{file} is Error")
-	if need_update:
-		with open(file, 'w') as f:
-			json.dump(data, f, indent=4)
-			f.close()
-def Scan_civitai_info_image_meta():
-	util.printD("Start Scan_civitai_info_image_meta")
-	output = ""
-	count = 0
-	embeddings_path = os.path.join(paths_internal.data_path, "embeddings")
-	for root, dirs, files in os.walk(embeddings_path):
-		for file in files:
-			if file.endswith('.civitai.info'):
-				Update_civitai_info_image_meta(os.path.join(root, file))
-				count = count + 1
-	models_path = os.path.join(paths_internal.data_path, "models")
-	for root, dirs, files in os.walk(models_path):
-		for file in files:
-			if file.endswith('.civitai.info'):
-				Update_civitai_info_image_meta(os.path.join(root, file))
-				count = count + 1
-	output = f"Done. Scanned {count} files."
-	util.printD(output)
-	return output
+    if not os.path.isfile(filename):
+        return
+
+    with open(filename, 'r') as model_json:
+        data = json.load(model_json)
+
+    for image in data.get('images', []):
+        metadata = image.get('meta', {})
+        if len(metadata.keys()) == 0:
+            metadata = {}
+
+            url = image.get("url", "")
+            if not url:
+                continue
+
+            image_data = read_remote_image_info(url)
+            if not image_data:
+                continue
+
+            print(f"{filename} is being updated")
+
+            metadata = image_data
+            image["meta"] = metadata
+
+            need_update = True
+
+    if need_update:
+        with open(filename, 'w') as info_file:
+            json.dump(data, info_file, indent=4)
+
+
+def scan_civitai_info_image_meta():
+    """ Search for *.civitai.info files """
+    util.printD("Start Scan_civitai_info_image_meta")
+    output = ""
+    count = 0
+
+    directories = [x for x in folders if os.path.isfile(x)]
+    for directory in directories:
+        for root, _, files in os.walk(directory):
+            for filename in files:
+                if filename.endswith('.civitai.info'):
+                    update_civitai_info_image_meta(os.path.join(root, filename))
+                    count = count + 1
+
+    output = f"Done. Scanned {count} files."
+    util.printD(output)
+    return output
