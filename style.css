@@ -41,3 +41,33 @@ blockquote ol {
     background-image: none;
     background: rgba(0, 0, 0, 0.8);
 }
+
+/* Lobe theme */
+.actions .additional > a {
+    display: none;
+}
+
+/*
+ * Gross, ugly, and I hate it, but the only way to override an
+ * !important is with a more granular !important.
+ */
+.acss-culdhq .extra-networks .actions .additional > ul a.card-button {
+    margin: 0px 2px !important;
+    padding: 2px !important;
+    font-size: 150% !important;
+
+}
+
+/* Work around a display bug in Lobe that causes lowers opacity to 0.2 */
+#txt2img_extra_tabs [style*="_cards_html"] .pending,
+#img2img_extra_tabs [style*="_cards_html"] .pending {
+    opacity: 1;
+}
+
+/* Work around a display bug in Lobe that causes an infinite counter */
+#txt2img_extra_tabs [id*="_cards_html"] .progress-text ,
+#img2img_extra_tabs [id*="_cards_html"] .progress-text  {
+    display: none;
+}
+
+/* end of Lobe theme */

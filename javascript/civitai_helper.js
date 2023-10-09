@@ -500,6 +500,16 @@ function refresh_cards_list() {
 }
 
 function processCards(tab, extra_tab_els) {
+    if (!(opts && "ch_always_display" in opts)) {
+        // Lobe theme can cause a race condition.
+        console.log("Waiting for webui settings to become available");
+        console.log(opts);
+        const try_again = function () {
+            processCards(tab, extra_tab_els);
+        }
+        return setTimeout(try_again, 500);
+    }
+
     const prefix_length = tab.length + 1;
     for (const el of extra_tab_els) {
         const model_type = el.id.slice(prefix_length, -6);
@@ -890,6 +900,10 @@ onUiLoaded(() => {
     // so, these buttons just sent request to python
     // then, python side gonna open url and update prompt text box, without telling js side.
     function update_card_for_civitai() {
+        if (!(opts && "ch_always_display" in opts)) {
+            // Lobe theme can cause a race condition.
+            return setTimeout(update_card_for_civitai, 500);
+        }
 
         let replace_preview_text = getTranslation("replace preview");
         if (!replace_preview_text) {
@@ -993,7 +1007,7 @@ onUiLoaded(() => {
     }
 
     //run it once
-    update_card_for_civitai();
+    // update_card_for_civitai();
 
 
 });
