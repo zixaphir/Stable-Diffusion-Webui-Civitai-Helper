@@ -9,6 +9,7 @@ import hashlib
 import shutil
 import textwrap
 import requests
+import time
 import gradio as gr
 from modules.shared import opts
 from modules import hashes
@@ -45,7 +46,7 @@ REQUEST_RETRIES = 5
 # print for debugging
 def printD(msg):
     """ Print a message to stderr """
-    print(f"Civitai Helper: {msg}", file=sys.stderr)
+    print(f"Civitai Helper: {msg}")
 
 def indented_msg(msg:str):
     """
@@ -73,6 +74,11 @@ def indented_msg(msg:str):
     msg = "\n".join(msg)
 
     return msg
+
+def delay(seconds):
+    """ delay before next request, mostly to prevent to be treated as DDoS """
+    printD(f"delay: {seconds} second")
+    time.sleep(seconds)
 
 def info(msg):
     """ Display an info smessage on the client DOM """

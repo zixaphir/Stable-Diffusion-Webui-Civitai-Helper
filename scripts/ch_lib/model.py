@@ -3,7 +3,6 @@ Handle model operations
 """
 import os
 import json
-import glob
 import re
 import requests
 from PIL import Image
@@ -483,6 +482,8 @@ def get_model_path_by_search_term(model_type, search_term):
     return model_path
 
 
+pattern = re.compile(r"\s*([^:,]+):\s*([^,]+)")
+
 def sd_format(data):
     """
     Parse image exif data for image creation parameters.
@@ -492,6 +493,10 @@ def sd_format(data):
 
     if not data:
         return None
+
+    prompt = ""
+    negative = ""
+    setting = ""
 
     steps_index = data.find("\nSteps:")
 
@@ -517,7 +522,6 @@ def sd_format(data):
     elif steps_index == -1:
         prompt = data
 
-    pattern = r"\s*([^:,]+):\s*([^,]+)"
     setting_dict = dict(re.findall(pattern, setting))
 
     data = {
@@ -533,44 +537,76 @@ def sd_format(data):
     return data
 
 
-def read_remote_image_info(img_src):
+def parse_image(image_file):
+    """
+    Read image exif for userComment entry.
+    return: userComment:str
+    """
+    data = None
+    with Image.open(image_file) as image:
+        if image.format == "PNG":
+            # However, unlike other image formats, EXIF data is not
+            # guaranteed to be present in info until load() has been called.
+            # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#png
+            image.load()
+            data = image.info.get("parameters")
+
+        elif image.format in ["JPEG", "WEBP"]:
+            try:
+                usercomment = piexif.ExifIFD.UserComment
+                exif = image.info.get("exif")
+                if not exif:
+                    return None
+                jpegexif = piexif.load(exif) or {}
+                data = piexif.helper.UserComment.load(
+                    jpegexif.get("Exif", {}).get(usercomment, None)
+                )
+
+            except (ValueError, TypeError):
+                util.printD("Failed to parse image exif.")
+                return None
+
+    return data
+
+
+def get_remote_image_info(img_src):
     """
     Download a remote image and parse out its creation parameters
 
     return parameters:dict or None
     """
+    # anti-DDOS protection
+    util.delay(0.2)
+
     try:
         response = requests.get(
             img_src,
+            stream=True,
             timeout=5
         )
 
-        if response.status_code != 200:
-            return None
-
-        image_file = response.raw
-        with Image.open(image_file) as image:
-            if image.format == "PNG":
-                data = image.info.get("parameters")
-
-            elif image.format in ["JPEG", "WEBP"]:
-                try:
-                    usercomment = piexif.ExifIFD.UserComment
-                    exif = piexif.load(image.info.get("exif")) or {}
-                    data = piexif.helper.UserComment.load(
-                        exif.get("Exif", {}).get(usercomment, None)
-                    )
-                except ValueError:
-                    return None
-
-            if data:
-                sd_data = sd_format(data)
-                return sd_data
-
     except TimeoutError:
         print(f"{img_src} read failed")
+        return None
 
-    return None
+    if not response.ok:
+        util.printD(f"Get error code: {response.status_code}")
+        util.printD(response.text)
+        return response.status_code
+
+    image_file = response.raw
+    try:
+        data = parse_image(image_file)
+
+    except OSError: #, UnidentifiedImageError
+        util.printD("Failed to open image.")
+        return None
+
+    if not data:
+        return None
+
+    sd_data = sd_format(data)
+    return sd_data
 
 
 def update_civitai_info_image_meta(filename):
@@ -588,20 +624,27 @@ def update_civitai_info_image_meta(filename):
         data = json.load(model_json)
 
     for image in data.get('images', []):
-        metadata = image.get('meta', {})
-        if len(metadata.keys()) == 0:
-            metadata = {}
-
+        metadata = image.get('meta', None)
+        if not metadata and metadata != {}:
             url = image.get("url", "")
             if not url:
                 continue
 
-            image_data = read_remote_image_info(url)
+            util.printD(f"{filename} missing generation info for {url}. Processing {url}.")
+
+            image_data = get_remote_image_info(url)
             if not image_data:
+                util.printD(f"Failed to find generation info on remote image at {url}.")
+
+                # "mark" image so additional runs will skip it.
+                image["meta"] = {}
+                need_update = True
                 continue
 
-            print(f"{filename} is being updated")
-
+            util.printD(
+                "The following information will be added to "
+                f"{filename} for {url}:\n{image_data}"
+            )
             metadata = image_data
             image["meta"] = metadata
 
@@ -618,7 +661,8 @@ def scan_civitai_info_image_meta():
     output = ""
     count = 0
 
-    directories = [x for x in folders if os.path.isfile(x)]
+    directories = [y for x, y in folders.items() if os.path.isdir(y)]
+    util.printD(f"{directories=}")
     for directory in directories:
         for root, _, files in os.walk(directory):
             for filename in files:

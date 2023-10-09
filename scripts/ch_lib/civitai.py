@@ -3,9 +3,7 @@ handle msg between js and python side
 """
 
 import os
-import time
 import re
-import requests
 from . import util
 from . import model
 from . import downloader
@@ -538,9 +536,7 @@ def check_model_new_version_by_path(model_path:str, delay:float=0.2) -> tuple:
     # get model info by id from civitai
     model_info = get_model_info_by_id(model_id)
 
-    # delay before next request, to prevent to be treat as DDoS
-    util.printD(f"delay: {delay} second")
-    time.sleep(delay)
+    util.delay(delay)
 
     if not model_info:
         return None
