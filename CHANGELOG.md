@@ -1,4 +1,5 @@
 # Change Log
+## 1.7.5
 * Missing image generation info in civitai.info files can now be retrieved from civitai by downloading the image and parsing its EXIF data. Most people should not need this, but it can be helpful if you're trying to recreate an image or more like it from the model's preview page. This will only work if the model author left metadata in the image.
 * Added some compatibility code for the Lobe theme extension
 * Reduce timeout errors, retry failed downloads.

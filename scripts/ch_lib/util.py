@@ -20,7 +20,7 @@ from packaging.version import parse as parse_version
 SHORT_NAME = "sd_civitai_helper"
 
 # current version of the exension
-VERSION = "1.7.4"
+VERSION = "1.7.5"
 
 # Civitai INFO files below this version will regenerated
 COMPAT_VERSION_CIVITAI = "1.7.2"
