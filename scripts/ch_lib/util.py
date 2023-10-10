@@ -8,8 +8,8 @@ import re
 import hashlib
 import shutil
 import textwrap
-import requests
 import time
+import requests
 import gradio as gr
 from modules.shared import opts
 from modules import hashes
@@ -205,7 +205,7 @@ def get_subfolders(folder:str) -> list:
                 canonical_dir = os.path.realpath(full_dir_path, strict=True)
                 if canonical_dir not in full_dirs_searched:
                     full_dirs_searched.append(canonical_dir)
-                    follow.append(path)
+                    follow.append(directory)
 
             except OSError:
                 printD(f"Symlink loop: {directory}")
