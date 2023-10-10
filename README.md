@@ -249,4 +249,4 @@ Since v1.5.5, we've already optimized the SHA256 function to the top. So the onl
 * try again
 * or use a pro account of colab.
 
-### (Changes)[https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/blob/master/README.md]
+### [Changes](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/blob/master/README.md)
