@@ -43,10 +43,16 @@ PROXIES = {
 REQUEST_TIMEOUT = 300  # 5 minutes
 REQUEST_RETRIES = 5
 
+_MINUTE = 60
+_HOUR = _MINUTE * 60
+_DAY = _HOUR * 24
+
+
 # print for debugging
 def printD(msg):
     """ Print a message to stderr """
     print(f"Civitai Helper: {msg}")
+
 
 def indented_msg(msg:str):
     """
@@ -75,26 +81,48 @@ def indented_msg(msg:str):
 
     return msg
 
+
 def delay(seconds):
     """ delay before next request, mostly to prevent to be treated as DDoS """
     printD(f"delay: {seconds} second")
     time.sleep(seconds)
 
+
+def is_stale(timestamp):
+    """ Returns if a timestamp was more than a day ago. """
+    cur_time = ch_time()
+    elapsed = cur_time - timestamp
+
+    if elapsed > _DAY:
+        return True
+
+    return False
+
+
 def info(msg):
     """ Display an info smessage on the client DOM """
     gr.Info(msg)
+
 
 def warning(msg):
     """ Display a warning message on the client DOM """
     gr.Warning(msg)
 
+
 def error(msg):
     """ Display an error message on the client DOM """
     gr.Error(msg)
 
+
+def ch_time():
+    """ Unix timestamp """
+    return int(time.time())
+
+
 def dedent(text):
     """ alias for textwrap.dedent """
     return textwrap.dedent(text)
+
 
 def download_error(download_url, msg):
     """ Display a download error """
@@ -102,6 +130,7 @@ def download_error(download_url, msg):
     printD(output)
     printD(msg)
     return output
+
 
 def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
     """Yield pieces of data from a file-like object until EOF."""
@@ -111,12 +140,14 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
             break
         yield chunk
 
+
 def get_name(model_path):
     """ return: lora/{model_name}:str """
 
     _, filename = os.path.split(model_path)
     model_name, _ = os.path.splitext(filename)
     return f"lora/{model_name}"
+
 
 def gen_file_sha256(filename):
     """ return a sha256 hash for a file """
@@ -367,9 +398,13 @@ def create_extension_block(data=None):
 
         Adds the current version of this extension to the extensions block
     """
+
+    cur_time = ch_time()
+
     block = {
         SHORT_NAME: {
-            "version": VERSION
+            "version": VERSION,
+            "last_update": cur_time
         }
     }
 
@@ -381,6 +416,7 @@ def create_extension_block(data=None):
         return data
 
     data[SHORT_NAME]["version"] = VERSION
+    data[SHORT_NAME]["last_update"] = cur_time
 
     return data
 
