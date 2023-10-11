@@ -582,7 +582,7 @@ def get_remote_image_info(img_src):
         response = requests.get(
             img_src,
             stream=True,
-            timeout=5
+            timeout=util.REQUEST_TIMEOUT
         )
 
     except TimeoutError:
@@ -592,7 +592,7 @@ def get_remote_image_info(img_src):
     if not response.ok:
         util.printD(f"Get error code: {response.status_code}")
         util.printD(response.text)
-        return response.status_code
+        return None
 
     image_file = response.raw
     try:
