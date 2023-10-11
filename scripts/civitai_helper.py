@@ -48,8 +48,8 @@ def on_ui_tabs():
     proxy = opts.ch_proxy
     if proxy:
         util.printD(f"Set Proxy: {proxy}")
-        util.PROXIES.http = proxy
-        util.PROXIES.https = proxy
+        util.PROXIES["http"] = proxy
+        util.PROXIES["https"] = proxy
 
     # get prompt textarea
     # check modules/ui.py, search for txt2img_paste_fields
