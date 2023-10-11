@@ -552,7 +552,7 @@ def dl_model_by_input(
 
         # Keep model info away from util.indented_msg
         # which can screw with complex strings
-        msg = f"{msg}\n\t{model_info=}"
+        output = f"{output}\n\t{model_info=}"
         util.printD(output)
         return output
 
