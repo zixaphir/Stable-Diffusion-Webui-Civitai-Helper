@@ -4,7 +4,6 @@ Handle model operations
 import os
 import json
 import re
-import requests
 from PIL import Image
 import piexif
 import piexif.helper
@@ -12,6 +11,7 @@ from modules import shared
 from modules import paths_internal
 from modules.shared import opts
 from . import civitai
+from . import downloader
 from . import util
 
 
@@ -578,20 +578,9 @@ def get_remote_image_info(img_src):
     # anti-DDOS protection
     util.delay(0.2)
 
-    try:
-        response = requests.get(
-            img_src,
-            stream=True,
-            timeout=util.REQUEST_TIMEOUT
-        )
+    success, response = downloader.request_get(img_src)
 
-    except TimeoutError:
-        print(f"{img_src} read failed")
-        return None
-
-    if not response.ok:
-        util.printD(f"Get error code: {response.status_code}")
-        util.printD(response.text)
+    if not success:
         return None
 
     image_file = response.raw

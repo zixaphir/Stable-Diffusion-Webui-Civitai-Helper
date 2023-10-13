@@ -132,18 +132,21 @@ def scan_model(scan_model_types, max_size_preview, nsfw_preview_threshold, refet
 
                 # check preview image
                 filepath = os.path.join(root, filename)
-                civitai.get_preview_image_by_model_path(
+
+                # webui-visible progress bar
+                for result in civitai.get_preview_image_by_model_path(
                     filepath,
                     max_size_preview,
                     nsfw_preview_threshold
-                )
+                ):
+                    yield result
 
     # this previously had an image count, but it always matched the model count.
     output = f"Done. Scanned {count} models."
 
     util.printD(output)
 
-    return output
+    yield output
 
 
 def dummy_model_info(path, sha256_hash, model_type):
@@ -216,9 +219,15 @@ def get_model_info_by_input(
 
     model.process_model_info(model_path, model_info, model_type)
 
-    # check preview image
-    civitai.get_preview_image_by_model_path(model_path, max_size_preview, nsfw_preview_threshold)
-    return output
+    # check preview image + webui-visible progress bar
+    for result in civitai.get_preview_image_by_model_path(
+        model_path,
+        max_size_preview,
+        nsfw_preview_threshold
+    ):
+        yield result
+
+    yield output
 
 
 def build_article_from_version(version):
@@ -381,11 +390,13 @@ def get_ver_info_by_ver_str(version_str:str, model_info:dict) -> dict:
     """
 
     if not (version_str and model_info):
-        output = util.indented_msg(f"""
+        output = util.indented_msg(
+            f"""
             Missing Parameter:
             {model_info=}
              {version_str=}
-        """)
+            """
+            )
         util.printD(output)
         return None
 
@@ -426,13 +437,13 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
             {version_str=}
         """)
         util.printD(output)
-        return None
+        return (False, output)
 
     # get version list
     model_versions = model_info.get("modelVersions", None)
     if model_versions is None:
         util.printD("modelVersions is Empty")
-        return None
+        return (False, output)
 
     # find version by version_str
     version = None
@@ -460,7 +471,7 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
             {download_url=}
         """)
         util.printD(output)
-        return None
+        return (False, output)
 
     util.printD(f"Get Download Url: {download_url}")
 
@@ -483,25 +494,44 @@ def download_all(model_folder, version_id, ver_info, duplicate):
     if len(download_urls) == 0:
         download_url = ver_info.get("downloadUrl", None)
         if download_url is not None:
-            download_urls.append()
+            download_urls.append(download_url)
 
     # check if this model already exists
     result = civitai.search_local_model_info_by_version_id(model_folder, version_id)
     if result:
         output = "This model version already exists"
         util.printD(output)
-        return None
+        return (False, output)
 
     # download
-    for url in download_urls:
-        success, msg = downloader.dl(url, model_folder, None, None, duplicate)
+    success = False
+    output = ""
+    filepath = ""
+    total = len(download_urls)
+    for count, url in enumerate(download_urls):
+
+        # webui visible progress bar
+        for result in downloader.dl_file(
+            url, folder=model_folder, duplicate=duplicate
+        ):
+            if isinstance(result, str):
+                yield f"{result} | {count}/{total} models"
+                continue
+
+            success, output = result
+
         if not success:
-            return None
+            downloader.error(url, output)
+            continue
 
         if url == ver_info["downloadUrl"]:
-            return msg
+            filepath = output
 
-    return None
+
+    if not filepath:
+        filepath = output
+
+    yield (True, filepath)
 
 
 def download_one(model_folder, download_url, duplicate):
@@ -510,6 +540,7 @@ def download_one(model_folder, download_url, duplicate):
     get download url
     """
 
+    output = ""
     url = download_url
     if not url:
         output = "Failed to get download url, check console log for detail"
@@ -517,12 +548,23 @@ def download_one(model_folder, download_url, duplicate):
         return None
 
     # download
-    success, msg = downloader.dl(url, model_folder, None, None, duplicate)
+    success = False
+    for result in downloader.dl_file(
+        url, folder=model_folder, duplicate=duplicate
+    ):
+        if isinstance(result, str):
+            yield result
+            continue
+
+        util.printD(result)
+
+        success, output = result
+
     if not success:
-        util.download_error(url, msg)
+        downloader.error(url, output)
         return None
 
-    return msg
+    yield (True, output)
 
 
 def dl_model_by_input(
@@ -552,7 +594,7 @@ def dl_model_by_input(
 
         # Keep model info away from util.indented_msg
         # which can screw with complex strings
-        output = f"{output}\n\t{model_info=}"
+        output = f"{output}\n    {model_info=}"
         util.printD(output)
         return output
 
@@ -562,11 +604,10 @@ def dl_model_by_input(
         util.printD(output)
         return output
 
-
     folder = ""
     subfolder = ""
     version_id = ""
-    filepath = None
+    output = ""
     version_info = None
 
     model_root_folder = model.folders[model_type]
@@ -593,24 +634,45 @@ def dl_model_by_input(
         util.printD(output)
         return output
 
+    success = False
     version_id = ver_info["id"]
-
     if dl_all_bool:
-        filepath = download_all(folder, version_id, ver_info, duplicate)
+        for result in download_all(folder, version_id, ver_info, duplicate):
+            if isinstance(result, str):
+                yield result
+                continue
+
+            success, output = result
 
     else:
-        filepath = download_one(folder, ver_info["downloadUrl"], duplicate)
+        for result in download_one(folder, ver_info["downloadUrl"], duplicate):
+            if isinstance(result, str):
+                yield result
+                continue
 
-    if filepath is None:
-        return "Download Failed. Please check console log for more information."
+            success, output = result
+
+    if not success:
+        return output
 
     # get version info
     version_info = civitai.get_version_info_by_version_id(version_id)
-    model.process_model_info(filepath, version_info, model_type)
+    model.process_model_info(output, version_info, model_type)
 
-    # then, get preview image
-    civitai.get_preview_image_by_model_path(filepath, max_size_preview, nsfw_preview_threshold)
+    try:
+        # then, get preview image + webui-visible progress bar
+        for result in civitai.get_preview_image_by_model_path(
+            output,
+            max_size_preview,
+            nsfw_preview_threshold
+        ):
+            yield f"Downloading model preview:\n{result}"
 
-    output = f"Done. Model downloaded to: {filepath}"
+    except StopIteration:
+        # Prevents StopIteration from bubbling up and stopping
+        # caller function generator processing before return
+        pass
+
+    output = f"Done. Model downloaded to: {output}"
     util.printD(output)
-    return output
+    yield output

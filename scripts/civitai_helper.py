@@ -504,14 +504,16 @@ def on_ui_settings():
         "ch_nsfw_preview_threshold",
         shared.OptionInfo(
             civitai.NSFW_LEVELS[-1], # Allow all
-            util.dedent("""
+            util.dedent(
+                """
                 Block NSFW images of a certain threshold and higher.
                 Civitai marks all images for NSFW models as also being NSFW.
                 These ratings do not seem to be explicitly defined on Civitai's
                 end, but "Soft" seems to be suggestive, with NSFW elements but
                 not explicit nudity, "Mature" seems to include nudity but not
                 always, and "X" seems to be explicitly adult content.
-            """.strip()),
+                """
+            ).strip().replace("\n", " "),
             gr.Dropdown,
             {
                 "choices": civitai.NSFW_LEVELS[1:],

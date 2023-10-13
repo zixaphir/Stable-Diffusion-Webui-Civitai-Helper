@@ -216,10 +216,16 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     # get model folder from model path
     model_folder = os.path.dirname(model_path)
 
-    # download file
-    success, msg = downloader.dl(download_url, model_folder, None, None)
+    success = False
+    # download file + webui visible progress bar
+    for result in downloader.dl_file(download_url, folder=model_folder):
+        if isinstance(result, str):
+            yield result
+            continue
+        success, _ = result
+
     if not success:
-        return util.download_error(download_url, msg)
+        return "Model download failed. See console for more details."
 
     # get version info
     version_info = civitai.get_version_info_by_version_id(version_id)
@@ -228,12 +234,16 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     model.process_model_info(msg, version_info, model_type)
 
     # then, get preview image
-    civitai.get_preview_image_by_model_path(msg, max_size_preview, nsfw_preview_threshold)
+    for result in civitai.get_preview_image_by_model_path(
+        msg,
+        max_size_preview,
+        nsfw_preview_threshold
+    ):
+        yield result
 
     output = f"Done. Model downloaded to: {msg}"
     util.printD(output)
-    return output
-
+    yield output
 
 def get_model_path_from_js_msg(result):
     """

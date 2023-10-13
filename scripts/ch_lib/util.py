@@ -1,15 +1,13 @@
 """ -*- coding: UTF-8 -*-
 Utility functions for Stable Diffusion Civitai Helper
 """
+from __future__ import annotations
 import os
-import sys
 import io
 import re
 import hashlib
-import shutil
 import textwrap
 import time
-import requests
 import gradio as gr
 from modules.shared import opts
 from modules import hashes
@@ -28,7 +26,7 @@ COMPAT_VERSION_CIVITAI = "1.7.2"
 # SD webui model info JSON below this version will be regenerated
 COMPAT_VERSION_SDWEBUI = "1.7.4"
 
-def_headers = {
+DEFAULT_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) "
         "AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
@@ -49,20 +47,28 @@ _DAY = _HOUR * 24
 
 
 # print for debugging
-def printD(msg):
+def printD(msg:any) -> str:
     """ Print a message to stderr """
     print(f"Civitai Helper: {msg}")
 
 
-def indented_msg(msg:str):
+def append_default_headers(headers:dict) -> dict:
+    """ Append extension default values to customized headers where missing """
+    for key, val in DEFAULT_HEADERS.items():
+        if key not in headers:
+            headers[key] = val
+    return headers
+
+
+def indented_msg(msg:str) -> str:
     """
-    Clean up and then print an indented message in the format of
+    Clean up an indented message in the format of
     [header]
     var1=var1
     var2=var2
     var3=var3
 
-    Printed Result:
+    and print the results in the format of:
 
     Civitai Helper: [header]
         var1: var1
@@ -72,7 +78,9 @@ def indented_msg(msg:str):
     return: msg:str
     """
 
-    msg_parts = textwrap.dedent(msg.strip()).split('\n')
+    msg_parts = textwrap.dedent(
+        msg
+    ).strip().split('\n')
     msg = [msg_parts.pop(0)]
     for part in msg_parts:
         part = ": ".join(part.split("="))
@@ -82,13 +90,13 @@ def indented_msg(msg:str):
     return msg
 
 
-def delay(seconds):
+def delay(seconds:float) -> None:
     """ delay before next request, mostly to prevent to be treated as DDoS """
     printD(f"delay: {seconds} second")
     time.sleep(seconds)
 
 
-def is_stale(timestamp):
+def is_stale(timestamp:float) -> bool:
     """ Returns if a timestamp was more than a day ago. """
     cur_time = ch_time()
     elapsed = cur_time - timestamp
@@ -99,41 +107,33 @@ def is_stale(timestamp):
     return False
 
 
-def info(msg):
+def info(msg:str) -> None:
     """ Display an info smessage on the client DOM """
     gr.Info(msg)
 
 
-def warning(msg):
+def warning(msg:str) -> None:
     """ Display a warning message on the client DOM """
     gr.Warning(msg)
 
 
-def error(msg):
+def error(msg:str) -> None:
     """ Display an error message on the client DOM """
     gr.Error(msg)
 
 
-def ch_time():
+def ch_time() -> int:
     """ Unix timestamp """
     return int(time.time())
 
 
-def dedent(text):
+def dedent(text:str) -> str:
     """ alias for textwrap.dedent """
     return textwrap.dedent(text)
 
 
-def download_error(download_url, msg):
-    """ Display a download error """
-    output = f"Download failed, check console log for detail. Download url: {download_url}"
-    printD(output)
-    printD(msg)
-    return output
-
-
-def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
-    """Yield pieces of data from a file-like object until EOF."""
+def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE) -> bytes:
+    """ Yield pieces of data from a file-like object until EOF. """
     while True:
         chunk = file.read(size)
         if not chunk:
@@ -141,7 +141,7 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
         yield chunk
 
 
-def get_name(model_path):
+def get_name(model_path:str) -> str:
     """ return: lora/{model_name}:str """
 
     _, filename = os.path.split(model_path)
@@ -149,7 +149,7 @@ def get_name(model_path):
     return f"lora/{model_name}"
 
 
-def gen_file_sha256(filename):
+def gen_file_sha256(filename:str) -> str:
     """ return a sha256 hash for a file """
 
     if opts.ch_use_sdwebui_sha256:
@@ -173,44 +173,7 @@ def gen_file_sha256(filename):
     return hash_value
 
 
-def download_preview(url, path, retries=0):
-    """ Download a preview image """
-
-    printD(f"Downloading file from: {url}")
-
-    try:
-        # get file
-        request = requests.get(
-            url,
-            stream=True,
-            headers=def_headers,
-            proxies=PROXIES,
-            timeout=REQUEST_TIMEOUT
-        )
-
-    except TimeoutError:
-        if retries < REQUEST_RETRIES:
-            retries = retries + 1
-            printD(f"GET Request timed out. Trying again. Attempt {retries}/{REQUEST_RETRIES}")
-            return download_preview(url, path, retries=retries)
-
-        printD(f"GET Request timed out. Maximum retries reached. Aborting download of {url}")
-
-    if not request.ok:
-        printD(f"Get error code: {request.status_code}")
-        printD(request.text)
-        return request.status_code
-
-    # write to file
-    with open(os.path.realpath(path), 'wb') as writefile:
-        request.raw.decode_content = True
-        shutil.copyfileobj(request.raw, writefile)
-
-    printD(f"File downloaded to: {path}")
-    return path
-
-
-def get_subfolders(folder:str) -> list:
+def get_subfolders(folder:str) -> list[str]:
     """ return: list of subfolders """
     printD(f"Get subfolder for: {folder}")
     if not folder:
@@ -296,7 +259,7 @@ whitelist = re.compile(r"</?(a|img|br|p|b|strong|i|h[0-9]|code)[^>]*>")
 # Allowed HTML attributes
 attrs = re.compile(r"""(?:href|src|target)=['"]?[^\s'"]*['"]?""")
 
-def safe_html_replace(match):
+def safe_html_replace(match:match) -> str:
     """ Given a block of text, returns that block with most HTML removed
         and unneeded attributes pruned.
     """
@@ -321,13 +284,13 @@ def safe_html_replace(match):
 
     return ""
 
-def safe_html(html):
+def safe_html(html:str) -> str:
     """ whitelist only HTML I"m comfortable displaying in webui """
 
     return re.sub("<[^<]+?>", safe_html_replace, html)
 
 
-def trim_html(html):
+def trim_html(html:str) -> str:
     """ Remove any HTML for a given string and, if needed, replace it with
         a comparable plain-text alternative.
     """
@@ -372,7 +335,7 @@ def trim_html(html):
     return f"<!--\n{html.strip()}\n-->"
 
 
-def newer_version(ver1, ver2, allow_equal=False):
+def newer_version(ver1:str, ver2:str, allow_equal=False) -> bool:
     """ Returns ver1 > ver2
         if allow_equal, returns ver1 >= ver2
     """
@@ -382,7 +345,7 @@ def newer_version(ver1, ver2, allow_equal=False):
     return parse_version(ver1) > parse_version(ver2)
 
 
-def metadata_version(metadata):
+def metadata_version(metadata:dict) -> str | bool:
     """ Attempts retrieve the extension version used to create
         to create the object block
     """
@@ -392,7 +355,7 @@ def metadata_version(metadata):
         return False
 
 
-def create_extension_block(data=None):
+def create_extension_block(data=None) -> dict:
     """ Creates or edits an extensions block for usage in JSON files
         created or edited by this extension.
 
@@ -421,7 +384,7 @@ def create_extension_block(data=None):
     return data
 
 
-def webui_version():
+def webui_version() -> str:
     ''' Gets the current webui version using webui's launch tools
 
         The version is expected to be in the format `v1.6.0-128-g792589fd`,
@@ -441,7 +404,7 @@ def webui_version():
 
 
 filename_re = re.compile(r"[^A-Za-z\d\^\-_.\(\)\[\]]")
-def bash_filename(filename):
+def bash_filename(filename:str) -> str:
     """
     Bashes a filename with a large fish until I'm comfortable using it.
     """

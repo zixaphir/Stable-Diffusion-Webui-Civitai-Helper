@@ -33,34 +33,25 @@ def civitai_get(civitai_url:str):
     return: dict:json or None
     """
 
-    request = downloader.request_get(
-        civitai_url,
-        util.def_headers
+    success, response = downloader.request_get(
+        civitai_url
     )
 
-    if not request.ok:
-        if request.status_code == 404:
-            # this is not a civitai model
-            util.printD("Civitai does not have this model")
-            return {}
-
-        util.printD(f"Get error code: {request.status_code}")
-        util.printD(request.text)
+    if not success:
         return None
 
     # try to get content
     content = None
     try:
-        content = request.json()
+        content = response.json()
     except ValueError as e:
-        util.printD("Parse response json failed")
-        util.printD(str(e))
-        util.printD("response:")
-        util.printD(request.text)
-        return None
-
-    if not content:
-        util.printD("error, content from civitai is None")
+        util.printD(util.indented_msg(
+            f"""
+            Parse response json failed
+            Error: {str(e)}
+            Response: {response.text}
+            """
+        ))
         return None
 
     return content
@@ -363,7 +354,7 @@ def should_skip(user_rating, image_rating):
     return order.index(image_rating) >= order.index(user_rating)
 
 
-def verify_preview(preview, img_dict, max_size_preview, nsfw_preview_threshold):
+def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
     """
     Downloads a preview image if it meets the user's requirements.
     """
@@ -385,10 +376,22 @@ def verify_preview(preview, img_dict, max_size_preview, nsfw_preview_threshold):
             if img_dict["width"]:
                 img_url = get_full_size_image_url(img_url, img_dict["width"])
 
-    preview = util.download_preview(img_url, preview)
+    success = False
+    preview_path = ""
+    for result in downloader.dl_file(img_url, file_path=path):
+        if isinstance(result, str):
+            yield result
+            continue
+
+        util.printD(result)
+
+        success, preview_path = result
+
+    if not success:
+        return False
 
     # we only need 1 preview image
-    return preview
+    yield preview_path
 
 
 # get preview image by model path
@@ -408,7 +411,7 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
         return
 
     base, _ = os.path.splitext(model_path)
-    preview =  f"{base}.preview.png" # TODO png not strictly required
+    preview_path =  f"{base}.preview.png" # TODO png not strictly required
     info_file = f"{base}{SUFFIX}{model.CIVITAI_EXT}"
 
     # need to download preview image
@@ -431,17 +434,24 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
         if not model_info["images"]:
             return
 
+        success = False
         for img_dict in model_info["images"]:
-            preview = verify_preview(preview, img_dict, max_size_preview, nsfw_preview_threshold)
-            if preview and preview is not None:
-                if preview.isdigit():
-                    # HTTP Error Code
-                    if preview == "404":
-                        continue
+            for result in verify_preview(
+                preview_path, img_dict, max_size_preview, nsfw_preview_threshold
+            ):
+                if isinstance(result, str):
+                    yield result
+                    continue
+
+                success, _ = result
+
+                if success:
+                    break
+
+            if success:
                 break
-            if preview is None:
-                # HTTP Timeout
-                break
+
+    yield
 
 
 # search local model by version id in 1 folder, no subfolder
