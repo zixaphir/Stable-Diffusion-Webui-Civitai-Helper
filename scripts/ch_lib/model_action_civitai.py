@@ -174,7 +174,12 @@ def dummy_model_info(path, sha256_hash, model_type):
     # do store their training data.
     trained_words = model_info["trainedWords"]
 
-    file_metadata = sd_models.read_metadata_from_safetensors(path)
+    try:
+        file_metadata = sd_models.read_metadata_from_safetensors(path)
+    except AssertionError:
+        # model is not a safetensors file. This is fine,
+        # it just doesn't have metadata we can read
+        pass
 
     tag_frequency = file_metadata.get("ss_tag_frequency", {})
 
