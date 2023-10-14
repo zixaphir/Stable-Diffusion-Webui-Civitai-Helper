@@ -62,9 +62,9 @@ def alt_progressbar(percent:int) -> str:
 
     percent_as_int = int(percent)
     progress = "\u2588" * percent_as_int
-    remaining = "\u2003" * (100 - percent_as_int)
+    remaining = "\u00a0" * (100 - percent_as_int)
 
-    return f"[{progress}{remaining}] {percent}%"
+    return f"`[{progress}{remaining}] {percent}%`"
 
 
 def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
