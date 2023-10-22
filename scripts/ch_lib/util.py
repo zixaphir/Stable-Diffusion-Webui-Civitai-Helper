@@ -55,6 +55,7 @@ def printD(msg:any) -> str:
 
 def append_default_headers(headers:dict) -> dict:
     """ Append extension default values to customized headers where missing """
+
     for key, val in DEFAULT_HEADERS.items():
         if key not in headers:
             headers[key] = val
@@ -402,6 +403,7 @@ def webui_version() -> str:
         else:
             # XXX assume a modern SD Webui version if one cannot be found.
             version = "1.6.0"
+
     except AttributeError:
         try:
             return subprocess.check_output(
@@ -409,6 +411,7 @@ def webui_version() -> str:
                 shell=False,
                 encoding='utf8'
             ).strip()
+
         except subprocess.SubprocessError:
             try:
                 changelog_md = os.path.join(
@@ -419,8 +422,10 @@ def webui_version() -> str:
                     line = next((line.strip() for line in file if line.strip()), "<none>")
                     line = line.replace("## ", "")
                     version = line
+
             except OSError:
                 version = "1.6.0"
+
     return version
 
 

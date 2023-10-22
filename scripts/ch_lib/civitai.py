@@ -383,8 +383,6 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
             yield result
             continue
 
-        util.printD(result)
-
         success, preview_path = result
 
     if not success:
@@ -402,6 +400,7 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
     Skips images that are more NSFW than the user's NSFW threshold
     """
     util.printD("Downloading model image.")
+
     if not model_path:
         util.printD("model_path is empty")
         return

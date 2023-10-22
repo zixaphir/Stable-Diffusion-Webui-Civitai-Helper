@@ -561,8 +561,6 @@ def download_one(model_folder, download_url, duplicate):
             yield result
             continue
 
-        util.printD(result)
-
         success, output = result
 
     if not success:
@@ -665,7 +663,7 @@ def dl_model_by_input(
     model.process_model_info(output, version_info, model_type)
 
     try:
-        # then, get preview image + webui-visible progress bar
+        # then, get preview image + webui-visible progress
         for result in civitai.get_preview_image_by_model_path(
             output,
             max_size_preview,

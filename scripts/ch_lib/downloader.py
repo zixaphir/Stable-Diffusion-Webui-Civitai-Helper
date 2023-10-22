@@ -57,14 +57,26 @@ def request_get(url:str, headers=None, retries=0) -> tuple[bool, requests.Respon
     return (True, response)
 
 
-def alt_progressbar(percent:int) -> str:
-    """ Mostly used to display a progress bar in webui """
+def visualize_progress(percent:int, downloaded, total, show_bar=True) -> str:
+    """ Used to display progress in webui """
 
-    percent_as_int = int(percent)
+    percent_as_int = percent
+    total = f"{total}"
+    downloaded = f"{downloaded:<{len(total)}}"
+    percent = f"{percent:>3}"
+
+    snippet = f"{percent}%: {downloaded} / {total}"
+
+    if not show_bar:
+        # Unfortunately showing a progress bar in webui
+        # is very weird on mobile with limited horizontal
+        # space
+        return snippet
+
     progress = "\u2588" * percent_as_int
     remaining = "\u00a0" * (100 - percent_as_int)
 
-    return f"`[{progress}{remaining}] {percent}%`"
+    return f"`[{progress}{remaining}] {snippet}`"
 
 
 def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
@@ -84,9 +96,9 @@ def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
         util.printD(f"Resuming partially downloaded file from progress: {downloaded_size}")
 
     # create header range
-    headers = {
+    headers = util.append_default_headers({
         "Range": f"bytes={downloaded_size:d}-"
-    }
+    })
 
     # download with header
     success, response = request_get(
@@ -115,34 +127,38 @@ def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
 
                 progress_bar.update(written)
 
-                percent = 100 * (downloaded_size / total_size)
+                percent = int(100 * (downloaded_size / total_size))
                 timer = time.time()
-                if timer - last_tick > 0.2 or int(percent) == 100:
+                if timer - last_tick > 0.2 or percent == 100:
                     # Gradio output is a *slooowwwwwwww* asynchronous FIFO queue
                     last_tick = timer
-                    alt_bar = alt_progressbar(
-                        round(
-                            percent,
-                            2
-                        )
+
+                    text_progress = visualize_progress(
+                        percent,
+                        downloaded_size,
+                        total_size,
+                        False
                     )
-                    yield alt_bar
+
+                    yield text_progress
 
     # check file size
     downloaded_size = os.path.getsize(dl_path)
     if downloaded_size < total_size:
-        return util.indented_msg(
+        output = util.indented_msg(
             f"""
             File is not the correct size.
             Expected {total_size:d}, got {downloaded_size:d}.
             Try again later or download it manually: {url}
             """
         )
+        return (False, output)
 
     # rename file
     os.rename(dl_path, file_path)
     output = f"File Downloaded to: {file_path}"
     util.printD(output)
+
     yield (True, output)
 
 
@@ -243,8 +259,6 @@ def dl_file(
         if isinstance(result, str):
             yield result
             continue
-
-    util.printD("Did we make it?")
 
     yield (True, file_path)
 
