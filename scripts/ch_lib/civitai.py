@@ -361,14 +361,14 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
 
     img_url = img_dict.get("url", None)
     if img_url is None:
-        return False
+        return (False, None)
 
     image_rating = img_dict.get("nsfw", "None")
     if image_rating != "None":
         util.printD(f"This image is NSFW: {image_rating}")
         if should_skip(nsfw_preview_threshold, image_rating):
             util.printD("Skip NSFW image")
-            return False
+            return (False, None)
 
     if max_size_preview:
         # use max width
@@ -388,10 +388,10 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
         success, preview_path = result
 
     if not success:
-        return False
+        return (False, None)
 
     # we only need 1 preview image
-    yield preview_path
+    yield (True, preview_path)
 
 
 # get preview image by model path
