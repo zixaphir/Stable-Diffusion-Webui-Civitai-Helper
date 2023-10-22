@@ -8,6 +8,7 @@ import re
 import hashlib
 import textwrap
 import time
+import subprocess
 import gradio as gr
 from modules.shared import opts
 from modules import hashes
@@ -401,17 +402,24 @@ def webui_version() -> str:
         else:
             # XXX assume a modern SD Webui version if one cannot be found.
             version = "1.6.0"
-    except AttributeError as e:
+    except AttributeError:
         try:
-            return subprocess.check_output([git, "describe", "--tags"], shell=False, encoding='utf8').strip()
-        except Exception:
+            return subprocess.check_output(
+                ["git", "describe", "--tags"],
+                shell=False,
+                encoding='utf8'
+            ).strip()
+        except subprocess.SubprocessError:
             try:
-                changelog_md = os.path.join(os.path.dirname(os.path.dirname(__file__)), "CHANGELOG.md")
+                changelog_md = os.path.join(
+                    os.path.dirname(os.path.dirname(__file__)),
+                    "CHANGELOG.md"
+                )
                 with open(changelog_md, "r", encoding="utf-8") as file:
                     line = next((line.strip() for line in file if line.strip()), "<none>")
                     line = line.replace("## ", "")
                     version = line
-            except Exception:
+            except OSError:
                 version = "1.6.0"
     return version
 
