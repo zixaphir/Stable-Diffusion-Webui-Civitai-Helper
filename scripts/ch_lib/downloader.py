@@ -74,9 +74,8 @@ def visualize_progress(percent:int, downloaded, total, show_bar=True) -> str:
         return snippet.replace(" ", "\u00a0")
 
     progress = "\u2588" * percent_as_int
-    remaining = "\u00a0" * (100 - percent_as_int)
 
-    return f"`[{progress}{remaining}] {snippet}`".replace(" ", "\u00a0")
+    return f"`[{progress:<100}] {snippet}`".replace(" ", "\u00a0")
 
 
 def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
