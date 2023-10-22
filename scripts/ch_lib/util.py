@@ -393,13 +393,26 @@ def webui_version() -> str:
         returns the version in the form 'X.Y.Z'
     '''
     version = None
-    tag = launch.git_tag()
-    match = re.match(r"v([\d.]+)", tag)
-    if match:
-        version = match.group(1)
-    else:
-        # XXX assume a modern SD Webui version if one cannot be found.
-        version = "1.6.0"
+    try:
+        tag = launch.git_tag()
+        match = re.match(r"v([\d.]+)", tag)
+        if match:
+            version = match.group(1)
+        else:
+            # XXX assume a modern SD Webui version if one cannot be found.
+            version = "1.6.0"
+    except AttributeError as e:
+        try:
+            return subprocess.check_output([git, "describe", "--tags"], shell=False, encoding='utf8').strip()
+        except Exception:
+            try:
+                changelog_md = os.path.join(os.path.dirname(os.path.dirname(__file__)), "CHANGELOG.md")
+                with open(changelog_md, "r", encoding="utf-8") as file:
+                    line = next((line.strip() for line in file if line.strip()), "<none>")
+                    line = line.replace("## ", "")
+                    version = line
+            except Exception:
+                version = "1.6.0"
     return version
 
 
