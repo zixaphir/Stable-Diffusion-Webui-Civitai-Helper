@@ -148,7 +148,6 @@ async function open_model_url(event, model_type, search_term) {
         return;
     }
 
-
     //msg to python side
     let msg = {
         "action": "",
@@ -157,7 +156,6 @@ async function open_model_url(event, model_type, search_term) {
         "prompt": "",
         "neg_prompt": "",
     };
-
 
     msg["action"] = "open_url";
     msg["model_type"] = model_type;
@@ -194,15 +192,10 @@ async function open_model_url(event, model_type, search_term) {
             if (py_msg_json.content.url) {
                 window.open(py_msg_json.content.url, "_blank");
             }
-
         }
-
-
     }
 
-
     console.log("end open_model_url");
-
 
 }
 
@@ -356,7 +349,7 @@ async function remove_card(event, model_type, search_term) {
 }
 
 
-async function rename_card(event, model_type, search_term) {
+async function rename_card(event, model_type, search_term, model_name) {
     console.log("start rename_card");
 
     //get hidden components of extension
@@ -367,7 +360,7 @@ async function rename_card(event, model_type, search_term) {
 
     // must confirm before removing
     let rename_prompt = "\nRename this model to:";
-    let new_name = prompt(rename_prompt);
+    let new_name = prompt(rename_prompt, model_name);
     if (!new_name) {
         return;
     }
@@ -674,6 +667,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     let replace_preview_btn = null;
     let ul_node = null;
     let search_term_node = null;
+    let model_name = "";
     let search_term = "";
     let model_type = active_extra_tab_type;
     let js_model_type = getLongModelTypeFromShort(model_type);
@@ -763,6 +757,8 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
 
     ul_node.dataset.ch_helper = true;
 
+    model_name = card.dataset.name;
+
     // replace preview text button
     replace_preview_btn = card.querySelector(".actions .additional a");
 
@@ -782,7 +778,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         replace_preview_btn = document.createElement("a");
 
         // create an event handler to redirect a click to the real replace_preview_button
-        replace_preview_btn.setAttribute("onclick", `replace_preview(event, '${page}', '${type}', '${name}')`);
+        replace_preview_btn.setAttribute("onclick", `replace_preview(event, '${page}', '${type}', '${model_name}')`);
     }
 
     // change replace preview text button into icon
@@ -855,7 +851,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         rename_card_node.innerHTML = "✏️";
         rename_card_node.classList.add("card-button", "renamecard");
         rename_card_node.title = "Rename this model";
-        rename_card_node.setAttribute("onclick", `rename_card(event, '${model_type}', '${search_term}')`);
+        rename_card_node.setAttribute("onclick", `rename_card(event, '${model_type}', '${search_term}', '${model_name}')`);
         addedNodes.push(rename_card_node);
     }
 

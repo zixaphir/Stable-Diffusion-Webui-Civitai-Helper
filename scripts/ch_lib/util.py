@@ -424,9 +424,12 @@ def webui_version() -> str:
     return version
 
 
-filename_re = re.compile(r"[^A-Za-z\d\^\-_.\(\)\[\]]")
+filename_re = re.compile(r"[^A-Za-z\d\s\^\-\+_.\(\)\[\]]")
 def bash_filename(filename:str) -> str:
     """
     Bashes a filename with a large fish until I'm comfortable using it.
+
+    Keeps a limited set of valid characters, but does not account for
+    reserved names like COM.
     """
-    return re.sub(filename_re, "", filename.replace(' ','_'))
+    return re.sub(filename_re, "", filename)

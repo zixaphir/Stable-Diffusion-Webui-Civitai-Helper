@@ -166,7 +166,6 @@ def use_preview_image_prompt(msg):
     return [preview_prompt, preview_neg_prompt, preview_prompt, preview_neg_prompt]
 
 
-
 def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     """
     download model's new verson by model path, version id and download url
@@ -245,6 +244,7 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     util.printD(output)
     yield output
 
+
 def get_model_path_from_js_msg(result):
     """
     Gets a model path based on the webui js_msg.
@@ -274,6 +274,7 @@ def get_model_path_from_js_msg(result):
         return None
 
     return model_path
+
 
 def make_new_filename(candidate_file, model_name, new_name):
     """
