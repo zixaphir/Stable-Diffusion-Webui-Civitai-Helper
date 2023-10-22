@@ -662,19 +662,13 @@ def dl_model_by_input(
     version_info = civitai.get_version_info_by_version_id(version_id)
     model.process_model_info(output, version_info, model_type)
 
-    try:
-        # then, get preview image + webui-visible progress
-        for result in civitai.get_preview_image_by_model_path(
-            output,
-            max_size_preview,
-            nsfw_preview_threshold
-        ):
-            yield f"Downloading model preview:\n{result}"
-
-    except StopIteration:
-        # Prevents StopIteration from bubbling up and stopping
-        # caller function generator processing before return
-        pass
+    # then, get preview image + webui-visible progress
+    for result in civitai.get_preview_image_by_model_path(
+        output,
+        max_size_preview,
+        nsfw_preview_threshold
+    ):
+        yield f"Downloading model preview:\n{result}"
 
     output = f"Done. Model downloaded to: {output}"
     util.printD(output)

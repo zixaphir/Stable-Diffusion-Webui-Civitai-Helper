@@ -62,21 +62,21 @@ def visualize_progress(percent:int, downloaded, total, show_bar=True) -> str:
 
     percent_as_int = percent
     total = f"{total}"
-    downloaded = f"{downloaded:<{len(total)}}"
+    downloaded = f"{downloaded:>{len(total)}}"
     percent = f"{percent:>3}"
 
-    snippet = f"{percent}%: {downloaded} / {total}"
+    snippet = f"`{percent}%: {downloaded} / {total}`"
 
     if not show_bar:
         # Unfortunately showing a progress bar in webui
         # is very weird on mobile with limited horizontal
         # space
-        return snippet
+        return snippet.replace(" ", "\u00a0")
 
     progress = "\u2588" * percent_as_int
     remaining = "\u00a0" * (100 - percent_as_int)
 
-    return f"`[{progress}{remaining}] {snippet}`"
+    return f"`[{progress}{remaining}] {snippet}`".replace(" ", "\u00a0")
 
 
 def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
