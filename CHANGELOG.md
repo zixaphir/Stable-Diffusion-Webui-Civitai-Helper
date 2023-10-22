@@ -1,4 +1,11 @@
 # Change Log
+* Downloader rewrite:
+  * Downloading models will now show download progress in webui.
+  * Download errors will now be displayed in webui, with more detailed information still in console output.
+* The current model filename will now be included when renaming models.
+* Extension should now at least run in [Vladmandic's stable diffusion webui](https://github.com/vladmandic/automatic) thanks to [#32](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/pull/32).
+  * I do not run Vladmandic and have not personally tested functionality. Users who would like to address issues with Vladmandic compatibility may send a [Pull Request](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/pulls).
+
 ## 1.7.5
 * Missing image generation info in civitai.info files can now be retrieved from civitai by downloading the image and parsing its EXIF data. Most people should not need this, but it can be helpful if you're trying to recreate an image or more like it from the model's preview page. This will only work if the model author left metadata in the image.
 * Added some compatibility code for the Lobe theme extension
