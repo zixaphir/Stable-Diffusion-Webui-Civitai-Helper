@@ -50,7 +50,7 @@ _DAY = _HOUR * 24
 # print for debugging
 def printD(msg:any) -> str:
     """ Print a message to stderr """
-    print(f"Civitai Helper: {msg}")
+    print(f"Civitai Helper XXX: {msg}")
 
 
 def append_default_headers(headers:dict) -> dict:
