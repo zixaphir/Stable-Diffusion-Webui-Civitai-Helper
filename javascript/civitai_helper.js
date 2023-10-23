@@ -308,7 +308,7 @@ window.remove_card = async function(event, model_type, search_term) {
 }
 
 
-window.rename_card = async function(event, model_type, search_term) {
+window.rename_card = async function(event, model_type, search_term, model_name) {
     console.log("start rename_card");
 
     // stop parent event
@@ -322,7 +322,7 @@ window.rename_card = async function(event, model_type, search_term) {
 
     // must confirm before removing
     let rename_prompt = "\nRename this model to:";
-    let new_name = prompt(rename_prompt);
+    let new_name = prompt(rename_prompt, model_name);
     if (!new_name) {
         return;
     }
@@ -717,6 +717,11 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
             let type = getLongModelTypeFromShort(model_type);
             let name = card.dataset.name;
             child.el.setAttribute("onclick", `${child.func}(event, '${page}', '${type}', '${name}')`);
+            continue;
+        }
+        if (child.func == "rename_card") {
+            let name = card.dataset.name;
+            child.el.setAttribute("onclick", `${child.func}(event, '${model_type}', '${search_term}', '${name}')`);
             continue;
         }
         child.el.setAttribute("onclick", `${child.func}(event, '${model_type}', '${search_term}')`);

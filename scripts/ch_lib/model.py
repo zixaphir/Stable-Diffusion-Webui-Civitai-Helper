@@ -3,10 +3,15 @@ Handle model operations
 """
 import os
 import json
+import re
+from PIL import Image
+import piexif
+import piexif.helper
 from modules import shared
 from modules import paths_internal
 from modules.shared import opts
 from . import civitai
+from . import downloader
 from . import util
 
 
@@ -82,6 +87,7 @@ def get_custom_model_folder():
             # sd-webui v1.5.1 added a backcompat option for lyco.
             if os.path.isdir(shared.cmd_opts.lyco_dir_backcompat):
                 folders["lycoris"] = shared.cmd_opts.lyco_dir_backcompat
+
         except AttributeError:
             # v1.5.0 has no options for the Lyco dir:
             # it is hardcoded as 'os.path.join(paths.models_path, "LyCORIS")'
@@ -316,9 +322,8 @@ def load_model_info(path):
     with open(os.path.realpath(path), 'r') as json_file:
         try:
             model_info = json.load(json_file)
-        except ValueError as e:
+        except ValueError:
             util.printD(f"Selected file is not json: {path}")
-            util.printD(e)
             return None
 
     return model_info
@@ -392,33 +397,30 @@ def get_model_names_by_type(model_type:str) -> list:
 def get_model_path_by_type_and_name(model_type:str, model_name:str) -> str:
     """ return: model_path:str matching model_name and model_type """
     util.printD("Run get_model_path_by_type_and_name")
-    if folders.get(model_type, None) is None:
-        util.printD(f"unknown model_type: {model_type}")
-        return None
-
     if not model_name:
         util.printD("model name can not be empty")
         return None
 
-    if model_type == "lora" and folders['lycoris']:
-        model_folders = [folders[model_type], folders['lycoris']]
-    else:
-        model_folders = [folders[model_type]]
+    model_folders = [folders.get(model_type, None)]
 
+    if model_folders[0] is None:
+        util.printD(f"unknown model_type: {model_type}")
+        return None
+
+    if model_type == "lora" and folders['lycoris']:
+        model_folders.append(folders['lycoris'])
 
     # model could be in subfolder, need to walk.
-    model_root = ""
-    model_path = ""
-    for folder in model_folders:
-        for root, _, files in os.walk(folder, followlinks=True):
-            for filename in files:
-                if filename == model_name:
-                    # find model
-                    model_root = root
-                    model_path = os.path.join(root, filename)
-                    return (model_root, model_path)
+    model_path = util.find_file_in_folders(model_folders, model_name)
 
-    return None
+    msg = util.indented_msg(f"""
+        Got following info:
+        {model_path=}
+    """)
+    util.printD(msg)
+
+    # May return `None`
+    return model_path
 
 
 # get model path by model type and search_term
@@ -465,15 +467,198 @@ def get_model_path_by_search_term(model_type, search_term):
         if os.path.isfile(model_path):
             break
 
-    util.printD(util.dedent(f"""
+    msg = util.indented_msg(f"""
         Got following info:
-        * model_folder: {model_folder}
-        * model_sub_path: {model_sub_path}
-        * model_path: {model_path}
-    """))
+        {model_folder=}
+        {model_sub_path=}
+        {model_path=}
+    """)
+    util.printD(msg)
 
     if not os.path.isfile(model_path):
         util.printD(f"Can not find model file: {model_path}")
         return None
 
     return model_path
+
+
+pattern = re.compile(r"\s*([^:,]+):\s*([^,]+)")
+
+def sd_format(data):
+    """
+    Parse image exif data for image creation parameters.
+
+    return parameters:dict or None
+    """
+
+    if not data:
+        return None
+
+    prompt = ""
+    negative = ""
+    setting = ""
+
+    steps_index = data.find("\nSteps:")
+
+    if steps_index != -1:
+        prompt = data[:steps_index].strip()
+        setting = data[steps_index:].strip()
+
+    if "Negative prompt:" in data:
+        prompt_index = data.find("\nNegative prompt:")
+
+        if steps_index != -1:
+            negative = data[
+                prompt_index + len("Negative prompt:") + 1 : steps_index
+            ].strip()
+
+        else:
+            negative = data[
+                prompt_index + len("Negative prompt:") + 1 :
+            ].strip()
+
+        prompt = data[:prompt_index].strip()
+
+    elif steps_index == -1:
+        prompt = data
+
+    setting_dict = dict(re.findall(pattern, setting))
+
+    data = {
+         "prompt": prompt,
+         "negative": negative,
+         "Steps": setting_dict.get("Steps", ""),
+         "Sampler": setting_dict.get("Sampler", ""),
+         "CFG_scale": setting_dict.get("CFG scale", ""),
+         "Seed": setting_dict.get("Seed", ""),
+         "Size": setting_dict.get("Size", ""),
+    }
+
+    return data
+
+
+def parse_image(image_file):
+    """
+    Read image exif for userComment entry.
+    return: userComment:str
+    """
+    data = None
+    with Image.open(image_file) as image:
+        if image.format == "PNG":
+            # However, unlike other image formats, EXIF data is not
+            # guaranteed to be present in info until load() has been called.
+            # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#png
+            image.load()
+            data = image.info.get("parameters")
+
+        elif image.format in ["JPEG", "WEBP"]:
+            try:
+                usercomment = piexif.ExifIFD.UserComment
+                exif = image.info.get("exif")
+                if not exif:
+                    return None
+                jpegexif = piexif.load(exif) or {}
+                data = piexif.helper.UserComment.load(
+                    jpegexif.get("Exif", {}).get(usercomment, None)
+                )
+
+            except (ValueError, TypeError):
+                util.printD("Failed to parse image exif.")
+                return None
+
+    return data
+
+
+def get_remote_image_info(img_src):
+    """
+    Download a remote image and parse out its creation parameters
+
+    return parameters:dict or None
+    """
+    # anti-DDOS protection
+    util.delay(0.2)
+
+    success, response = downloader.request_get(img_src)
+
+    if not success:
+        return None
+
+    image_file = response.raw
+    try:
+        data = parse_image(image_file)
+
+    except OSError: #, UnidentifiedImageError
+        util.printD("Failed to open image.")
+        return None
+
+    if not data:
+        return None
+
+    sd_data = sd_format(data)
+    return sd_data
+
+
+def update_civitai_info_image_meta(filename):
+    """
+    Read model metadata and update missing image creation parameters,
+    if available.
+    """
+    need_update = False
+    data = {}
+
+    if not os.path.isfile(filename):
+        return
+
+    with open(filename, 'r') as model_json:
+        data = json.load(model_json)
+
+    for image in data.get('images', []):
+        metadata = image.get('meta', None)
+        if not metadata and metadata != {}:
+            url = image.get("url", "")
+            if not url:
+                continue
+
+            util.printD(f"{filename} missing generation info for {url}. Processing {url}.")
+
+            image_data = get_remote_image_info(url)
+            if not image_data:
+                util.printD(f"Failed to find generation info on remote image at {url}.")
+
+                # "mark" image so additional runs will skip it.
+                image["meta"] = {}
+                need_update = True
+                continue
+
+            util.printD(
+                "The following information will be added to "
+                f"{filename} for {url}:\n{image_data}"
+            )
+            metadata = image_data
+            image["meta"] = metadata
+
+            need_update = True
+
+    if need_update:
+        with open(filename, 'w') as info_file:
+            json.dump(data, info_file, indent=4)
+
+
+def scan_civitai_info_image_meta():
+    """ Search for *.civitai.info files """
+    util.printD("Start Scan_civitai_info_image_meta")
+    output = ""
+    count = 0
+
+    directories = [y for x, y in folders.items() if os.path.isdir(y)]
+    util.printD(f"{directories=}")
+    for directory in directories:
+        for root, _, files in os.walk(directory):
+            for filename in files:
+                if filename.endswith('.civitai.info'):
+                    update_civitai_info_image_meta(os.path.join(root, filename))
+                    count = count + 1
+
+    output = f"Done. Scanned {count} files."
+    util.printD(output)
+    return output

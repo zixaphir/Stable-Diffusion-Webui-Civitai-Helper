@@ -56,13 +56,13 @@ def build_py_msg(action:str, content:dict):
     """
     util.printD("Start build_msg")
     if not (content and action and action in PY_ACTIONS):
-        util.printD(util.dedent(
+        util.indented_msg(
             f"""
             Could not run action on content:
-            action:  {action}
-            content: {content}
+            {action=}
+            {content=}
             """
-        ))
+        )
         return None
 
     msg = {

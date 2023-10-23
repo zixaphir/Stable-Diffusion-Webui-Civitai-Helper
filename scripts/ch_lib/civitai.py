@@ -3,12 +3,10 @@ handle msg between js and python side
 """
 
 import os
-import time
 import re
-import requests
 from . import util
 from . import model
-from . import templates
+from . import downloader
 
 SUFFIX = ".civitai"
 
@@ -35,41 +33,25 @@ def civitai_get(civitai_url:str):
     return: dict:json or None
     """
 
-    try:
-        request = requests.get(
-            civitai_url,
-            headers=util.def_headers,
-            proxies=util.PROXIES,
-            timeout=5
-        )
+    success, response = downloader.request_get(
+        civitai_url
+    )
 
-    except TimeoutError:
-        util.printD("Could not connect to Civitai servers")
-        return None
-
-    if not request.ok:
-        if request.status_code == 404:
-            # this is not a civitai model
-            util.printD("Civitai does not have this model")
-            return {}
-
-        util.printD(f"Get error code: {request.status_code}")
-        util.printD(request.text)
+    if not success:
         return None
 
     # try to get content
     content = None
     try:
-        content = request.json()
+        content = response.json()
     except ValueError as e:
-        util.printD("Parse response json failed")
-        util.printD(str(e))
-        util.printD("response:")
-        util.printD(request.text)
-        return None
-
-    if not content:
-        util.printD("error, content from civitai is None")
+        util.printD(util.indented_msg(
+            f"""
+            Parse response json failed
+            Error: {str(e)}
+            Response: {response.text}
+            """
+        ))
         return None
 
     return content
@@ -372,21 +354,21 @@ def should_skip(user_rating, image_rating):
     return order.index(image_rating) >= order.index(user_rating)
 
 
-def verify_preview(preview, img_dict, max_size_preview, nsfw_preview_threshold):
+def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
     """
     Downloads a preview image if it meets the user's requirements.
     """
 
     img_url = img_dict.get("url", None)
     if img_url is None:
-        return False
+        return (False, None)
 
     image_rating = img_dict.get("nsfw", "None")
     if image_rating != "None":
         util.printD(f"This image is NSFW: {image_rating}")
         if should_skip(nsfw_preview_threshold, image_rating):
             util.printD("Skip NSFW image")
-            return False
+            return (False, None)
 
     if max_size_preview:
         # use max width
@@ -394,10 +376,20 @@ def verify_preview(preview, img_dict, max_size_preview, nsfw_preview_threshold):
             if img_dict["width"]:
                 img_url = get_full_size_image_url(img_url, img_dict["width"])
 
-    util.download_file(img_url, preview)
+    success = False
+    preview_path = ""
+    for result in downloader.dl_file(img_url, file_path=path):
+        if isinstance(result, str):
+            yield result
+            continue
+
+        success, preview_path = result
+
+    if not success:
+        return (False, None)
 
     # we only need 1 preview image
-    return True
+    yield (True, preview_path)
 
 
 # get preview image by model path
@@ -408,6 +400,7 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
     Skips images that are more NSFW than the user's NSFW threshold
     """
     util.printD("Downloading model image.")
+
     if not model_path:
         util.printD("model_path is empty")
         return
@@ -417,7 +410,7 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
         return
 
     base, _ = os.path.splitext(model_path)
-    preview =  f"{base}.preview.png" # TODO png not strictly required
+    preview_path =  f"{base}.preview.png" # TODO png not strictly required
     info_file = f"{base}{SUFFIX}{model.CIVITAI_EXT}"
 
     # need to download preview image
@@ -440,10 +433,24 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
         if not model_info["images"]:
             return
 
+        success = False
         for img_dict in model_info["images"]:
-            success = verify_preview(preview, img_dict, max_size_preview, nsfw_preview_threshold)
+            for result in verify_preview(
+                preview_path, img_dict, max_size_preview, nsfw_preview_threshold
+            ):
+                if isinstance(result, str):
+                    yield result
+                    continue
+
+                success, _ = result
+
+                if success:
+                    break
+
             if success:
                 break
+
+    yield
 
 
 # search local model by version id in 1 folder, no subfolder
@@ -538,9 +545,7 @@ def check_model_new_version_by_path(model_path:str, delay:float=0.2) -> tuple:
     # get model info by id from civitai
     model_info = get_model_info_by_id(model_id)
 
-    # delay before next request, to prevent to be treat as DDoS
-    util.printD(f"delay: {delay} second")
-    time.sleep(delay)
+    util.delay(delay)
 
     if not model_info:
         return None
@@ -607,7 +612,7 @@ def check_single_model_new_version(root, filename, model_type, delay):
     # search this new version id to check if this model is already downloaded
     target_model_info = search_local_model_info_by_version_id(root, version_id)
     if target_model_info:
-        util.printD("New version is already existed")
+        util.printD("New version is already exists")
         return False
 
     return request

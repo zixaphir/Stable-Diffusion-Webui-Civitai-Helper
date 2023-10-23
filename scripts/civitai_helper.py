@@ -48,8 +48,8 @@ def on_ui_tabs():
     proxy = opts.ch_proxy
     if proxy:
         util.printD(f"Set Proxy: {proxy}")
-        util.PROXIES.http = proxy
-        util.PROXIES.https = proxy
+        util.PROXIES["http"] = proxy
+        util.PROXIES["https"] = proxy
 
     # get prompt textarea
     # check modules/ui.py, search for txt2img_paste_fields
@@ -144,6 +144,13 @@ def on_ui_tabs():
                     variant="primary",
                     elem_id="ch_scan_model_civitai_btn"
                 )
+
+                scan_civitai_info_image_meta_btn = gr.Button(
+                    value="Update image generation information (Experimental)",
+                    variant="primary",
+                    elem_id="ch_Scan_civitai_info_image_meta_btn"
+                )
+
                 # with gr.Row():
                 scan_model_log_md = gr.Markdown(
                     value="Scanning takes time, just wait. Check console log for detail",
@@ -331,6 +338,11 @@ def on_ui_tabs():
             outputs=scan_model_log_md
         )
 
+        scan_civitai_info_image_meta_btn.click(
+            model.scan_civitai_info_image_meta,
+            outputs=scan_model_log_md
+        )
+
         # Get Civitai Model Info by Model Page URL
         model_type_drop.change(
             get_model_names_by_input,
@@ -482,14 +494,16 @@ def on_ui_settings():
         "ch_nsfw_preview_threshold",
         shared.OptionInfo(
             civitai.NSFW_LEVELS[-1], # Allow all
-            util.dedent("""
+            util.dedent(
+                """
                 Block NSFW images of a certain threshold and higher.
                 Civitai marks all images for NSFW models as also being NSFW.
                 These ratings do not seem to be explicitly defined on Civitai's
                 end, but "Soft" seems to be suggestive, with NSFW elements but
                 not explicit nudity, "Mature" seems to include nudity but not
                 always, and "X" seems to be explicitly adult content.
-            """),
+                """
+            ).strip().replace("\n", " "),
             gr.Dropdown,
             {
                 "choices": civitai.NSFW_LEVELS[1:],
@@ -513,6 +527,20 @@ def on_ui_settings():
             "",
             "Proxy to use for fetching models and model data. Format:  http://127.0.0.1:port",
             gr.Textbox,
+            {"interactive": True},
+            section=section)
+    )
+    shared.opts.add_option(
+        "ch_use_sdwebui_sha256",
+        shared.OptionInfo(
+            False,
+            (
+                "Use SD webui's built-in hashing functions for model hashes. "
+                "If SD webui was launced with `--no-hashing`, hashing will fail, "
+                "but this provides a hash cache, which should make repeat model "
+                "scanning faster."
+            ),
+            gr.Checkbox,
             {"interactive": True},
             section=section)
     )

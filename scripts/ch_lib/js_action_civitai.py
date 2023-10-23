@@ -166,7 +166,6 @@ def use_preview_image_prompt(msg):
     return [preview_prompt, preview_neg_prompt, preview_prompt, preview_neg_prompt]
 
 
-
 def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     """
     download model's new verson by model path, version id and download url
@@ -195,11 +194,11 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
 
     # check data
     if not (model_path and version_id and download_url):
-        output = util.dedent(f"""
+        output = util.indented_msg(f"""
             Missing parameter:
-            * model_path: {model_path}
-            * version_id: {version_id}
-            * download_url: {download_url}
+            {model_path=}
+            {version_id=}
+            {download_url=}
         """)
         util.printD(output)
         return output
@@ -216,10 +215,16 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     # get model folder from model path
     model_folder = os.path.dirname(model_path)
 
-    # download file
-    success, msg = downloader.dl(download_url, model_folder, None, None)
+    success = False
+    # download file + webui visible progress bar
+    for result in downloader.dl_file(download_url, folder=model_folder):
+        if isinstance(result, str):
+            yield result
+            continue
+        success, _ = result
+
     if not success:
-        return util.download_error(download_url, msg)
+        return "Model download failed. See console for more details."
 
     # get version info
     version_info = civitai.get_version_info_by_version_id(version_id)
@@ -228,11 +233,16 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     model.process_model_info(msg, version_info, model_type)
 
     # then, get preview image
-    civitai.get_preview_image_by_model_path(msg, max_size_preview, nsfw_preview_threshold)
+    for result in civitai.get_preview_image_by_model_path(
+        msg,
+        max_size_preview,
+        nsfw_preview_threshold
+    ):
+        yield result
 
     output = f"Done. Model downloaded to: {msg}"
     util.printD(output)
-    return output
+    yield output
 
 
 def get_model_path_from_js_msg(result):
@@ -265,6 +275,7 @@ def get_model_path_from_js_msg(result):
 
     return model_path
 
+
 def make_new_filename(candidate_file, model_name, new_name):
     """
     Substitutes and old model name for a new model name.
@@ -273,13 +284,12 @@ def make_new_filename(candidate_file, model_name, new_name):
     path, filename = os.path.split(candidate_file)
 
     if filename.index(model_name) != 0:
-        output = util.dedent(f"""
-                Could not find model_name in candidate file
-                * Model: {model_name}
-                * File:  {candidate_file}
-                * Name:  {new_name}
-            """
-        )
+        output = util.indented_msg(f"""
+            Could not find model_name in candidate file
+            {model_name=}
+            {candidate_file=}
+            {new_name=}
+        """)
         util.error(output)
         util.printD(output)
         return None
