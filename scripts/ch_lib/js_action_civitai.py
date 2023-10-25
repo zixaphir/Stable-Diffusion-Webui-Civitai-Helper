@@ -185,7 +185,8 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     if not result:
         output = "Parsing js msg failed"
         util.printD(output)
-        return output
+        yield output
+        return
 
     model_path = result["model_path"]
     version_id = result["version_id"]
@@ -201,7 +202,8 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
             {download_url=}
         """)
         util.printD(output)
-        return output
+        yield output
+        return
 
     util.printD(f"model_path: {model_path}")
     util.printD(f"version_id: {version_id}")
@@ -210,7 +212,8 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     if not os.path.isfile(model_path):
         output = f"model_path is not a file: {model_path}"
         util.printD(output)
-        return output
+        yield output
+        return
 
     # get model folder from model path
     model_folder = os.path.dirname(model_path)
@@ -218,13 +221,16 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     success = False
     # download file + webui visible progress bar
     for result in downloader.dl_file(download_url, folder=model_folder):
-        if isinstance(result, str):
-            yield result
-            continue
-        success, _ = result
+        if not isinstance(result, str):
+            success, output = result
+            break
+
+        yield result
 
     if not success:
-        return "Model download failed. See console for more details."
+        util.printD(output)
+        yield "Model download failed. See console for more details."
+        return
 
     # get version info
     version_info = civitai.get_version_info_by_version_id(version_id)

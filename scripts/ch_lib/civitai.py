@@ -361,14 +361,14 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
 
     img_url = img_dict.get("url", None)
     if img_url is None:
-        return (False, None)
+        yield (False, None)
 
     image_rating = img_dict.get("nsfw", "None")
     if image_rating != "None":
         util.printD(f"This image is NSFW: {image_rating}")
         if should_skip(nsfw_preview_threshold, image_rating):
             util.printD("Skip NSFW image")
-            return (False, None)
+            yield (False, None)
 
     if max_size_preview:
         # use max width
@@ -379,14 +379,15 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
     success = False
     preview_path = ""
     for result in downloader.dl_file(img_url, file_path=path):
-        if isinstance(result, str):
-            yield result
-            continue
+        if not isinstance(result, str):
+            success, preview_path = result
+            break
 
-        success, preview_path = result
+        yield result
+
 
     if not success:
-        return (False, None)
+        yield (False, None)
 
     # we only need 1 preview image
     yield (True, preview_path)
@@ -435,15 +436,17 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
         for result in verify_preview(
             preview_path, img_dict, max_size_preview, nsfw_preview_threshold
         ):
-            if isinstance(result, str):
-                yield result
-                continue
+            if not isinstance(result, str):
+                success, _ = result
+                # Only download one image
+                if success:
+                    return
 
-            success, _ = result
+                break
 
-            if success:
-                return
+            yield result
 
+    util.printD(f"Could not find any valid preview images for model: {model_path}")
     yield
 
 

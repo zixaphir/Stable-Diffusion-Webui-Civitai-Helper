@@ -103,7 +103,8 @@ def scan_model(scan_model_types, max_size_preview, nsfw_preview_threshold, refet
     if not scan_model_types:
         output = "Model Types is None, can not scan."
         util.printD(output)
-        return output
+        yield output
+        return
 
     model_types = []
 
@@ -483,11 +484,13 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
     return (version_id, download_url)
 
 
-def download_all(model_folder, version_id, ver_info, duplicate):
+def download_all(model_folder, ver_info, duplicate):
     """
     get all download url from files info
     some model versions have multiple files
     """
+
+    version_id = ver_info["id"]
 
     download_urls = []
 
@@ -506,66 +509,85 @@ def download_all(model_folder, version_id, ver_info, duplicate):
     if result:
         output = "This model version already exists"
         util.printD(output)
-        return (False, output)
+        yield (False, output)
 
     # download
     success = False
     output = ""
     filepath = ""
+    file_candidate = ""
     total = len(download_urls)
+    errors = []
+    errors_count = 0
+
     for count, url in enumerate(download_urls):
+
+        snippet = ""
+        if errors_count > 0:
+            snippet = f"| {errors_count}/{total} models failed"
 
         # webui visible progress bar
         for result in downloader.dl_file(
             url, folder=model_folder, duplicate=duplicate
         ):
-            if isinstance(result, str):
-                yield f"{result} | {count}/{total} models"
-                continue
+            if not isinstance(result, str):
+                success, output = result
+                break
 
-            success, output = result
+            yield f"{result} | {count}/{total} models {snippet}"
 
         if not success:
-            downloader.error(url, output)
+            errors.append(downloader.error(url, output))
+            errors_count += 1
             continue
 
-        if url == ver_info["downloadUrl"]:
-            filepath = output
+        file_candidate = output
 
+        if url == ver_info["downloadUrl"]:
+            filepath = file_candidate
 
     if not filepath:
-        filepath = output
+        filepath = file_candidate
 
-    yield (True, filepath)
+    additional = None
+    if errors_count > 0:
+        additional = "\n\n".join(errors)
+
+        if errors_count == total:
+            yield (False, additional)
+            return
+
+    yield (True, filepath, additional)
 
 
-def download_one(model_folder, download_url, duplicate):
+def download_one(model_folder, ver_info, duplicate):
     """
     only download one file
     get download url
     """
 
+    download_url = ver_info["downloadUrl"]
+
     output = ""
-    url = download_url
-    if not url:
-        output = "Failed to get download url, check console log for detail"
+    if not download_url:
+        output = "Failed to find a download url"
         util.printD(output)
-        return None
+        yield (False, output)
 
     # download
     success = False
     for result in downloader.dl_file(
-        url, folder=model_folder, duplicate=duplicate
+        download_url, folder=model_folder, duplicate=duplicate
     ):
-        if isinstance(result, str):
-            yield result
-            continue
+        if not isinstance(result, str):
+            success, output = result
+            break
 
-        success, output = result
+        yield result
 
     if not success:
-        downloader.error(url, output)
-        return None
+        downloader.error(download_url, output)
+        yield (False, output)
 
     yield (True, output)
 
@@ -586,9 +608,9 @@ def dl_model_by_input(
     if not (model_info and model_type and subfolder_str and version_str):
         output = util.indented_msg(f"""
             Missing Required Parameter in dl_model_by_input. Parameters given:
-            {model_type=}
-            {subfolder_str=}
-            {version_str=}
+            {model_type=}*
+            {subfolder_str=}*
+            {version_str=}*
             {dl_all_bool=}
             {max_size_preview=}
             {nsfw_preview_threshold=}
@@ -597,19 +619,20 @@ def dl_model_by_input(
 
         # Keep model info away from util.indented_msg
         # which can screw with complex strings
-        output = f"{output}\n    {model_info=}"
+        output = f"{output}\n    {model_info=}*\n    * Required"
         util.printD(output)
-        return output
+        yield output
+        return
 
     # get model root folder
     if model_type not in model.folders:
         output = f"Unsupported model type: {model_type}"
         util.printD(output)
-        return output
+        yield output
+        return
 
     folder = ""
     subfolder = ""
-    version_id = ""
     output = ""
     version_info = None
 
@@ -628,38 +651,40 @@ def dl_model_by_input(
     if not os.path.isdir(folder):
         output = f"Model folder is not a dir: {folder}"
         util.printD(output)
-        return output
+        yield output
+        return
 
     # get version info
     ver_info = get_ver_info_by_ver_str(version_str, model_info)
     if not ver_info:
         output = "Failed to get version info, check console log for detail"
         util.printD(output)
-        return output
+        yield output
+        return
 
     success = False
-    version_id = ver_info["id"]
+    downloader_fn = download_one
     if dl_all_bool:
-        for result in download_all(folder, version_id, ver_info, duplicate):
-            if isinstance(result, str):
-                yield result
-                continue
+        downloader_fn = download_all
 
-            success, output = result
+    additional = None
+    for result in downloader_fn(folder, ver_info, duplicate):
+        if not isinstance(result, str):
+            if len(result) > 2:
+                success, output, additional = result
+            else:
+                success, output = result
 
-    else:
-        for result in download_one(folder, ver_info["downloadUrl"], duplicate):
-            if isinstance(result, str):
-                yield result
-                continue
+            break
 
-            success, output = result
+        yield result
 
     if not success:
-        return output
+        yield output
+        return
 
     # get version info
-    version_info = civitai.get_version_info_by_version_id(version_id)
+    version_info = civitai.get_version_info_by_version_id(ver_info["id"])
     model.process_model_info(output, version_info, model_type)
 
     # then, get preview image + webui-visible progress
@@ -671,5 +696,7 @@ def dl_model_by_input(
         yield f"Downloading model preview:\n{result}"
 
     output = f"Done. Model downloaded to: {output}"
+    if additional:
+        output = f"{output}. Additionally, the following failures occurred: \n{additional}"
     util.printD(output)
     yield output
