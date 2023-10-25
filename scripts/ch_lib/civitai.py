@@ -421,34 +421,28 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
         return
 
     # load model_info file
-    if os.path.isfile(info_file):
-        model_info = model.load_model_info(info_file)
-        if not model_info:
-            util.printD("Model Info is empty")
-            return
+    if not os.path.isfile(info_file):
+        return
 
-        if "images" not in model_info.keys():
-            return
+    try:
+        images = model.load_model_info(info_file)["images"]
 
-        if not model_info["images"]:
-            return
+    except (KeyError, TypeError):
+        return
 
-        success = False
-        for img_dict in model_info["images"]:
-            for result in verify_preview(
-                preview_path, img_dict, max_size_preview, nsfw_preview_threshold
-            ):
-                if isinstance(result, str):
-                    yield result
-                    continue
+    success = False
+    for img_dict in images:
+        for result in verify_preview(
+            preview_path, img_dict, max_size_preview, nsfw_preview_threshold
+        ):
+            if isinstance(result, str):
+                yield result
+                continue
 
-                success, _ = result
-
-                if success:
-                    break
+            success, _ = result
 
             if success:
-                break
+                return
 
     yield
 
