@@ -240,7 +240,7 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     ):
         yield result
 
-    output = f"Done. Model downloaded to: {msg}"
+    output = f"Done. Model downloaded to: {new_model_path}"
     util.printD(output)
     yield output
 
