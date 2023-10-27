@@ -221,7 +221,7 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
         if isinstance(result, str):
             yield result
             continue
-        success, _ = result
+        success, new_model_path = result
 
     if not success:
         return "Model download failed. See console for more details."
@@ -230,11 +230,11 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     version_info = civitai.get_version_info_by_version_id(version_id)
 
     # now write version info to files
-    model.process_model_info(msg, version_info, model_type)
+    model.process_model_info(new_model_path, version_info, model_type)
 
     # then, get preview image
     for result in civitai.get_preview_image_by_model_path(
-        msg,
+        new_model_path,
         max_size_preview,
         nsfw_preview_threshold
     ):
