@@ -236,17 +236,17 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     version_info = civitai.get_version_info_by_version_id(version_id)
 
     # now write version info to files
-    model.process_model_info(msg, version_info, model_type)
+    model.process_model_info(output, version_info, model_type)
 
     # then, get preview image
     for result in civitai.get_preview_image_by_model_path(
-        msg,
+        output,
         max_size_preview,
         nsfw_preview_threshold
     ):
         yield result
 
-    output = f"Done. Model downloaded to: {msg}"
+    output = f"Done. Model downloaded to: {output}"
     util.printD(output)
     yield output
 

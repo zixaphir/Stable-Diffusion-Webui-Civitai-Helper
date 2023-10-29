@@ -1,4 +1,5 @@
 # Change Log
+## 1.7.6
 * Downloader rewrite:
   * Downloading models will now show download progress in webui.
   * Download errors will now be displayed in webui, with more detailed information still in console output.
