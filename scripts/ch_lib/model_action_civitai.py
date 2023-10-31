@@ -326,48 +326,48 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
     """
     util.printD(f"Getting model info by: {model_url_or_id}")
 
-    # parse model id
-    model_id = civitai.get_model_id_from_url(model_url_or_id)
-    if not model_id:
-        util.printD("Could not parse model id from url or id")
+    try:
+        # parse model id
+        model_id = civitai.get_model_id_from_url(model_url_or_id)
+
+        # download model info
+        model_info = civitai.get_model_info_by_id(model_id)
+
+        # parse model type, model name, subfolder, version from this model info
+        # get model type
+        civitai_model_type = model_info["type"]
+
+        if civitai_model_type not in civitai.MODEL_TYPES:
+            util.printD(f"This model type is not supported: {civitai_model_type}")
+            return None
+
+        model_type = civitai.MODEL_TYPES[civitai_model_type]
+
+        # get model type
+        model_name = model_info["name"]
+
+        # get version lists
+        model_versions = model_info["modelVersions"]
+
+    except (KeyError, ValueError, TypeError) as e:
+        util.printD(f"An error occurred while attempting to process model info: {e}")
         return None
 
-    model_info = civitai.get_model_info_by_id(model_id)
-    if model_info is None:
-        util.printD("Connection to Civitai API service failed. Wait a while and try again")
-        return None
-
-    if not model_info:
-        util.printD("Failed to get model info from url or id")
-        return None
-
-    # parse model type, model name, subfolder, version from this model info
-    # get model type
-    civitai_model_type = model_info.get("type", None)
-    if civitai_model_type not in civitai.MODEL_TYPES:
-        util.printD(f"This model type is not supported: {civitai_model_type}")
-        return None
-
-    model_type = civitai.MODEL_TYPES[civitai_model_type]
-
-    # get model type
-    model_name = model_info.get("name", None)
-    if model_name is None:
-        util.printD("model name is Empty")
-        model_name = ""
-
-    # get version lists
-    model_versions = model_info.get("modelVersions", None)
-    if model_versions is None:
-        util.printD("modelVersions is Empty")
-        return None
-
+    filenames = []
     version_strs = []
     for version in model_versions:
         # version name can not be used as id
         # version id is not readable
         # so , we use name_id as version string
         version_str = f'{version["name"]}_{version["id"]}'
+
+        filename = ""
+        try:
+            filename = version["files"][0]["name"]
+        except (ValueError, KeyError):
+            pass
+
+        filenames.append(filename)
         version_strs.append(version_str)
 
     # get folder by model type
@@ -385,7 +385,7 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
     """)
     util.printD(msg)
 
-    return (model_info, model_name, model_type, subfolders, version_strs)
+    return (model_info, model_name, model_type, filenames, subfolders, version_strs)
 
 
 def get_ver_info_by_ver_str(version_str:str, model_info:dict) -> dict:
@@ -484,7 +484,7 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
     return (version_id, download_url)
 
 
-def download_all(model_folder, ver_info, headers, duplicate):
+def download_all(filename, model_folder, ver_info, headers, duplicate):
     """
     get all download url from files info
     some model versions have multiple files
@@ -561,7 +561,7 @@ def download_all(model_folder, ver_info, headers, duplicate):
     yield (True, filepath, additional)
 
 
-def download_one(model_folder, ver_info, headers, duplicate):
+def download_one(filename, model_folder, ver_info, headers, duplicate):
     """
     only download one file
     get download url
@@ -578,8 +578,8 @@ def download_one(model_folder, ver_info, headers, duplicate):
     # download
     success = False
     for result in downloader.dl_file(
-        download_url, folder=model_folder, duplicate=duplicate,
-        headers=headers
+        download_url, filename=filename, folder=model_folder,
+        duplicate=duplicate, headers=headers
     ):
         if not isinstance(result, str):
             success, output = result
@@ -595,10 +595,12 @@ def download_one(model_folder, ver_info, headers, duplicate):
 
 
 def dl_model_by_input(
-    model_info:dict,
+    ch_state:dict,
     model_type:str,
     subfolder_str:str,
     version_str:str,
+    filename:str,
+    file_ext:str,
     dl_all_bool:bool,
     max_size_preview:bool,
     nsfw_preview_threshold:bool,
@@ -607,12 +609,17 @@ def dl_model_by_input(
     """ download model from civitai by input
         output to markdown log
     """
+
+    model_info = ch_state["model_info"]
+
     if not (model_info and model_type and subfolder_str and version_str):
         output = util.indented_msg(f"""
             Missing Required Parameter in dl_model_by_input. Parameters given:
             {model_type=}*
             {subfolder_str=}*
             {version_str=}*
+            {filename=}
+            {file_ext=}
             {dl_all_bool=}
             {max_size_preview=}
             {nsfw_preview_threshold=}
@@ -637,6 +644,13 @@ def dl_model_by_input(
     subfolder = ""
     output = ""
     version_info = None
+
+    if filename and file_ext:
+        filename = f"{filename}.{file_ext}"
+    else:
+        # Will force downloader function to get filename
+        # from download headers
+        filename = None
 
     model_root_folder = model.folders[model_type]
 
@@ -677,7 +691,7 @@ def dl_model_by_input(
         headers["Authorization"] = f"Bearer {api_key}"
 
     additional = None
-    for result in downloader_fn(folder, ver_info, headers, duplicate):
+    for result in downloader_fn(filename, folder, ver_info, headers, duplicate):
         if not isinstance(result, str):
             if len(result) > 2:
                 success, output, additional = result
