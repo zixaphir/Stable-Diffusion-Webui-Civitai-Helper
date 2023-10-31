@@ -484,7 +484,7 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
     return (version_id, download_url)
 
 
-def download_all(model_folder, ver_info, duplicate):
+def download_all(model_folder, ver_info, headers, duplicate):
     """
     get all download url from files info
     some model versions have multiple files
@@ -528,7 +528,8 @@ def download_all(model_folder, ver_info, duplicate):
 
         # webui visible progress bar
         for result in downloader.dl_file(
-            url, folder=model_folder, duplicate=duplicate
+            url, folder=model_folder, duplicate=duplicate,
+            headers=headers
         ):
             if not isinstance(result, str):
                 success, output = result
@@ -560,7 +561,7 @@ def download_all(model_folder, ver_info, duplicate):
     yield (True, filepath, additional)
 
 
-def download_one(model_folder, ver_info, duplicate):
+def download_one(model_folder, ver_info, headers, duplicate):
     """
     only download one file
     get download url
@@ -577,7 +578,8 @@ def download_one(model_folder, ver_info, duplicate):
     # download
     success = False
     for result in downloader.dl_file(
-        download_url, folder=model_folder, duplicate=duplicate
+        download_url, folder=model_folder, duplicate=duplicate,
+        headers=headers
     ):
         if not isinstance(result, str):
             success, output = result
@@ -667,8 +669,15 @@ def dl_model_by_input(
     if dl_all_bool:
         downloader_fn = download_all
 
+    headers = {
+        "content-type": "application/json"
+    }
+    api_key = util.get_opts("ch_civiai_api_key")
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
     additional = None
-    for result in downloader_fn(folder, ver_info, duplicate):
+    for result in downloader_fn(folder, ver_info, headers, duplicate):
         if not isinstance(result, str):
             if len(result) > 2:
                 success, output, additional = result

@@ -445,13 +445,30 @@ def on_ui_tabs():
 def on_ui_settings():
     section = ('civitai_helper', "Civitai Helper")
     shared.opts.add_option(
+        "ch_civiai_api_key",
+        shared.OptionInfo(
+            "",
+            (
+                "API key for authenticating with Civitai. "
+                "This is required to download some models. "
+                "See Wiki for more details."
+            ),
+            gr.Textbox,
+            {"interactive": True},
+            section=section
+        ).link(
+            "Wiki",
+            "https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Civitai-API-Key"
+        )
+    )
+    shared.opts.add_option(
         "ch_open_url_with_js",
         shared.OptionInfo(
             True,
             (
-                "Open model Url on the user's client side, rather than server side."
-                "If you are running WebUI locally, disabling this may open URLs in your"
-                "default internet browser if it is different than the one you are running"
+                "Open model Url on the user's client side, rather than server side. "
+                "If you are running WebUI locally, disabling this may open URLs in your "
+                "default internet browser if it is different than the one you are running "
                 "WebUI in"
             ),
             gr.Checkbox,

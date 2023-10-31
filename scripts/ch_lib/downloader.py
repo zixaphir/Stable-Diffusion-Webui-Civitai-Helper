@@ -37,8 +37,9 @@ def request_get(url:str, headers=None, retries=0) -> tuple[bool, requests.Respon
         )
 
     except TimeoutError:
-        print(f"GET Request timed out for {url}")
-        return (False, None)
+        output = f"GET Request timed out for {url}"
+        print(output)
+        return (False, output)
 
     if not response.ok:
         code = response.status_code
@@ -49,6 +50,13 @@ def request_get(url:str, headers=None, retries=0) -> tuple[bool, requests.Respon
             {code}: {reason}
             """
         ))
+
+        if response.status_code == 401:
+            return (
+                False,
+                "This download requires Authentication. Please add an API Key to Civitai Helper's settings to continue this download. See [Wiki](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Civitai-API-Key) for details on how to create an API Key."
+            )
+
         if response.status_code != 404 and retries < MAX_RETRIES:
             util.printD("Retrying")
             return request_get(url, headers, retries + 1)
@@ -79,12 +87,13 @@ def visualize_progress(percent:int, downloaded, total, speed, show_bar=True) -> 
     return f"`[{progress:<100}] {snippet}`".replace(" ", "\u00a0")
 
 
-def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
+def download_progress(url:str, file_path:str, total_size:int, headers={}) -> bool | float:
     """
     Performs a file download.
     returns: True or an error message.
     """
     # use a temp file for downloading
+
     dl_path = f"{file_path}{DL_EXT}"
 
     util.printD(f"Downloading to temp file: {dl_path}")
@@ -96,9 +105,8 @@ def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
         util.printD(f"Resuming partially downloaded file from progress: {downloaded_size}")
 
     # create header range
-    headers = util.append_default_headers({
-        "Range": f"bytes={downloaded_size:d}-"
-    })
+    headers["Range"] = f"bytes={downloaded_size:d}-"
+    headers = util.append_default_headers(headers)
 
     # download with header
     success, response = request_get(
@@ -107,7 +115,7 @@ def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
     )
 
     if not success:
-        yield (False, "Could not get request headers.")
+        yield (False, response)
 
     last_tick = 0
     start = time.time()
@@ -221,6 +229,7 @@ def dl_file(
     folder=None,
     filename=None,
     file_path=None,
+    headers={},
     duplicate=None
 ) -> tuple[bool, str]:
     """
@@ -229,10 +238,10 @@ def dl_file(
     returns: tuple(success:bool, filepath or failure message:str)
     """
 
-    success, response = request_get(url)
+    success, response = request_get(url, headers=headers)
 
     if not success:
-        yield (False, f"Failed to get file download headers for {url}")
+        yield (False, response)
 
     util.printD(f"Start downloading from: {url}")
 
@@ -252,7 +261,7 @@ def dl_file(
         if not file_path:
             yield (
                 False,
-                "Could not get a file_path to place saved file."
+                f"Could not get a file_path to place saved file:"
             )
 
     util.printD(f"Target file path: {file_path}")
@@ -281,7 +290,7 @@ def dl_file(
     total_size = int(response.headers['Content-Length'])
     util.printD(f"File size: {total_size}")
 
-    for result in download_progress(url, file_path, total_size):
+    for result in download_progress(url, file_path, total_size, headers):
         if not isinstance(result, str):
             success, output = result
             break
