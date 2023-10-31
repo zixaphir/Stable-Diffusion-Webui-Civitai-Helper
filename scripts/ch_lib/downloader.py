@@ -42,22 +42,25 @@ def request_get(url:str, headers=None, retries=0) -> tuple[bool, requests.Respon
         return (False, output)
 
     if not response.ok:
-        code = response.status_code
+        status_code = response.status_code
         reason = response.reason
         util.printD(util.indented_msg(
             f"""
             GET Request failed with error code:
-            {code}: {reason}
+            {status_code}: {reason}
             """
         ))
 
-        if response.status_code == 401:
+        if status_code == 401:
             return (
                 False,
                 "This download requires Authentication. Please add an API Key to Civitai Helper's settings to continue this download. See [Wiki](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Civitai-API-Key) for details on how to create an API Key."
             )
 
-        if response.status_code != 404 and retries < MAX_RETRIES:
+        if status_code == 416:
+            response.raise_for_status()
+
+        if status_code != 404 and retries < MAX_RETRIES:
             util.printD("Retrying")
             return request_get(url, headers, retries + 1)
 
@@ -87,12 +90,15 @@ def visualize_progress(percent:int, downloaded, total, speed, show_bar=True) -> 
     return f"`[{progress:<100}] {snippet}`".replace(" ", "\u00a0")
 
 
-def download_progress(url:str, file_path:str, total_size:int, headers={}) -> bool | float:
+def download_progress(url:str, file_path:str, total_size:int, headers=None) -> bool | float:
     """
     Performs a file download.
     returns: True or an error message.
     """
     # use a temp file for downloading
+
+    if not headers:
+        headers = {}
 
     dl_path = f"{file_path}{DL_EXT}"
 
@@ -109,10 +115,24 @@ def download_progress(url:str, file_path:str, total_size:int, headers={}) -> boo
     headers = util.append_default_headers(headers)
 
     # download with header
-    success, response = request_get(
-        url,
-        headers=headers,
-    )
+    try:
+        success, response = request_get(
+            url,
+            headers=headers,
+        )
+
+    except requests.HTTPError as dl_error:
+        # 416 - Range Not Satisfiable
+        response = dl_error.response
+        if response.status_code != 416:
+            raise
+
+        util.printD("Could not resume download from existing temporary file. Restarting download")
+
+        os.remove(dl_path)
+
+        for result in download_progress(url, file_path, total_size, headers):
+            yield result
 
     if not success:
         yield (False, response)
@@ -229,7 +249,7 @@ def dl_file(
     folder=None,
     filename=None,
     file_path=None,
-    headers={},
+    headers=None,
     duplicate=None
 ) -> tuple[bool, str]:
     """
@@ -237,6 +257,9 @@ def dl_file(
 
     returns: tuple(success:bool, filepath or failure message:str)
     """
+
+    if not headers:
+        headers = {}
 
     success, response = request_get(url, headers=headers)
 
@@ -261,7 +284,7 @@ def dl_file(
         if not file_path:
             yield (
                 False,
-                f"Could not get a file_path to place saved file:"
+                "Could not get a file_path to place saved file."
             )
 
     util.printD(f"Target file path: {file_path}")
