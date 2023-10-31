@@ -1,4 +1,8 @@
 # Change Log
+## 1.7.7
+* Implemented authentication via API Key.
+  * This allows the user to download models that require authentication.
+
 ## 1.7.6
 * Downloader rewrite:
   * Downloading models will now show download progress in webui.
