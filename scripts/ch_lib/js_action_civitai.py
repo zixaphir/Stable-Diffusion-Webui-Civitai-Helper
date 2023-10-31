@@ -4,7 +4,6 @@ handle msg between js and python side
 import os
 from pathlib import Path
 import webbrowser
-from modules.shared import opts
 from . import util
 from . import model
 from . import civitai
@@ -51,7 +50,7 @@ def open_model_url(msg):
         "url": ""
     }
 
-    if not opts.ch_open_url_with_js:
+    if not util.get_opts("ch_open_url_with_js"):
         util.printD(f"Open Url: {url}")
         # open url
         webbrowser.open_new_tab(url)

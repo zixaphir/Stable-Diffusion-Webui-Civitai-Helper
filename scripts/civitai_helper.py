@@ -10,7 +10,6 @@ import modules
 from modules import scripts
 from modules import shared
 from modules import script_callbacks
-from modules.shared import opts
 from scripts.ch_lib import model
 from scripts.ch_lib import js_action_civitai
 from scripts.ch_lib import model_action_civitai
@@ -45,7 +44,7 @@ def on_ui_tabs():
     # init_py_msg_str = json.dumps(init_py_msg)
 
     # set proxy
-    proxy = opts.ch_proxy
+    proxy = util.get_opts("ch_proxy")
     if proxy:
         util.printD(f"Set Proxy: {proxy}")
         util.PROXIES["http"] = proxy
@@ -95,9 +94,9 @@ def on_ui_tabs():
     # with gr.Blocks(css=".block.padded {padding: 10px !important}") as civitai_helper:
 
         # init
-        max_size_preview = opts.ch_max_size_preview
-        nsfw_preview_threshold = opts.ch_nsfw_preview_threshold
-        proxy = opts.ch_proxy
+        max_size_preview = util.get_opts("ch_max_size_preview")
+        nsfw_preview_threshold = util.get_opts("ch_nsfw_preview_threshold")
+        proxy = util.get_opts("ch_proxy")
 
         model_types = list(model.folders.keys())
         no_info_model_names = civitai.get_model_names_by_input("ckp", False)

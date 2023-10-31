@@ -9,7 +9,6 @@ import piexif
 import piexif.helper
 from modules import shared
 from modules import paths_internal
-from modules.shared import opts
 from . import civitai
 from . import downloader
 from . import util
@@ -108,7 +107,7 @@ def metadata_needed_for_type(path, meta_type, refetch_old):
     """ return True if metadata is needed for path
     """
 
-    if meta_type == "sdwebui" and not opts.ch_dl_webui_metadata:
+    if meta_type == "sdwebui" and not util.get_opts("ch_dl_webui_metadata"):
         return False
 
     if not os.path.isfile(path):
@@ -228,7 +227,7 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
         else:
             write_info(model_info, info_file, "civitai")
 
-    if not opts.ch_dl_webui_metadata:
+    if not util.get_opts("ch_dl_webui_metadata"):
         return
 
     # Do not overwrite user-created files!

@@ -151,10 +151,15 @@ def get_name(model_path:str) -> str:
     return f"lora/{model_name}"
 
 
+def get_opts(key):
+    """ return: option value """
+    return opts.data.get(key, None)
+
+
 def gen_file_sha256(filename:str) -> str:
     """ return a sha256 hash for a file """
 
-    if opts.ch_use_sdwebui_sha256:
+    if get_opts("ch_use_sdwebui_sha256"):
         printD("Using SD Webui SHA256")
         name = get_name(filename)
         return hashes.sha256(filename, name, use_addnet_hash=False)
