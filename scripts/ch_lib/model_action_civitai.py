@@ -16,7 +16,7 @@ def get_metadata_skeleton():
     """
     Used to generate at least something when model is not on civitai.
     """
-    return {
+    metadata = {
         "id": "",
         "modelId": "",
         "name": "",
@@ -40,8 +40,12 @@ def get_metadata_skeleton():
                 }
             }
         ],
-        "downloadUrl": ""
+        "tags": [],
+        "downloadUrl": "",
+        "skeleton_file": True
     }
+
+    return metadata
 
 
 def scan_single_model(filename, root, model_type, refetch_old, delay):
@@ -74,7 +78,7 @@ def scan_single_model(filename, root, model_type, refetch_old, delay):
         # use this sha256 to get model info from civitai
         model_info = civitai.get_model_info_by_hash(sha256_hash)
 
-        if (model_info == {}) and not model_info.get("id", None):
+        if not model_info:
             model_info = dummy_model_info(item, sha256_hash, model_type)
 
         model.process_model_info(item, model_info, model_type, refetch_old=refetch_old)
@@ -177,6 +181,7 @@ def dummy_model_info(path, sha256_hash, model_type):
     # We can't get data on the model from civitai, but some models
     # do store their training data.
     trained_words = model_info["trainedWords"]
+    tags = model_info["tags"]
 
     try:
         file_metadata = sd_models.read_metadata_from_safetensors(path)
@@ -187,9 +192,21 @@ def dummy_model_info(path, sha256_hash, model_type):
 
     tag_frequency = file_metadata.get("ss_tag_frequency", {})
 
-    for tag in tag_frequency.keys():
-        word = re.sub(r"^\d+_", "", tag)
+    for trained_word in tag_frequency.keys():
+        # kohya training scripts use
+        # `{iterations}_{trained_word}`
+        # for training finetune concepts.
+        word = re.sub(r"^\d+_", "", trained_word)
         trained_words.append(word)
+
+        # "tags" in this case are just words used in image captions
+        # when training the finetune model.
+        # They may or may not be useful for prompting
+        for tag in tag_frequency[trained_word].keys():
+            tag = tag.replace(",", "").strip()
+            if tag == "":
+                continue
+            tags.append(tag)
 
     return model_info
 

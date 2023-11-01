@@ -128,8 +128,6 @@ def metadata_needed_for_type(path, meta_type, refetch_old):
         else:
             compat_version = util.COMPAT_VERSION_SDWEBUI
 
-        util.printD(f"{path}: {metadata_version}, {compat_version}")
-
         return util.newer_version(compat_version, metadata_version)
 
     return False
@@ -208,12 +206,12 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
         version_description = util.trim_html(version_description)
     model_info["description"] = version_description
 
-    tags = parent.get("tags", [])
-    parent["tags"] = tags
-
     # Create extension versioning information so that users
     # can replace stale info files without newer entries.
-    model_info["extensions"] = util.create_extension_block(model_info.get("extensions", {}))
+    model_info["extensions"] = util.create_extension_block(
+        model_info.get("extensions", None),
+        model_info.get("skeleton_file", False)
+    )
 
     # civitai model info file
     if metadata_needed_for_type(info_file, "civitai", refetch_old):
@@ -221,9 +219,11 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
             try:
                 if verify_overwrite_eligibility(info_file, model_info):
                     write_info(model_info, info_file, "civitai")
+
             except VersionMismatchException as e:
                 util.printD(f"{e}, aborting")
                 return
+
         else:
             write_info(model_info, info_file, "civitai")
 
@@ -264,6 +264,7 @@ def process_sd15_info(sd15_file, model_info, parent, model_type, refetch_old):
     #
     # INFO: On Civitai, all models list base model/"sd version".
     # The SD WebUI interface only displays them for Lora/Lycoris.
+    #
     # I'm populating the field anyways in hopes it eventually gets
     # added.
     base_model = model_info.get("baseModel", None)
@@ -306,7 +307,10 @@ def process_sd15_info(sd15_file, model_info, parent, model_type, refetch_old):
     if model_type in ["lora", "lycoris"]:
         sd_data["preferred weight"] = 0
 
-    sd_data["extensions"] = util.create_extension_block(sd_data.get("extensions", None))
+    sd_data["extensions"] = util.create_extension_block(
+        model_info.get("extensions", None),
+        model_info.get("skeleton_file", False)
+    )
 
     if refetch_old:
         if verify_overwrite_eligibility(sd15_file, sd_data):

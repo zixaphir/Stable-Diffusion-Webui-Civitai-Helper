@@ -116,8 +116,10 @@ def get_model_info_by_hash(model_hash:str):
 
     content = civitai_get(f'{URLS["hash"]}{model_hash}')
 
-    if content:
-        content = append_parent_model_metadata(content)
+    if not content:
+        return None
+
+    content = append_parent_model_metadata(content)
 
     return content
 

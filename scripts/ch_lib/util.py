@@ -362,7 +362,7 @@ def metadata_version(metadata:dict) -> str | bool:
         return False
 
 
-def create_extension_block(data=None) -> dict:
+def create_extension_block(data=None, skeleton=False) -> dict:
     """ Creates or edits an extensions block for usage in JSON files
         created or edited by this extension.
 
@@ -374,19 +374,15 @@ def create_extension_block(data=None) -> dict:
     block = {
         SHORT_NAME: {
             "version": VERSION,
-            "last_update": cur_time
+            "last_update": cur_time,
+            "skeleton_file": skeleton
         }
     }
 
     if not data:
         return block
 
-    if not data.get(SHORT_NAME, False):
-        data[SHORT_NAME] = block[SHORT_NAME]
-        return data
-
-    data[SHORT_NAME]["version"] = VERSION
-    data[SHORT_NAME]["last_update"] = cur_time
+    data[SHORT_NAME] = block[SHORT_NAME]
 
     return data
 
