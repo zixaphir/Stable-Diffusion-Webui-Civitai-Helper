@@ -263,10 +263,10 @@ def dl_file(
 
     success, response = request_get(url, headers=headers)
 
-    response.close()
-
     if not success:
         yield (False, response)
+
+    response.close()
 
     util.printD(f"Start downloading from: {url}")
 
