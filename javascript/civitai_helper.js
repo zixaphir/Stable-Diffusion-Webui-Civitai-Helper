@@ -141,6 +141,10 @@ function getActiveNegativePrompt() {
 async function open_model_url(event, model_type, search_term) {
     console.log("start open_model_url");
 
+    // stop parent event
+    event.stopPropagation();
+    event.preventDefault();
+
     //get hidden components of extension
     let js_open_url_btn = gradioApp().getElementById("ch_js_open_url_btn");
     if (!js_open_url_btn) {
@@ -168,10 +172,6 @@ async function open_model_url(event, model_type, search_term) {
 
     //click hidden button
     js_open_url_btn.click();
-
-    // stop parent event
-    event.stopPropagation();
-    event.preventDefault();
 
     //check response msg from python
     let new_py_msg = null;
@@ -202,12 +202,14 @@ async function open_model_url(event, model_type, search_term) {
 function add_trigger_words(event, model_type, search_term) {
     console.log("start add_trigger_words");
 
+    event.stopPropagation();
+    event.preventDefault();
+
     //get hidden components of extension
     let js_add_trigger_words_btn = gradioApp().getElementById("ch_js_add_trigger_words_btn");
     if (!js_add_trigger_words_btn) {
         return;
     }
-
 
     //msg to python side
     let msg = {
@@ -235,14 +237,13 @@ function add_trigger_words(event, model_type, search_term) {
 
     console.log("end add_trigger_words");
 
-    event.stopPropagation();
-    event.preventDefault();
-
-
 }
 
 function use_preview_prompt(event, model_type, search_term) {
     console.log("start use_preview_prompt");
+
+    event.stopPropagation();
+    event.preventDefault();
 
     //get hidden components of extension
     let js_use_preview_prompt_btn = gradioApp().getElementById("ch_js_use_preview_prompt_btn");
@@ -279,14 +280,15 @@ function use_preview_prompt(event, model_type, search_term) {
 
     console.log("end use_preview_prompt");
 
-    event.stopPropagation();
-    event.preventDefault();
-
 }
 
 
 async function remove_card(event, model_type, search_term) {
     console.log("start remove_card");
+
+    // stop parent event
+    event.stopPropagation()
+    event.preventDefault()
 
     //get hidden components of extension
     let js_remove_card_btn = gradioApp().getElementById("ch_js_remove_card_btn");
@@ -316,10 +318,6 @@ async function remove_card(event, model_type, search_term) {
 
     //click hidden button
     js_remove_card_btn.click();
-
-    // stop parent event
-    event.stopPropagation()
-    event.preventDefault()
 
     //check response msg from python
     let new_py_msg = "";
@@ -352,6 +350,10 @@ async function remove_card(event, model_type, search_term) {
 async function rename_card(event, model_type, search_term, model_name) {
     console.log("start rename_card");
 
+    // stop parent event
+    event.stopPropagation()
+    event.preventDefault()
+
     //get hidden components of extension
     let js_rename_card_btn = gradioApp().getElementById("ch_js_rename_card_btn");
     if (!js_rename_card_btn) {
@@ -383,10 +385,6 @@ async function rename_card(event, model_type, search_term, model_name) {
 
     //click hidden button
     js_rename_card_btn.click();
-
-    // stop parent event
-    event.stopPropagation()
-    event.preventDefault()
 
     //check response msg from python
     let new_py_msg = "";
@@ -436,8 +434,12 @@ function replace_preview(e, page, type, name) {
 function ch_dl_model_new_version(event, model_path, version_id, download_url, model_type) {
     console.log("start ch_dl_model_new_version");
 
+    event.stopPropagation();
+    event.preventDefault();
+
     // must confirm before downloading
     let dl_confirm = "\nConfirm to download.\n\nCheck Download Model Section's log and console log for detail.";
+
     if (!confirm(dl_confirm)) {
         return;
     }
@@ -469,9 +471,6 @@ function ch_dl_model_new_version(event, model_path, version_id, download_url, mo
     js_dl_model_new_version_btn.click();
 
     console.log("end dl_model_new_version");
-
-    event.stopPropagation();
-    event.preventDefault();
 
 
 }
