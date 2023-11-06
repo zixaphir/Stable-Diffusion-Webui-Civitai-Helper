@@ -93,8 +93,7 @@ def indented_msg(msg:str) -> str:
 
 
 def delay(seconds:float) -> None:
-    """ delay before next request, mostly to prevent to be treated as DDoS """
-    printD(f"delay: {seconds} second")
+    """ delay before next request, mostly to prevent being treated as a DDoS """
     time.sleep(seconds)
 
 

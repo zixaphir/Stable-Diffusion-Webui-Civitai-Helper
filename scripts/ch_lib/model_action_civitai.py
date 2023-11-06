@@ -59,21 +59,27 @@ def scan_single_model(filename, root, model_type, refetch_old, delay):
     item = os.path.join(root, filename)
     _, ext = os.path.splitext(item)
     if ext not in model.EXTS:
-        return False
+        yield False
 
     # find a model, get info file
     info_file, sd15_file = model.get_model_info_paths(item)
 
+    output = ""
+
     # check info file
     if model.metadata_needed(info_file, sd15_file, refetch_old):
-        util.printD(f"Creating model info for: {filename}")
+        output = f"Creating model info for: {filename}"
+        util.printD(output)
+        yield output
+
         # get model's sha256
         sha256_hash = util.gen_file_sha256(item)
 
         if not sha256_hash:
             output = f"failed generating SHA256 for model: {filename}"
             util.printD(output)
-            return False
+            yield output
+            yield False
 
         # use this sha256 to get model info from civitai
         model_info = civitai.get_model_info_by_hash(sha256_hash)
@@ -84,13 +90,12 @@ def scan_single_model(filename, root, model_type, refetch_old, delay):
         model.process_model_info(item, model_info, model_type, refetch_old=refetch_old)
 
         # delay before next request, to prevent being treated as a DDoS attack
-        util.printD(f"delay: {delay} second")
         time.sleep(delay)
 
     else:
         util.printD(f"Model metadata not needed for {filename}")
 
-    return True
+    yield True
 
 
 def scan_model(scan_model_types, max_size_preview, nsfw_preview_threshold, refetch_old):
@@ -127,7 +132,14 @@ def scan_model(scan_model_types, max_size_preview, nsfw_preview_threshold, refet
         util.printD(f"Scanning path: {model_folder}")
         for root, _, files in os.walk(model_folder, followlinks=True):
             for filename in files:
-                success = scan_single_model(filename, root, model_type, refetch_old, delay)
+                success = None
+                for result in scan_single_model(filename, root, model_type, refetch_old, delay):
+                    if isinstance(result, str):
+                        yield result
+                        continue
+
+                    success = result
+                    break
 
                 if not success:
                     continue
