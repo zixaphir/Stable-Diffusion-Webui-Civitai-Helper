@@ -44,3 +44,49 @@ no_download = Template(util.dedent("""
         New Version: $new_version_name
     </div>
 """).strip())
+
+duplicate_card = Template(util.dedent("""
+    <a href='#' onclick="remove_card(event, '$model_type', '$search_term')">
+        <div class='card' style=$style data-name="$name">
+            $background_image
+            <div class='actions'>
+                <div class='additional'>
+                    <span style="display:none">$search_term</span>
+                </div>
+                <span class='name'>$name</span>
+                <span class='description'>$description</span>
+            </div>
+        </div>
+    </a>
+""").strip())
+
+duplicate_preview = Template(util.dedent("""
+    <img src="./sd_extra_networks/thumb?filename=$bg_image" class="preview" loading="lazy">
+""").strip())
+
+duplicate_article = Template(util.dedent("""
+    <article>
+        <h1>
+            $section_name
+        </h1>
+        $contents
+    </article>
+""").strip())
+
+duplicate_row = Template(util.dedent("""
+    <div class=civitai_name>
+        <h2>
+            $civitai_name
+        </h2>
+    </div>
+    <div class=duplicate_model>
+        $columns
+    </div>
+""").strip())
+
+
+duplicate_column = Template(util.dedent("""
+        <div class=dup_$count>
+            $card
+        </div>
+""").strip())

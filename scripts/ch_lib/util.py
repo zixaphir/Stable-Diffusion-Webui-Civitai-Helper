@@ -156,13 +156,13 @@ def get_opts(key):
     return opts.data.get(key, None)
 
 
-def gen_file_sha256(filename:str) -> str:
+def gen_file_sha256(filename:str, use_addnet_hash=False) -> str:
     """ return a sha256 hash for a file """
 
     if get_opts("ch_use_sdwebui_sha256"):
         printD("Using SD Webui SHA256")
         name = get_name(filename)
-        return hashes.sha256(filename, name, use_addnet_hash=False)
+        return hashes.sha256(filename, name, use_addnet_hash=use_addnet_hash)
 
     # pip-style sha256 hash generation
     printD("Use Memory Optimized SHA256")

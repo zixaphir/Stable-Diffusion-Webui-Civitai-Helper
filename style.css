@@ -42,6 +42,14 @@ blockquote ol {
     background: rgba(0, 0, 0, 0.8);
 }
 
+.duplicate_model {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 10px;
+}
+
 /* Lobe theme */
 .actions .additional > a {
     display: none;
