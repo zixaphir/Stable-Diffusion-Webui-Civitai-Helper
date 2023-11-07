@@ -169,7 +169,7 @@ def download_progress(
     downloaded_this_session = 0
 
     # write to file
-    with open(dl_path, 'wb') as target, tqdm(
+    with open(dl_path, 'ab') as target, tqdm(
         total=total_size,
         unit='iB',
         unit_scale=True,
