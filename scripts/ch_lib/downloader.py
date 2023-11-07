@@ -272,7 +272,7 @@ def dl_file(
 
     # get file_path
     if not file_path:
-        if not (folder or os.path.isdir(folder)):
+        if not (folder and os.path.isdir(folder)):
             yield (
                 False,
                 "No directory to save model to."
