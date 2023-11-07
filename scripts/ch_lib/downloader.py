@@ -101,7 +101,8 @@ def download_progress(
     url:str,
     file_path:str,
     total_size:int,
-    headers:dict | None=None
+    headers:dict | None=None,
+    response_without_range:requests.Response | None=None
 ) -> Generator[tuple[bool, str] | str, None, None]:
     """
     Performs a file download.
@@ -123,35 +124,44 @@ def download_progress(
         downloaded_size = os.path.getsize(dl_path)
         util.printD(f"Resuming partially downloaded file from progress: {downloaded_size}")
 
-    # create header range
-    headers["Range"] = f"bytes={downloaded_size:d}-"
-    headers = util.append_default_headers(headers)
+    # use response without range or create request with range
+    if response_without_range and downloaded_size == 0:
+        response = response_without_range
+    else:
+        if response_without_range:
+            response_without_range.close()
 
-    # download with header
-    try:
-        success, response_or_error = request_get(
-            url,
-            headers=headers,
-        )
+        # create header range
+        headers_with_range = util.append_default_headers({
+            **headers,
+            "Range": f"bytes={downloaded_size:d}-",
+        })
 
-    except requests.HTTPError as dl_error:
-        # 416 - Range Not Satisfiable
-        response = dl_error.response
-        if not response or response.status_code != 416:
-            raise
+        # download with header
+        try:
+            success, response_or_error = request_get(
+                url,
+                headers=headers_with_range,
+            )
 
-        util.printD("Could not resume download from existing temporary file. Restarting download")
+        except requests.HTTPError as dl_error:
+            # 416 - Range Not Satisfiable
+            response = dl_error.response
+            if not response or response.status_code != 416:
+                raise
 
-        os.remove(dl_path)
+            util.printD("Could not resume download from existing temporary file. Restarting download")
 
-        yield from download_progress(url, file_path, total_size, headers)
-        return
+            os.remove(dl_path)
 
-    if not success:
-        yield (False, cast(str, response_or_error))
-        return
+            yield from download_progress(url, file_path, total_size, headers)
+            return
 
-    response = cast(requests.Response, response_or_error)
+        if not success:
+            yield (False, cast(str, response_or_error))
+            return
+
+        response = cast(requests.Response, response_or_error)
 
     last_tick = 0
     start = time.time()
@@ -271,59 +281,61 @@ def dl_file(
         return
 
     response = cast(requests.Response, response_or_error)
-    response.close()
 
     util.printD(f"Start downloading from: {url}")
 
-    # get file_path
-    if not file_path:
-        if not (folder and os.path.isdir(folder)):
-            yield (
-                False,
-                "No directory to save model to."
-            )
-            return
+    # close the response when the function ends
+    with response:
 
-        if filename:
-            file_path = os.path.join(folder, filename)
-        else:
-            file_path = get_file_path_from_service_headers(response, folder)
-
+        # get file_path
         if not file_path:
-            yield (
-                False,
-                "Could not get a file_path to place saved file."
-            )
-            return
+            if not (folder and os.path.isdir(folder)):
+                yield (
+                    False,
+                    "No directory to save model to."
+                )
+                return
 
-    util.printD(f"Target file path: {file_path}")
-    base, ext = os.path.splitext(file_path)
+            if filename:
+                file_path = os.path.join(folder, filename)
+            else:
+                file_path = get_file_path_from_service_headers(response, folder)
 
-    # duplicate handling
-    if os.path.isfile(file_path):
-        if duplicate == "Rename New":
-            # check if file is already exist
-            count = 2
-            new_base = base
-            while os.path.isfile(file_path):
-                util.printD("Target file already exist.")
-                # rename duplicate
-                new_base = f"{base}_{count}"
-                file_path = f"{new_base}{ext}"
-                count += 1
+            if not file_path:
+                yield (
+                    False,
+                    "Could not get a file_path to place saved file."
+                )
+                return
 
-        elif duplicate != "Overwrite":
-            yield (
-                False,
-                f"File {file_path} already exists! Download will not proceed."
-            )
-            return
+        util.printD(f"Target file path: {file_path}")
+        base, ext = os.path.splitext(file_path)
 
-    # get file size
-    total_size = int(response.headers['Content-Length'])
-    util.printD(f"File size: {total_size} ({human_readable_filesize(total_size)})")
+        # duplicate handling
+        if os.path.isfile(file_path):
+            if duplicate == "Rename New":
+                # check if file is already exist
+                count = 2
+                new_base = base
+                while os.path.isfile(file_path):
+                    util.printD("Target file already exist.")
+                    # rename duplicate
+                    new_base = f"{base}_{count}"
+                    file_path = f"{new_base}{ext}"
+                    count += 1
 
-    yield from download_progress(url, file_path, total_size, headers)
+            elif duplicate != "Overwrite":
+                yield (
+                    False,
+                    f"File {file_path} already exists! Download will not proceed."
+                )
+                return
+
+        # get file size
+        total_size = int(response.headers['Content-Length'])
+        util.printD(f"File size: {total_size} ({human_readable_filesize(total_size)})")
+
+        yield from download_progress(url, file_path, total_size, headers, response)
 
 
 def human_readable_filesize(size:int | float) -> str:
