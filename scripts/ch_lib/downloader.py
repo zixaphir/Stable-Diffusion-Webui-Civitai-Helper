@@ -2,9 +2,11 @@
 Used for downloading files
 """
 from __future__ import annotations
+from collections.abc import Generator
 import os
 import platform
 import time
+from typing import cast, Literal
 from tqdm import tqdm
 import requests
 import urllib3
@@ -18,10 +20,15 @@ MAX_RETRIES = 3
 urllib3.disable_warnings()
 
 
-def request_get(url:str, headers=None, retries=0) -> tuple[bool, requests.Response]:
+def request_get(
+    url:str,
+    headers:dict | None=None,
+    retries=0
+) -> tuple[Literal[True], requests.Response] | tuple[Literal[False], str]:
     """
     Performs a GET request
-    return: request
+
+    returns: tuple(success:bool, response:Response or failure message:str)
     """
 
     headers = util.append_default_headers(headers or {})
@@ -64,7 +71,7 @@ def request_get(url:str, headers=None, retries=0) -> tuple[bool, requests.Respon
             util.printD("Retrying")
             return request_get(url, headers, retries + 1)
 
-        return (False, response)
+        return (False, reason)
 
     return (True, response)
 
@@ -90,10 +97,16 @@ def visualize_progress(percent:int, downloaded:int, total:int, speed:int | float
     return f"`[{progress:<100}] {snippet}`".replace(" ", "\u00a0")
 
 
-def download_progress(url:str, file_path:str, total_size:int, headers=None) -> bool | float:
+def download_progress(
+    url:str,
+    file_path:str,
+    total_size:int,
+    headers:dict | None=None
+) -> Generator[tuple[bool, str] | str, None, None]:
     """
     Performs a file download.
-    returns: True or an error message.
+
+    yields: tuple(success:bool, filepath or failure message:str) or progress:str
     """
     # use a temp file for downloading
 
@@ -116,7 +129,7 @@ def download_progress(url:str, file_path:str, total_size:int, headers=None) -> b
 
     # download with header
     try:
-        success, response = request_get(
+        success, response_or_error = request_get(
             url,
             headers=headers,
         )
@@ -124,18 +137,21 @@ def download_progress(url:str, file_path:str, total_size:int, headers=None) -> b
     except requests.HTTPError as dl_error:
         # 416 - Range Not Satisfiable
         response = dl_error.response
-        if response.status_code != 416:
+        if not response or response.status_code != 416:
             raise
 
         util.printD("Could not resume download from existing temporary file. Restarting download")
 
         os.remove(dl_path)
 
-        for result in download_progress(url, file_path, total_size, headers):
-            yield result
+        yield from download_progress(url, file_path, total_size, headers)
+        return
 
     if not success:
-        yield (False, response)
+        yield (False, cast(str, response_or_error))
+        return
+
+    response = cast(requests.Response, response_or_error)
 
     last_tick = 0
     start = time.time()
@@ -203,7 +219,7 @@ def download_progress(url:str, file_path:str, total_size:int, headers=None) -> b
     yield (True, file_path)
 
 
-def get_file_path_from_service_headers(response:requests.Response, folder:str) -> str:
+def get_file_path_from_service_headers(response:requests.Response, folder:str) -> str | None:
     """
     Parses a response header to get a filename
     then builds a file_path.
@@ -233,26 +249,28 @@ def get_file_path_from_service_headers(response:requests.Response, folder:str) -
 # output is downloaded file path
 def dl_file(
     url:str,
-    folder=None,
-    filename=None,
-    file_path=None,
-    headers=None,
-    duplicate=None
-) -> tuple[bool, str]:
+    folder:str | None=None,
+    filename:str | None=None,
+    file_path:str | None=None,
+    headers:dict | None=None,
+    duplicate:str | None=None
+) -> Generator[tuple[bool, str] | str, None, None]:
     """
     Perform a download.
 
-    returns: tuple(success:bool, filepath or failure message:str)
+    yields: tuple(success:bool, filepath or failure message:str) or progress:str
     """
 
     if not headers:
         headers = {}
 
-    success, response = request_get(url, headers=headers)
+    success, response_or_error = request_get(url, headers=headers)
 
     if not success:
-        yield (False, response)
+        yield (False, cast(str, response_or_error))
+        return
 
+    response = cast(requests.Response, response_or_error)
     response.close()
 
     util.printD(f"Start downloading from: {url}")
@@ -264,6 +282,7 @@ def dl_file(
                 False,
                 "No directory to save model to."
             )
+            return
 
         if filename:
             file_path = os.path.join(folder, filename)
@@ -275,6 +294,7 @@ def dl_file(
                 False,
                 "Could not get a file_path to place saved file."
             )
+            return
 
     util.printD(f"Target file path: {file_path}")
     base, ext = os.path.splitext(file_path)
@@ -297,19 +317,13 @@ def dl_file(
                 False,
                 f"File {file_path} already exists! Download will not proceed."
             )
+            return
 
     # get file size
     total_size = int(response.headers['Content-Length'])
     util.printD(f"File size: {total_size} ({human_readable_filesize(total_size)})")
 
-    for result in download_progress(url, file_path, total_size, headers):
-        if not isinstance(result, str):
-            success, output = result
-            break
-
-        yield result
-
-    yield (success, output)
+    yield from download_progress(url, file_path, total_size, headers)
 
 
 def human_readable_filesize(size:int | float) -> str:
