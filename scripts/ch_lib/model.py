@@ -9,7 +9,6 @@ import piexif
 import piexif.helper
 from modules import shared
 from modules import paths_internal
-from modules.shared import opts
 from . import civitai
 from . import downloader
 from . import util
@@ -108,7 +107,7 @@ def metadata_needed_for_type(path, meta_type, refetch_old):
     """ return True if metadata is needed for path
     """
 
-    if meta_type == "sdwebui" and not opts.ch_dl_webui_metadata:
+    if meta_type == "sdwebui" and not util.get_opts("ch_dl_webui_metadata"):
         return False
 
     if not os.path.isfile(path):
@@ -128,8 +127,6 @@ def metadata_needed_for_type(path, meta_type, refetch_old):
             compat_version = util.COMPAT_VERSION_CIVITAI
         else:
             compat_version = util.COMPAT_VERSION_SDWEBUI
-
-        util.printD(f"{path}: {metadata_version}, {compat_version}")
 
         return util.newer_version(compat_version, metadata_version)
 
@@ -209,12 +206,12 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
         version_description = util.trim_html(version_description)
     model_info["description"] = version_description
 
-    tags = parent.get("tags", [])
-    parent["tags"] = tags
-
     # Create extension versioning information so that users
     # can replace stale info files without newer entries.
-    model_info["extensions"] = util.create_extension_block(model_info.get("extensions", {}))
+    model_info["extensions"] = util.create_extension_block(
+        model_info.get("extensions", None),
+        model_info.get("skeleton_file", False)
+    )
 
     # civitai model info file
     if metadata_needed_for_type(info_file, "civitai", refetch_old):
@@ -222,13 +219,15 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
             try:
                 if verify_overwrite_eligibility(info_file, model_info):
                     write_info(model_info, info_file, "civitai")
+
             except VersionMismatchException as e:
                 util.printD(f"{e}, aborting")
                 return
+
         else:
             write_info(model_info, info_file, "civitai")
 
-    if not opts.ch_dl_webui_metadata:
+    if not util.get_opts("ch_dl_webui_metadata"):
         return
 
     # Do not overwrite user-created files!
@@ -245,8 +244,6 @@ def process_sd15_info(sd15_file, model_info, parent, model_type, refetch_old):
 
     # sd v1.5 model info file
     sd_data = {}
-
-    util.printD(f"Write model SD webui info to file: {sd15_file}")
 
     sd_data["description"] = parent.get("description", "")
 
@@ -265,6 +262,7 @@ def process_sd15_info(sd15_file, model_info, parent, model_type, refetch_old):
     #
     # INFO: On Civitai, all models list base model/"sd version".
     # The SD WebUI interface only displays them for Lora/Lycoris.
+    #
     # I'm populating the field anyways in hopes it eventually gets
     # added.
     base_model = model_info.get("baseModel", None)
@@ -307,7 +305,10 @@ def process_sd15_info(sd15_file, model_info, parent, model_type, refetch_old):
     if model_type in ["lora", "lycoris"]:
         sd_data["preferred weight"] = 0
 
-    sd_data["extensions"] = util.create_extension_block(sd_data.get("extensions", None))
+    sd_data["extensions"] = util.create_extension_block(
+        model_info.get("extensions", None),
+        model_info.get("skeleton_file", False)
+    )
 
     if refetch_old:
         if verify_overwrite_eligibility(sd15_file, sd_data):

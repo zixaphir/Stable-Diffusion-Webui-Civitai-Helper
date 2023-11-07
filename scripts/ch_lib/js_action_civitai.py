@@ -4,7 +4,6 @@ handle msg between js and python side
 import os
 from pathlib import Path
 import webbrowser
-from modules.shared import opts
 from . import util
 from . import model
 from . import civitai
@@ -51,7 +50,7 @@ def open_model_url(msg):
         "url": ""
     }
 
-    if not opts.ch_open_url_with_js:
+    if not util.get_opts("ch_open_url_with_js"):
         util.printD(f"Open Url: {url}")
         # open url
         webbrowser.open_new_tab(url)
@@ -185,7 +184,8 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     if not result:
         output = "Parsing js msg failed"
         util.printD(output)
-        return output
+        yield output
+        return
 
     model_path = result["model_path"]
     version_id = result["version_id"]
@@ -201,7 +201,8 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
             {download_url=}
         """)
         util.printD(output)
-        return output
+        yield output
+        return
 
     util.printD(f"model_path: {model_path}")
     util.printD(f"version_id: {version_id}")
@@ -210,7 +211,8 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     if not os.path.isfile(model_path):
         output = f"model_path is not a file: {model_path}"
         util.printD(output)
-        return output
+        yield output
+        return
 
     # get model folder from model path
     model_folder = os.path.dirname(model_path)
@@ -218,29 +220,32 @@ def dl_model_new_version(msg, max_size_preview, nsfw_preview_threshold):
     success = False
     # download file + webui visible progress bar
     for result in downloader.dl_file(download_url, folder=model_folder):
-        if isinstance(result, str):
-            yield result
-            continue
-        success, _ = result
+        if not isinstance(result, str):
+            success, output = result
+            break
+
+        yield result
 
     if not success:
-        return "Model download failed. See console for more details."
+        util.printD(output)
+        yield "Model download failed. See console for more details."
+        return
 
     # get version info
     version_info = civitai.get_version_info_by_version_id(version_id)
 
     # now write version info to files
-    model.process_model_info(msg, version_info, model_type)
+    model.process_model_info(output, version_info, model_type)
 
     # then, get preview image
     for result in civitai.get_preview_image_by_model_path(
-        msg,
+        output,
         max_size_preview,
         nsfw_preview_threshold
     ):
         yield result
 
-    output = f"Done. Model downloaded to: {msg}"
+    output = f"Done. Model downloaded to: {output}"
     util.printD(output)
     yield output
 

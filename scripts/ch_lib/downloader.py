@@ -3,6 +3,7 @@ Used for downloading files
 """
 from __future__ import annotations
 import os
+import platform
 import time
 from tqdm import tqdm
 import requests
@@ -36,19 +37,30 @@ def request_get(url:str, headers=None, retries=0) -> tuple[bool, requests.Respon
         )
 
     except TimeoutError:
-        print(f"GET Request timed out for {url}")
-        return (False, None)
+        output = f"GET Request timed out for {url}"
+        print(output)
+        return (False, output)
 
     if not response.ok:
-        code = response.status_code
+        status_code = response.status_code
         reason = response.reason
         util.printD(util.indented_msg(
             f"""
             GET Request failed with error code:
-            {code}: {reason}
+            {status_code}: {reason}
             """
         ))
-        if response.status_code != 404 and retries < MAX_RETRIES:
+
+        if status_code == 401:
+            return (
+                False,
+                "This download requires Authentication. Please add an API Key to Civitai Helper's settings to continue this download. See [Wiki](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Civitai-API-Key) for details on how to create an API Key."
+            )
+
+        if status_code == 416:
+            response.raise_for_status()
+
+        if status_code != 404 and retries < MAX_RETRIES:
             util.printD("Retrying")
             return request_get(url, headers, retries + 1)
 
@@ -57,7 +69,7 @@ def request_get(url:str, headers=None, retries=0) -> tuple[bool, requests.Respon
     return (True, response)
 
 
-def visualize_progress(percent:int, downloaded, total, show_bar=True) -> str:
+def visualize_progress(percent:int, downloaded, total, speed, show_bar=True) -> str:
     """ Used to display progress in webui """
 
     percent_as_int = percent
@@ -65,7 +77,7 @@ def visualize_progress(percent:int, downloaded, total, show_bar=True) -> str:
     downloaded = f"{downloaded:>{len(total)}}"
     percent = f"{percent:>3}"
 
-    snippet = f"`{percent}%: {downloaded} / {total}`"
+    snippet = f"`{percent}%: {downloaded} / {total} @ {speed}`"
 
     if not show_bar:
         # Unfortunately showing a progress bar in webui
@@ -78,12 +90,16 @@ def visualize_progress(percent:int, downloaded, total, show_bar=True) -> str:
     return f"`[{progress:<100}] {snippet}`".replace(" ", "\u00a0")
 
 
-def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
+def download_progress(url:str, file_path:str, total_size:int, headers=None) -> bool | float:
     """
     Performs a file download.
     returns: True or an error message.
     """
     # use a temp file for downloading
+
+    if not headers:
+        headers = {}
+
     dl_path = f"{file_path}{DL_EXT}"
 
     util.printD(f"Downloading to temp file: {dl_path}")
@@ -95,20 +111,37 @@ def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
         util.printD(f"Resuming partially downloaded file from progress: {downloaded_size}")
 
     # create header range
-    headers = util.append_default_headers({
-        "Range": f"bytes={downloaded_size:d}-"
-    })
+    headers["Range"] = f"bytes={downloaded_size:d}-"
+    headers = util.append_default_headers(headers)
 
     # download with header
-    success, response = request_get(
-        url,
-        headers=headers,
-    )
+    try:
+        success, response = request_get(
+            url,
+            headers=headers,
+        )
+
+    except requests.HTTPError as dl_error:
+        # 416 - Range Not Satisfiable
+        response = dl_error.response
+        if response.status_code != 416:
+            raise
+
+        util.printD("Could not resume download from existing temporary file. Restarting download")
+
+        os.remove(dl_path)
+
+        for result in download_progress(url, file_path, total_size, headers):
+            yield result
 
     if not success:
-        return (False, "Could not get request headers.")
+        yield (False, response)
 
     last_tick = 0
+    start = time.time()
+
+    downloaded_this_session = 0
+
     # write to file
     with open(dl_path, 'wb') as target, tqdm(
         total=total_size,
@@ -118,6 +151,7 @@ def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
     ) as progress_bar:
         for chunk in response.iter_content(chunk_size=256*1024):
             if chunk:
+                downloaded_this_session += len(chunk)
                 downloaded_size += len(chunk)
                 written = target.write(chunk)
 
@@ -128,14 +162,33 @@ def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
 
                 percent = int(100 * (downloaded_size / total_size))
                 timer = time.time()
+
+                # Gradio output is a *slooowwwwwwww* asynchronous FIFO queue
                 if timer - last_tick > 0.2 or percent == 100:
-                    # Gradio output is a *slooowwwwwwww* asynchronous FIFO queue
+
                     last_tick = timer
+                    elapsed = timer - start
+                    speed = downloaded_this_session // elapsed if elapsed >= 1 \
+                        else downloaded_this_session
+
+                    # Mac reports filesizes in multiples of 1000
+                    # We should respect platform differences
+                    unit = 1000 if platform.system() == "Darwin" else 1024
+
+                    i = 0
+                    while speed > unit:
+                        i += 1
+                        speed = speed / unit
+                        if i >= 3:
+                            break
+
+                    speed = f'{round(speed, 2)}{["", "K", "M", "G"][i]}Bps'
 
                     text_progress = visualize_progress(
                         percent,
                         downloaded_size,
                         total_size,
+                        speed,
                         False
                     )
 
@@ -143,22 +196,24 @@ def download_progress(url:str, file_path:str, total_size:int) -> bool | float:
 
     # check file size
     downloaded_size = os.path.getsize(dl_path)
-    if downloaded_size < total_size:
-        output = util.indented_msg(
+    if downloaded_size != total_size:
+        warning = util.indented_msg(
             f"""
-            File is not the correct size.
+            File is not the correct size: {file_path}.
             Expected {total_size:d}, got {downloaded_size:d}.
-            Try again later or download it manually: {url}
+            The file may be corrupt. If you encounter issues,
+            you can try again later or download the file manually: {url}
             """
         )
-        return (False, output)
+        util.warning(warning)
+        util.printD(warning)
 
     # rename file
     os.rename(dl_path, file_path)
     output = f"File Downloaded to: {file_path}"
     util.printD(output)
 
-    yield (True, output)
+    yield (True, file_path)
 
 
 def get_file_path_from_service_headers(response:requests.Response, folder:str) -> str:
@@ -194,6 +249,7 @@ def dl_file(
     folder=None,
     filename=None,
     file_path=None,
+    headers=None,
     duplicate=None
 ) -> tuple[bool, str]:
     """
@@ -202,17 +258,22 @@ def dl_file(
     returns: tuple(success:bool, filepath or failure message:str)
     """
 
-    success, response = request_get(url)
+    if not headers:
+        headers = {}
+
+    success, response = request_get(url, headers=headers)
 
     if not success:
-        return (False, f"Failed to get file download headers for {url}")
+        yield (False, response)
+
+    response.close()
 
     util.printD(f"Start downloading from: {url}")
 
     # get file_path
     if not file_path:
         if not (folder or os.path.isdir(folder)):
-            return (
+            yield (
                 False,
                 "No directory to save model to."
             )
@@ -223,7 +284,7 @@ def dl_file(
             file_path = get_file_path_from_service_headers(response, folder)
 
         if not file_path:
-            return (
+            yield (
                 False,
                 "Could not get a file_path to place saved file."
             )
@@ -245,7 +306,7 @@ def dl_file(
                 count += 1
 
         elif duplicate != "Overwrite":
-            return (
+            yield (
                 False,
                 f"File {file_path} already exists! Download will not proceed."
             )
@@ -254,12 +315,14 @@ def dl_file(
     total_size = int(response.headers['Content-Length'])
     util.printD(f"File size: {total_size}")
 
-    for result in download_progress(url, file_path, total_size):
-        if isinstance(result, str):
-            yield result
-            continue
+    for result in download_progress(url, file_path, total_size, headers):
+        if not isinstance(result, str):
+            success, output = result
+            break
 
-    yield (True, file_path)
+        yield result
+
+    yield (success, output)
 
 
 def error(download_url:str, msg:str) -> str:

@@ -10,7 +10,6 @@ import modules
 from modules import scripts
 from modules import shared
 from modules import script_callbacks
-from modules.shared import opts
 from scripts.ch_lib import model
 from scripts.ch_lib import js_action_civitai
 from scripts.ch_lib import model_action_civitai
@@ -45,7 +44,7 @@ def on_ui_tabs():
     # init_py_msg_str = json.dumps(init_py_msg)
 
     # set proxy
-    proxy = opts.ch_proxy
+    proxy = util.get_opts("ch_proxy")
     if proxy:
         util.printD(f"Set Proxy: {proxy}")
         util.PROXIES["http"] = proxy
@@ -67,19 +66,32 @@ def on_ui_tabs():
     def get_model_info_by_url(url, subfolder):
         request = model_action_civitai.get_model_info_by_url(url)
 
+        ch_state = {
+            "model_info": {},
+            "filenames": {}
+        }
         model_info = {}
         model_name = ""
         model_type = ""
         subfolders = []
         version_strs = []
         if request:
-            model_info, model_name, model_type, subfolders, version_strs = request
+            model_info, model_name, model_type, filenames, subfolders, version_strs = request
 
         if subfolder == "" or subfolder not in subfolders:
             subfolder = "/"
 
+        ch_state["model_info"] = model_info
+
+        for filename, version in zip(filenames, version_strs):
+            ch_state["filenames"][version] = filename
+
+        file_parts = filenames[0].split(".")
+        ext = file_parts.pop()
+        base = ".".join(file_parts)
+
         return [
-            model_info, model_name, model_type,
+            ch_state, model_name, model_type,
             dl_subfolder_drop.update(
                 choices=subfolders,
                 value=subfolder
@@ -87,23 +99,58 @@ def on_ui_tabs():
             dl_version_drop.update(
                 choices=version_strs,
                 value=version_strs[0]
+            ),
+            dl_filename_txtbox.update(
+                value=base
+            ),
+            dl_extension_txtbox.update(
+                value=ext
             )
         ]
+
+    def update_dl_filename(dl_version, state):
+        filename = state["filenames"][dl_version]
+        if not filename:
+            filename = dl_filename_txtbox.value
+
+        file_parts = filename.split(".")
+        ext = file_parts.pop()
+        base = ".".join(file_parts)
+
+        return [
+            dl_filename_txtbox.update(
+                value=base
+            ),
+            dl_extension_txtbox.update(
+                value=ext
+            )
+        ]
+
+    def update_dl_filename_visibility(dl_all):
+        return dl_filename_txtbox.update(
+            visible=(not dl_all)
+        )
 
     # ====UI====
     with gr.Blocks(analytics_enabled=False) as civitai_helper:
     # with gr.Blocks(css=".block.padded {padding: 10px !important}") as civitai_helper:
 
         # init
-        max_size_preview = opts.ch_max_size_preview
-        nsfw_preview_threshold = opts.ch_nsfw_preview_threshold
-        proxy = opts.ch_proxy
+        max_size_preview = util.get_opts("ch_max_size_preview")
+        nsfw_preview_threshold = util.get_opts("ch_nsfw_preview_threshold")
+        proxy = util.get_opts("ch_proxy")
 
         model_types = list(model.folders.keys())
         no_info_model_names = civitai.get_model_names_by_input("ckp", False)
 
         # session data
-        dl_model_info = gr.State({})
+        # dl_model_info = gr.State({})
+        ch_state = gr.State({
+            "model_info": {},
+            "filenames": {
+                # dl_version_str: filename,
+            },
+        })
 
         with gr.Box(elem_classes="ch_box"):
             with gr.Column():
@@ -200,6 +247,7 @@ def on_ui_tabs():
                     dl_model_url_or_id_txtbox = gr.Textbox(
                         label="Civitai URL",
                         lines=1,
+                        max_lines=1,
                         value=""
                     )
                     dl_model_info_btn = gr.Button(
@@ -213,12 +261,14 @@ def on_ui_tabs():
                         label="Model Name",
                         interactive=False,
                         lines=1,
+                        max_lines=1,
                         value=""
                     )
                     dl_model_type_txtbox = gr.Textbox(
                         label="Model Type",
                         interactive=False,
                         lines=1,
+                        max_lines=1,
                         value=""
                     )
                     dl_subfolder_drop = gr.Dropdown(
@@ -247,6 +297,23 @@ def on_ui_tabs():
                         value=False,
                         elem_id="ch_dl_all_ckb",
                         elem_classes="ch_vpadding"
+                    )
+
+                with gr.Row():
+                    dl_filename_txtbox = gr.Textbox(
+                        label="Model filename",
+                        value="",
+                        lines=1,
+                        max_lines=1,
+                        elem_id="ch_dl_filename_txtbox",
+                        elem_classes="ch_vpadding",
+                        visible=(not dl_all_ckb.value)
+                    )
+                    dl_extension_txtbox = gr.Textbox(
+                        label="Model filename",
+                        value="",
+                        elem_id="ch_dl_extension_txtbox",
+                        visible=False
                     )
 
                 dl_civitai_model_by_id_btn = gr.Button(
@@ -376,20 +443,31 @@ def on_ui_tabs():
                 dl_model_url_or_id_txtbox, dl_subfolder_drop
             ],
             outputs=[
-                dl_model_info, dl_model_name_txtbox,
+                ch_state, dl_model_name_txtbox,
                 dl_model_type_txtbox, dl_subfolder_drop,
-                dl_version_drop
+                dl_version_drop, dl_filename_txtbox,
+                dl_extension_txtbox
             ]
         )
         dl_civitai_model_by_id_btn.click(
             model_action_civitai.dl_model_by_input,
             inputs=[
-                dl_model_info, dl_model_type_txtbox,
+                ch_state, dl_model_type_txtbox,
                 dl_subfolder_drop, dl_version_drop,
-                dl_all_ckb, max_size_preview_ckb,
+                dl_filename_txtbox, dl_extension_txtbox, dl_all_ckb, max_size_preview_ckb,
                 nsfw_preview_threshold_drop, dl_duplicate_drop
             ],
             outputs=dl_log_md
+        )
+        dl_version_drop.change(
+            update_dl_filename,
+            inputs=[dl_version_drop, ch_state],
+            outputs=[dl_filename_txtbox, dl_extension_txtbox]
+        )
+        dl_all_ckb.change(
+            update_dl_filename_visibility,
+            inputs=dl_all_ckb,
+            outputs=dl_filename_txtbox
         )
 
         # Check models' new version
@@ -446,13 +524,30 @@ def on_ui_tabs():
 def on_ui_settings():
     section = ('civitai_helper', "Civitai Helper")
     shared.opts.add_option(
+        "ch_civiai_api_key",
+        shared.OptionInfo(
+            "",
+            (
+                "API key for authenticating with Civitai. "
+                "This is required to download some models. "
+                "See Wiki for more details."
+            ),
+            gr.Textbox,
+            {"interactive": True, "max_lines": 1},
+            section=section
+        ).link(
+            "Wiki",
+            "https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Civitai-API-Key"
+        )
+    )
+    shared.opts.add_option(
         "ch_open_url_with_js",
         shared.OptionInfo(
             True,
             (
-                "Open model Url on the user's client side, rather than server side."
-                "If you are running WebUI locally, disabling this may open URLs in your"
-                "default internet browser if it is different than the one you are running"
+                "Open model Url on the user's client side, rather than server side. "
+                "If you are running WebUI locally, disabling this may open URLs in your "
+                "default internet browser if it is different than the one you are running "
                 "WebUI in"
             ),
             gr.Checkbox,
@@ -527,7 +622,7 @@ def on_ui_settings():
             "",
             "Proxy to use for fetching models and model data. Format:  http://127.0.0.1:port",
             gr.Textbox,
-            {"interactive": True},
+            {"interactive": True, "max_lines": 1},
             section=section)
     )
     shared.opts.add_option(

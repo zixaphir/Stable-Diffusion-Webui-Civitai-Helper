@@ -19,7 +19,7 @@ from packaging.version import parse as parse_version
 SHORT_NAME = "sd_civitai_helper"
 
 # current version of the exension
-VERSION = "1.7.6"
+VERSION = "1.7.8"
 
 # Civitai INFO files below this version will regenerated
 COMPAT_VERSION_CIVITAI = "1.7.2"
@@ -93,8 +93,7 @@ def indented_msg(msg:str) -> str:
 
 
 def delay(seconds:float) -> None:
-    """ delay before next request, mostly to prevent to be treated as DDoS """
-    printD(f"delay: {seconds} second")
+    """ delay before next request, mostly to prevent being treated as a DDoS """
     time.sleep(seconds)
 
 
@@ -151,10 +150,15 @@ def get_name(model_path:str) -> str:
     return f"lora/{model_name}"
 
 
+def get_opts(key):
+    """ return: option value """
+    return opts.data.get(key, None)
+
+
 def gen_file_sha256(filename:str) -> str:
     """ return a sha256 hash for a file """
 
-    if opts.ch_use_sdwebui_sha256:
+    if get_opts("ch_use_sdwebui_sha256"):
         printD("Using SD Webui SHA256")
         name = get_name(filename)
         return hashes.sha256(filename, name, use_addnet_hash=False)
@@ -357,7 +361,7 @@ def metadata_version(metadata:dict) -> str | bool:
         return False
 
 
-def create_extension_block(data=None) -> dict:
+def create_extension_block(data=None, skeleton=False) -> dict:
     """ Creates or edits an extensions block for usage in JSON files
         created or edited by this extension.
 
@@ -369,19 +373,15 @@ def create_extension_block(data=None) -> dict:
     block = {
         SHORT_NAME: {
             "version": VERSION,
-            "last_update": cur_time
+            "last_update": cur_time,
+            "skeleton_file": skeleton
         }
     }
 
     if not data:
         return block
 
-    if not data.get(SHORT_NAME, False):
-        data[SHORT_NAME] = block[SHORT_NAME]
-        return data
-
-    data[SHORT_NAME]["version"] = VERSION
-    data[SHORT_NAME]["last_update"] = cur_time
+    data[SHORT_NAME] = block[SHORT_NAME]
 
     return data
 
