@@ -69,15 +69,15 @@ def request_get(url:str, headers=None, retries=0) -> tuple[bool, requests.Respon
     return (True, response)
 
 
-def visualize_progress(percent:int, downloaded, total, speed, show_bar=True) -> str:
+def visualize_progress(percent:int, downloaded:int, total:int, speed:int | float, show_bar=True) -> str:
     """ Used to display progress in webui """
 
-    percent_as_int = percent
-    total = f"{total}"
-    downloaded = f"{downloaded:>{len(total)}}"
-    percent = f"{percent:>3}"
+    s_total = f"{total}"
+    s_downloaded = f"{downloaded:>{len(s_total)}}"
+    s_percent = f"{percent:>3}"
+    s_speed = f'{human_readable_filesize(speed)}Bps'
 
-    snippet = f"`{percent}%: {downloaded} / {total} @ {speed}`"
+    snippet = f"`{s_percent}%: {s_downloaded} / {s_total} @ {s_speed}`"
 
     if not show_bar:
         # Unfortunately showing a progress bar in webui
@@ -85,7 +85,7 @@ def visualize_progress(percent:int, downloaded, total, speed, show_bar=True) -> 
         # space
         return snippet.replace(" ", "\u00a0")
 
-    progress = "\u2588" * percent_as_int
+    progress = "\u2588" * percent
 
     return f"`[{progress:<100}] {snippet}`".replace(" ", "\u00a0")
 
@@ -170,19 +170,6 @@ def download_progress(url:str, file_path:str, total_size:int, headers=None) -> b
                     elapsed = timer - start
                     speed = downloaded_this_session // elapsed if elapsed >= 1 \
                         else downloaded_this_session
-
-                    # Mac reports filesizes in multiples of 1000
-                    # We should respect platform differences
-                    unit = 1000 if platform.system() == "Darwin" else 1024
-
-                    i = 0
-                    while speed > unit:
-                        i += 1
-                        speed = speed / unit
-                        if i >= 3:
-                            break
-
-                    speed = f'{round(speed, 2)}{["", "K", "M", "G"][i]}Bps'
 
                     text_progress = visualize_progress(
                         percent,
@@ -313,7 +300,7 @@ def dl_file(
 
     # get file size
     total_size = int(response.headers['Content-Length'])
-    util.printD(f"File size: {total_size}")
+    util.printD(f"File size: {total_size} ({human_readable_filesize(total_size)})")
 
     for result in download_progress(url, file_path, total_size, headers):
         if not isinstance(result, str):
@@ -323,6 +310,22 @@ def dl_file(
         yield result
 
     yield (success, output)
+
+
+def human_readable_filesize(size:int | float) -> str:
+    """ Convert file size to human readable text """
+    prefixes = ["", "K", "M", "G"]
+
+    # Mac reports filesizes in multiples of 1000
+    # We should respect platform differences
+    unit = 1000 if platform.system() == "Darwin" else 1024
+
+    i = 0
+    while size > unit and i < len(prefixes) - 1:
+        i += 1
+        size = size / unit
+
+    return f"{round(size, 2)}{prefixes[i]}"
 
 
 def error(download_url:str, msg:str) -> str:
