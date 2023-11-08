@@ -25,6 +25,31 @@ function ch_gradio_version() {
     }
 }
 
+/*
+ * Functions for scan for duplicates elements.
+ */
+
+let ch_path_el = null;
+function display_ch_path(event, path) {
+    if (!ch_path_el) {
+        ch_path_el = document.createElement("div");
+        ch_path_el.id = "ch_path_el";
+        document.body.appendChild(ch_path_el);
+    }
+
+    ch_path_el.textContent = path;
+    ch_path_el.style.display = "block";
+}
+
+function move_ch_path(event) {
+    ch_path_el.style.top = `calc(${event.clientY}px - 2em)`;
+    ch_path_el.style.left = `calc(${event.clientX}px + 2em)`;
+}
+
+function hide_ch_path(event) {
+    ch_path_el.style.display = "none";
+}
+
 
 // send msg to python side by filling a hidden text box
 // then will click a button to trigger an action
@@ -285,19 +310,45 @@ function use_preview_prompt(event, model_type, search_term) {
 }
 
 
+async function remove_dup_card(event, model_type, search_term) {
+    event.stopPropagation();
+    event.preventDefault();
+
+    let success = remove_card(event, model_type, search_term);
+
+    if (success === true) {
+        let parent = this.parentElement;
+
+        let sha256 = search_term.split(" ")[-1];
+        let row_id = `ch_${sha256}`;
+        let cards_id = `${row_id}_cards`;
+
+        row = document.getElementById(row_id);
+        cards = document.getElementById(cards_id);
+
+        cards.removeChild(parent);
+        if (cards.children.length < 2) {
+            row.parentElement.removeChild(row);
+        }
+
+        return;
+    }
+}
+
+
 async function remove_card(event, model_type, search_term) {
     console.log("start remove_card");
 
     //get hidden components of extension
     let js_remove_card_btn = gradioApp().getElementById("ch_js_remove_card_btn");
     if (!js_remove_card_btn) {
-        return;
+        return false;
     }
 
     // must confirm before removing
     let rm_confirm = "\nConfirm to remove this model and all related files. This process is irreversible.";
     if (!confirm(rm_confirm)) {
-        return;
+        return false;
     }
 
     //msg to python side
@@ -342,9 +393,11 @@ async function remove_card(event, model_type, search_term) {
 
     if (result == "Done") {
         refresh_cards_list();
+        return true;
     }
 
     console.log("end remove_card");
+    return false;
 
 }
 

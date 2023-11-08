@@ -46,7 +46,7 @@ no_download = Template(util.dedent("""
 """).strip())
 
 duplicate_card = Template(util.dedent("""
-    <a href='#' onclick="remove_card(event, '$model_type', '$search_term')">
+    <a href='#' onclick="remove_card(event, '$model_type', '$search_term')" onmouseover="display_ch_path(event, '$path')" onmouseout="hide_ch_path(event)" onmousemove="move_ch_path(event)">
         <div class='card' style=$style data-name="$name">
             $background_image
             <div class='actions'>
@@ -74,13 +74,15 @@ duplicate_article = Template(util.dedent("""
 """).strip())
 
 duplicate_row = Template(util.dedent("""
-    <div class=civitai_name>
-        <h2>
-            $civitai_name
-        </h2>
-    </div>
-    <div class=duplicate_model>
-        $columns
+    <div id="ch_$hash">
+        <div class=civitai_name>
+            <h2>
+                $civitai_name
+            </h2>
+        </div>
+        <div class=duplicate_model id="ch_${hash}_cards">
+            $columns
+        </div>
     </div>
 """).strip())
 

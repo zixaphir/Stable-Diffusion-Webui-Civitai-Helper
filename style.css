@@ -50,6 +50,20 @@ blockquote ol {
     gap: 10px;
 }
 
+#ch_path_el {
+    position: fixed;
+    border: var(--input-border-width) solid var(--input-border-color);
+    border-radius: var(--input-radius);
+    background: var(--input-background-fill);
+    padding: var(--input-padding);
+    color: var(--body-text-color);
+    font-weight: var(--input-text-weight);
+    font-size: var(--input-text-size);
+    line-height: var(--line-sm);
+    box-shadow: var(--input-shadow);
+    font-family:var(--font);
+}
+
 /* Lobe theme */
 .actions .additional > a {
     display: none;

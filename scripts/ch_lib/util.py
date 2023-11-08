@@ -10,6 +10,7 @@ import textwrap
 import time
 import subprocess
 import gradio as gr
+from modules import shared
 from modules.shared import opts
 from modules import hashes
 import launch
@@ -143,12 +144,11 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE) -> bytes:
         yield chunk
 
 
-def get_name(model_path:str) -> str:
-    """ return: lora/{model_name}:str """
+def get_name(model_path:str, model_type:str) -> str:
+    """ return: {model_type}/{model_name} """
 
-    _, filename = os.path.split(model_path)
-    model_name, _ = os.path.splitext(filename)
-    return f"lora/{model_name}"
+    model_name = os.path.splitext(os.path.basename(model_path))[0]
+    return f"{model_type}/{model_name}"
 
 
 def get_opts(key):
@@ -156,12 +156,17 @@ def get_opts(key):
     return opts.data.get(key, None)
 
 
-def gen_file_sha256(filename:str, use_addnet_hash=False) -> str:
+def gen_file_sha256(filename:str, model_type="lora", use_addnet_hash=False) -> str:
     """ return a sha256 hash for a file """
 
-    if get_opts("ch_use_sdwebui_sha256"):
+    if shared.cmd_opts.no_hashing:
+        printD("SD WebUI Civitai Helper requires hashing functions for this feature. \
+            Please remove the commandline argument `--no-hashing` for this functionality.")
+        return None
+
+    if get_opts("ch_use_a1111_sha256"):
         printD("Using SD Webui SHA256")
-        name = get_name(filename)
+        name = get_name(filename, model_type)
         return hashes.sha256(filename, name, use_addnet_hash=use_addnet_hash)
 
     # pip-style sha256 hash generation

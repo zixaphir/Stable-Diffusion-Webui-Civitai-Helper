@@ -676,14 +676,13 @@ def on_ui_settings():
             section=section)
     )
     shared.opts.add_option(
-        "ch_use_sdwebui_sha256",
+        "ch_use_a1111_sha256",
         shared.OptionInfo(
-            False,
+            True,
             (
                 "Use SD webui's built-in hashing functions for model hashes. "
-                "If SD webui was launced with `--no-hashing`, hashing will fail, "
-                "but this provides a hash cache, which should make repeat model "
-                "scanning faster."
+                "This provides a hash cache, which should make repeat model "
+                "scanning faster and make hashes reusable across features."
             ),
             gr.Checkbox,
             {"interactive": True},

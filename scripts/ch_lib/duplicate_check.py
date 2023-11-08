@@ -44,8 +44,6 @@ def scan_for_dups(scan_model_types, recalculate_hash):
 
 def gather_model_data(model_types, recalculate_hash):
     """ Collects model metadata files and parses them for metadata """
-    suffix = f"{civitai.SUFFIX}{model.CIVITAI_EXT}"
-    suffix_len = -len(suffix)
 
     models = {}
 
@@ -53,33 +51,46 @@ def gather_model_data(model_types, recalculate_hash):
         if model_type not in model_types:
             continue
 
-        models_of_type = []
-
-        util.printD(f"Scanning path: {model_folder}")
-        for root, _, files in os.walk(model_folder, followlinks=True):
-            for filename in files:
-                try:
-                    if filename[suffix_len:] == suffix:
-                        data = parse_metadata(root, filename, suffix, model_type, recalculate_hash)
-                        if data:
-                            models_of_type.append(data)
-
-                except (IndexError, KeyError, ValueError):
-                    util.printD(f"Error occurred on file `{root}/{filename}`")
-                    traceback.print_exc()
-                    util.printD("You can probably ignore this")
-                    continue
-
-        models[model_type] = models_of_type
+        models[model_type] = scan_dir(model_folder, model_type, recalculate_hash)
 
     return models
 
+def scan_dir(model_folder, model_type, recalculate_hash):
+    """
+        Scans dir for models and their metadata
+    """
 
-def parse_metadata(root, filename, suffix, model_type, recalculate_hash):
+    suffix = f"{civitai.SUFFIX}{model.CIVITAI_EXT}"
+    suffix_len = -len(suffix)
+
+    metadata = []
+    util.printD(f"Scanning path: {model_folder}")
+    for root, _, files in os.walk(model_folder, followlinks=True):
+        for filename in files:
+            try:
+                if filename[suffix_len:] == suffix:
+                    data = parse_metadata(model_folder, root, filename, suffix, model_type, recalculate_hash)
+                    if data:
+                        metadata.append(data)
+
+            except (IndexError, KeyError, ValueError):
+                util.printD(f"Error occurred on file `{root}/{filename}`")
+                traceback.print_exc()
+                util.printD("You can probably ignore this")
+                continue
+
+    return metadata
+
+
+def parse_metadata(model_folder, root, filename, suffix, model_type, recalculate_hash):
     """ Parses model JSON file for hash / other metadata """
+
+    metadata = {}
 
     filepath = f"{root}/{filename}"
     model_name = filename[:-len(suffix)]
+
+    util.printD(f"Processing {model_name}")
 
     with open(filepath) as file:
         try:
@@ -89,7 +100,7 @@ def parse_metadata(root, filename, suffix, model_type, recalculate_hash):
 
     model_file = model_info["files"][0]
     model_ext = model_file["name"].split(".").pop()
-    civitai_name = model_info["model"]["name"]
+
     description = None
 
     # Backwards compatibility with older model info files
@@ -111,34 +122,68 @@ def parse_metadata(root, filename, suffix, model_type, recalculate_hash):
             util.printD(f"No model path found for {filepath}")
             return None
 
-    sha256 = model_file["hashes"].get("SHA256", None)
-    if not sha256:
-        recalculate_hash = True
-        util.printD(f"No sha256 hash in metadata for {filepath}. \
-                    \n\tGenerating one. This will be slower")
-
-    if recalculate_hash:
-        use_addnet_hash = model_path.lower().endswith(".safetensors")
-        try:
-            sha256 = util.gen_file_sha256(model_path, use_addnet_hash=use_addnet_hash).upper()
-        except OSError:
-            # Perhaps an incorrectly named ckpt?
-            sha256 = util.gen_file_sha256(model_path, use_addnet_hash=False).upper()
+    sha256 = get_hash(model_path, model_file, model_ext, model_type, recalculate_hash)
 
 
-    search_term = f"{model_path} {sha256}"
-
-    search_term = make_search_term(model_type, model_path, sha256)
-
-    return {
-        "civitai_name": civitai_name,
+    metadata = {
         "model_name": model_name,
+        "civitai_name": model_info["model"]["name"],
         "description": description,
         "model_path": model_path,
-        "search_term": search_term,
+        "subpath": model_path[len(model_folder):],
         "model_type": model_type,
-        "hash": sha256
+        "hash": sha256,
+        "search_term": make_search_term(model_type, model_path, sha256)
     }
+
+    return metadata
+
+
+def get_hash(model_path, model_file, model_ext, model_type, recalculate_hash):
+    """
+        Get or calculate hash of `model_path/model_file`
+    """
+
+    if not recalculate_hash:
+        sha256 = None
+        try:
+            sha256 = model_file["hashes"]["SHA256"]
+
+        except (KeyError, ValueError):
+            pass
+
+        if sha256:
+            return sha256
+
+        util.printD(f"No sha256 hash in metadata for {model_file}. \
+                \n\tGenerating one. This will be slower")
+
+    use_addnet_hash = model_ext.lower() == ".safetensors"
+    model_hash_type = {
+        "ckp": "checkpoint",
+        "ti": "textual_inversion",
+        "hyper": "hypernet",
+        "lora": "lora",
+        "lycoris": "lycoris"
+    }[model_type]
+
+    while True:
+        try:
+            sha256 = util.gen_file_sha256(
+                model_path,
+                model_type=model_hash_type,
+                use_addnet_hash=use_addnet_hash
+            ).upper()
+
+        except OSError:
+            if use_addnet_hash:
+                # Perhaps an incorrectly named ckp?
+                use_addnet_hash = False
+                continue
+        break
+
+
+    return sha256
 
 
 def make_search_term(model_type, model_path, sha256):
@@ -151,41 +196,26 @@ def make_search_term(model_type, model_path, sha256):
     if not subpath.startswith("/"):
         subpath = f"/{subpath}"
 
-    if model_type in ["ckp", "ti", "lora", "lycoris"]:
-        return f"{subpath} {sha256}"
-
-    if model_type == "hypernetwork":
+    if model_type == "hyper":
         snippet = subpath.split(".")
         snippet.pop()
         subpath = ".".join(snippet)
         return f"{subpath}"
 
-    return None
+    # All other supported model types seem to use this format
+    return f"{subpath} {sha256}"
 
 
 def locate_model_from_partial(root, model_name):
-    """ Tries to locate a model if the extension
+    """
+        Tries to locate a model if the extension
         doesn't match the metadata
     """
 
-    model_exts = [
-        "bin",
-        "pt",
-        "ckpt",
-        "safetensors"
-    ]
-
-    model_name_length = len(model_name)
-    for file in os.listdir(root):
-        if (
-            not os.path.isfile(f"{root}/{file}")
-            or len(file) < model_name_length
-            or file[:model_name_length] != model_name
-        ):
-            continue
-
-        if file.split(".").pop() in model_exts:
-            return f"{root}/{file}"
+    for ext in model.EXTS:
+        filename = f"{root}/{model_name}{ext}"
+        if os.path.isfile(filename):
+            return filename
 
     return None
 
@@ -246,6 +276,7 @@ def make_model_card(model_data):
     bg_image = get_preview(model_data["model_path"])
     style = "font-size:100%"
     model_name = model_data["model_name"]
+    subpath = model_data["subpath"]
     description = html.escape(model_data["description"])
     search_term = model_data["search_term"]
     model_type = model_data["model_type"]
@@ -253,6 +284,7 @@ def make_model_card(model_data):
     card = card_t.substitute(
         style=style,
         name=model_name,
+        path=subpath,
         background_image=bg_image,
         description=description,
         search_term=search_term,
@@ -275,6 +307,7 @@ def create_dups_html(dups):
         rows = []
         for dup_data in models_of_type.values():
             civitai_name = ""
+            sha256 = ""
 
             columns = []
             for count, model_data in enumerate(dup_data):
@@ -282,27 +315,30 @@ def create_dups_html(dups):
 
                 column = column_t.substitute(
                     count=count,
-                    card=card,
+                    card=card
                 )
 
                 columns.append(column)
 
                 if model_data["civitai_name"] and not civitai_name:
                     civitai_name = model_data["civitai_name"]
+                    sha256 = model_data["hash"]
 
             rows.append(
                 row_t.substitute(
                     civitai_name=civitai_name,
+                    hash=sha256,
                     columns="".join(columns)
                 )
             )
 
-        articles.append(
-            article_t.substitute(
-                section_name=model_type,
-                contents="".join(rows)
+        if len(rows) > 0:
+            articles.append(
+                article_t.substitute(
+                    section_name=model_type,
+                    contents="".join(rows)
+                )
             )
-        )
 
     if len(articles) < 1:
         return "Found no duplicate models!"
