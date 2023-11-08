@@ -122,7 +122,7 @@ def parse_metadata(model_folder, root, filename, suffix, model_type, recalculate
             util.printD(f"No model path found for {filepath}")
             return None
 
-    sha256 = get_hash(model_path, model_file, model_ext, model_type, recalculate_hash)
+    sha256 = get_hash(model_path, model_file, model_type, recalculate_hash)
 
 
     metadata = {
@@ -139,7 +139,7 @@ def parse_metadata(model_folder, root, filename, suffix, model_type, recalculate
     return metadata
 
 
-def get_hash(model_path, model_file, model_ext, model_type, recalculate_hash):
+def get_hash(model_path, model_file, model_type, recalculate_hash):
     """
         Get or calculate hash of `model_path/model_file`
     """
@@ -223,6 +223,11 @@ def check_for_dups(models):
         scanned_type = scanned[model_type]
         for model_data in models_of_type:
             sha256 = model_data["hash"]
+
+            if model_type == "lycoris":
+                if is_lycoris_lora(model_data, scanned):
+                    continue
+
             if not scanned_type.get(sha256, None):
                 scanned_type[sha256] = [model_data]
                 continue
@@ -321,15 +326,45 @@ def create_dups_html(dups):
                 )
             )
 
+        content = ""
         if len(rows) > 0:
-            articles.append(
-                article_t.substitute(
-                    section_name=model_type,
-                    contents="".join(rows)
-                )
+            content = "".join(rows)
+        else:
+            content = f"No duplicate {model_type}s found!"
+
+        articles.append(
+            article_t.substitute(
+                section_name=model_type,
+                contents=content
             )
+        )
 
     if len(articles) < 1:
         return "Found no duplicate models!"
 
     return "".join(articles)
+
+
+def is_lycoris_lora(lyco, models):
+    """
+        Compares a lycoris model to scanned loras to ensure that they're not the same file.
+    """
+    loras = None
+    try:
+        loras = models["lora"][lyco["hash"]]
+
+    except (KeyError, ValueError):
+        return False
+
+    try:
+        lyco_path = os.path.realpath(lyco["model_path"], strict=True)
+
+        for lora in loras:
+            lora_path = os.path.realpath(lora["model_path"], strict=True)
+            if lyco_path == lora_path:
+                return True
+
+    except OSError:
+        return False
+
+    return False
