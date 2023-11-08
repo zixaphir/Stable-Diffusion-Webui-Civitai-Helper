@@ -158,7 +158,6 @@ def get_hash(model_path, model_file, model_ext, model_type, recalculate_hash):
         util.printD(f"No sha256 hash in metadata for {model_file}. \
                 \n\tGenerating one. This will be slower")
 
-    use_addnet_hash = model_ext.lower() == ".safetensors"
     model_hash_type = {
         "ckp": "checkpoint",
         "ti": "textual_inversion",
@@ -167,21 +166,11 @@ def get_hash(model_path, model_file, model_ext, model_type, recalculate_hash):
         "lycoris": "lycoris"
     }[model_type]
 
-    while True:
-        try:
-            sha256 = util.gen_file_sha256(
-                model_path,
-                model_type=model_hash_type,
-                use_addnet_hash=use_addnet_hash
-            ).upper()
-
-        except OSError:
-            if use_addnet_hash:
-                # Perhaps an incorrectly named ckp?
-                use_addnet_hash = False
-                continue
-        break
-
+    sha256 = util.gen_file_sha256(
+        model_path,
+        model_type=model_hash_type,
+        use_addnet_hash=False
+    ).upper()
 
     return sha256
 
