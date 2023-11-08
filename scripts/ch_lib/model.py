@@ -245,8 +245,6 @@ def process_sd15_info(sd15_file, model_info, parent, model_type, refetch_old):
     # sd v1.5 model info file
     sd_data = {}
 
-    util.printD(f"Write model SD webui info to file: {sd15_file}")
-
     sd_data["description"] = parent.get("description", "")
 
     # I suppose notes are more for user notes, but populating it

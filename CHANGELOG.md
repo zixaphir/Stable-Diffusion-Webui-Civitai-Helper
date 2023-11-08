@@ -1,4 +1,8 @@
 # Change Log
+## 1.7.8
+* Model Downloader now supports changing the filename before downloading.
+* If a download cannot be resumed, it will now be restarted.
+
 ## 1.7.7
 * Implemented authentication via API Key.
   * This allows the user to download models that require authentication.
