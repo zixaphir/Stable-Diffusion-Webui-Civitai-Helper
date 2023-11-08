@@ -1,4 +1,6 @@
 # Change Log
+* Downloader fixes from [Milly](https://github.com/Milly).
+
 ## 1.7.8
 * Model Downloader now supports changing the filename before downloading.
 * If a download cannot be resumed, it will now be restarted.
