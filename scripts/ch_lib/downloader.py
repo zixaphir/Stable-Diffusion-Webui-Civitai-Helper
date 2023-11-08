@@ -170,6 +170,7 @@ def download_progress(
 
     # write to file
     with open(dl_path, 'ab') as target, tqdm(
+        initial=target.tell(),
         total=total_size,
         unit='iB',
         unit_scale=True,
