@@ -12,7 +12,7 @@ from . import civitai
 from . import templates
 
 
-def scan_for_dups(scan_model_types, recalculate_hash):
+def scan_for_dups(scan_model_types, cached_hash):
     """ Scans model metadata to detect duplicates
         by using the model hash.
     """
@@ -34,7 +34,7 @@ def scan_for_dups(scan_model_types, recalculate_hash):
     else:
         model_types = scan_model_types
 
-    models = gather_model_data(model_types, recalculate_hash)
+    models = gather_model_data(model_types, cached_hash)
     dups = check_for_dups(models)
 
     output = create_dups_html(dups)
@@ -42,7 +42,7 @@ def scan_for_dups(scan_model_types, recalculate_hash):
     return f"<section class=extra-network-cards>{output}</section>"
 
 
-def gather_model_data(model_types, recalculate_hash):
+def gather_model_data(model_types, cached_hash):
     """ Collects model metadata files and parses them for metadata """
 
     models = {}
@@ -51,11 +51,11 @@ def gather_model_data(model_types, recalculate_hash):
         if model_type not in model_types:
             continue
 
-        models[model_type] = scan_dir(model_folder, model_type, recalculate_hash)
+        models[model_type] = scan_dir(model_folder, model_type, cached_hash)
 
     return models
 
-def scan_dir(model_folder, model_type, recalculate_hash):
+def scan_dir(model_folder, model_type, cached_hash):
     """
         Scans dir for models and their metadata
     """
@@ -69,7 +69,7 @@ def scan_dir(model_folder, model_type, recalculate_hash):
         for filename in files:
             try:
                 if filename[suffix_len:] == suffix:
-                    data = parse_metadata(model_folder, root, filename, suffix, model_type, recalculate_hash)
+                    data = parse_metadata(model_folder, root, filename, suffix, model_type, cached_hash)
                     if data:
                         metadata.append(data)
 
@@ -82,7 +82,7 @@ def scan_dir(model_folder, model_type, recalculate_hash):
     return metadata
 
 
-def parse_metadata(model_folder, root, filename, suffix, model_type, recalculate_hash):
+def parse_metadata(model_folder, root, filename, suffix, model_type, cached_hash):
     """ Parses model JSON file for hash / other metadata """
 
     metadata = {}
@@ -118,11 +118,11 @@ def parse_metadata(model_folder, root, filename, suffix, model_type, recalculate
     if not os.path.isfile(model_path):
         model_path = locate_model_from_partial(root, model_name)
 
-        if not model_path or not os.path.isfile(model_path):
+        if not (model_path and os.path.isfile(model_path)):
             util.printD(f"No model path found for {filepath}")
             return None
 
-    sha256 = get_hash(model_path, model_file, model_type, recalculate_hash)
+    sha256 = get_hash(model_path, model_file, model_type, cached_hash)
 
 
     metadata = {
@@ -139,15 +139,15 @@ def parse_metadata(model_folder, root, filename, suffix, model_type, recalculate
     return metadata
 
 
-def get_hash(model_path, model_file, model_type, recalculate_hash):
+def get_hash(model_path, model_file, model_type, cached_hash):
     """
         Get or calculate hash of `model_path/model_file`
     """
 
-    if not recalculate_hash:
-        sha256 = None
+    sha256 = None
+    if cached_hash:
         try:
-            sha256 = model_file["hashes"]["SHA256"]
+            sha256 = model_file["hashes"]["SHA256"].upper()
 
         except (KeyError, ValueError):
             pass

@@ -335,10 +335,10 @@ def on_ui_tabs():
                             label="Model Types",
                             value=model_types
                         )
-                        calculate_hash_ckb = gr.Checkbox(
-                            label="Recalculate hash for determining duplicates (slower, but more accurate)",
+                        cached_hash_ckb = gr.Checkbox(
+                            label="Use Hash from Metadata (May have false-positives but can be useful if you've pruned models)",
                             value=False,
-                            elem_id="ch_recalculate_hash_ckb"
+                            elem_id="ch_cached_hash_ckb"
                         )
 
                 # with gr.Row():
@@ -505,7 +505,7 @@ def on_ui_tabs():
             duplicate_check.scan_for_dups,
             inputs=[
                 scan_dup_model_types_drop,
-                calculate_hash_ckb
+                cached_hash_ckb
             ],
             outputs=scan_dup_model_log_md
         )
