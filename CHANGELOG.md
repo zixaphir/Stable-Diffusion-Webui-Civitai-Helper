@@ -1,4 +1,5 @@
 # Change Log
+## 1.7.9
 * Downloader fixes from [Milly](https://github.com/Milly).
 
 ## 1.7.8
