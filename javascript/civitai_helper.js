@@ -774,15 +774,15 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
             let page = active_tab_type;
             let type = getLongModelTypeFromShort(model_type);
             let name = card.dataset.name;
-            child.el.setAttribute("onclick", `${child.func}(e, '${page}', '${type}', '${name}')`);
+            child.el.setAttribute("onclick", `${child.func}(event, '${page}', '${type}', '${name}')`);
             continue;
         }
         if (child.func == "rename_card") {
             let name = card.dataset.name;
-            child.el.setAttribute("onclick", `${child.func}(e, '${model_type}', '${search_term}', '${name}')`);
+            child.el.setAttribute("onclick", `${child.func}(event, '${model_type}', '${search_term}', '${name}')`);
             continue;
         }
-        child.el.setAttribute("onclick", `${child.func}(e, '${model_type}', '${search_term}')`);
+        child.el.setAttribute("onclick", `${child.func}(event, '${model_type}', '${search_term}')`);
     }
 
     additional_node.appendChild(ul_node);
