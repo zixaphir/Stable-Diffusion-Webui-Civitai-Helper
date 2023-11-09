@@ -62,6 +62,7 @@ blockquote ol {
     line-height: var(--line-sm);
     box-shadow: var(--input-shadow);
     font-family:var(--font);
+    pointer-events: none;
 }
 
 /* Lobe theme */
