@@ -828,7 +828,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         // waste memory by keeping all of this in scope, per card.
         let page = active_tab_type;
         let type = js_model_type;
-        let name = card.dataset.name;
+        let name = card.dataset.name.replace("'", "\\'");
 
         // create the replace_preview_btn, as it no longer exists
         replace_preview_btn = document.createElement("a");
