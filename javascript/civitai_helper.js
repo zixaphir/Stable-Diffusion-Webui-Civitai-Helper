@@ -859,7 +859,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     }
 
     // get search_term
-    search_term = search_term_node.textContent;
+    search_term = search_term_node.textContent.replace("'", "\\'");
     if (!search_term) {
         console.log("search_term is empty for cards in " + active_tab_type + "_" + active_extra_tab_type + "_cards");
         return;

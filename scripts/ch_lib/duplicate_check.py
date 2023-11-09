@@ -270,10 +270,12 @@ def make_model_card(model_data):
     bg_image = get_preview(model_data["model_path"])
     style = "font-size:100%"
     model_name = model_data["model_name"]
-    subpath = model_data["subpath"]
+    subpath = model_data["subpath"].replace("'", "\\'")
     description = html.escape(model_data["description"])
-    search_term = model_data["search_term"]
+    search_term = model_data["search_term"].replace("'", "\\'")
     model_type = model_data["model_type"]
+
+    util.printD(subpath)
 
     card = card_t.substitute(
         style=style,
