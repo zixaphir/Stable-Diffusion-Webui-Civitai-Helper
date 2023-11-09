@@ -14,6 +14,7 @@ from scripts.ch_lib import model
 from scripts.ch_lib import js_action_civitai
 from scripts.ch_lib import model_action_civitai
 from scripts.ch_lib import civitai
+from scripts.ch_lib import duplicate_check
 from scripts.ch_lib import util
 
 # init
@@ -200,7 +201,7 @@ def on_ui_tabs():
 
                 # with gr.Row():
                 scan_model_log_md = gr.Markdown(
-                    value="Scanning takes time, just wait. Check console log for detail",
+                    value="Scanning takes time, just wait. Check console log for details",
                     elem_id="ch_scan_model_log_md"
                 )
 
@@ -326,6 +327,35 @@ def on_ui_tabs():
 
         with gr.Box(elem_classes="ch_box"):
             with gr.Column():
+                gr.Markdown("### Scan for duplicate models")
+                with gr.Row():
+                    with gr.Column():
+                        scan_dup_model_types_drop = gr.CheckboxGroup(
+                            choices=model_types,
+                            label="Model Types",
+                            value=model_types
+                        )
+                        cached_hash_ckb = gr.Checkbox(
+                            label="Use Hash from Metadata (May have false-positives but can be useful if you've pruned models)",
+                            value=False,
+                            elem_id="ch_cached_hash_ckb"
+                        )
+
+                # with gr.Row():
+                scan_dup_model_btn = gr.Button(
+                    value="Scan",
+                    variant="primary",
+                    elem_id="ch_scan_dup_model_civitai_btn"
+                )
+
+                # with gr.Row():
+                scan_dup_model_log_md = gr.HTML(
+                    value="Scanning takes time, just wait. Check console log for details",
+                    elem_id="ch_scan_dup_model_log_md"
+                )
+
+        with gr.Box(elem_classes="ch_box"):
+            with gr.Column():
                 gr.Markdown("### Check models' new version")
                 with gr.Row():
                     model_types_ckbg = gr.CheckboxGroup(
@@ -341,7 +371,7 @@ def on_ui_tabs():
                     )
 
                 check_models_new_version_log_md = gr.HTML(
-                    "It takes time, just wait. Check console log for detail"
+                    "It takes time, just wait. Check console log for details"
                 )
 
         # ====Footer====
@@ -468,6 +498,16 @@ def on_ui_tabs():
             update_dl_filename_visibility,
             inputs=dl_all_ckb,
             outputs=dl_filename_txtbox
+        )
+
+        # Scan Duplicate Models
+        scan_dup_model_btn.click(
+            duplicate_check.scan_for_dups,
+            inputs=[
+                scan_dup_model_types_drop,
+                cached_hash_ckb
+            ],
+            outputs=scan_dup_model_log_md
         )
 
         # Check models' new version
@@ -626,14 +666,13 @@ def on_ui_settings():
             section=section)
     )
     shared.opts.add_option(
-        "ch_use_sdwebui_sha256",
+        "ch_use_a1111_sha256",
         shared.OptionInfo(
-            False,
+            True,
             (
                 "Use SD webui's built-in hashing functions for model hashes. "
-                "If SD webui was launced with `--no-hashing`, hashing will fail, "
-                "but this provides a hash cache, which should make repeat model "
-                "scanning faster."
+                "This provides a hash cache, which should make repeat model "
+                "scanning faster and make hashes reusable across features."
             ),
             gr.Checkbox,
             {"interactive": True},

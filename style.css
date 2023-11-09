@@ -42,6 +42,29 @@ blockquote ol {
     background: rgba(0, 0, 0, 0.8);
 }
 
+.duplicate_model {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+#ch_path_el {
+    position: fixed;
+    border: var(--input-border-width) solid var(--input-border-color);
+    border-radius: var(--input-radius);
+    background: var(--input-background-fill);
+    padding: var(--input-padding);
+    color: var(--body-text-color);
+    font-weight: var(--input-text-weight);
+    font-size: var(--input-text-size);
+    line-height: var(--line-sm);
+    box-shadow: var(--input-shadow);
+    font-family:var(--font);
+    pointer-events: none;
+}
+
 /* Lobe theme */
 .actions .additional > a {
     display: none;
@@ -55,7 +78,6 @@ blockquote ol {
     margin: 0px 2px !important;
     padding: 2px !important;
     font-size: 150% !important;
-
 }
 
 /* Work around a display bug in Lobe that causes lowers opacity to 0.2 */

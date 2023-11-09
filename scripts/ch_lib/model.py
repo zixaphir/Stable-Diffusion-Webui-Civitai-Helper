@@ -330,7 +330,7 @@ def load_model_info(path):
     return model_info
 
 
-def get_potential_model_preview_files(model_path):
+def get_potential_model_preview_files(model_path, all_prevs=False):
     """
     Find existing preview images, if any.
 
@@ -345,6 +345,8 @@ def get_potential_model_preview_files(model_path):
     base, _ = os.path.splitext(model_path)
 
     for ext in preview_exts:
+        if all_prevs:
+            preview_files.append(f"{base}.{ext}")
         preview_files.append(f"{base}.preview.{ext}")
 
     return preview_files

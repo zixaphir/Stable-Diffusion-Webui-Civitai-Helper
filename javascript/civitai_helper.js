@@ -35,6 +35,32 @@ function ch_gradio_version() {
 }
 
 
+/*
+ * Functions for scan for duplicates elements.
+ */
+
+let ch_path_el = null;
+window.display_ch_path = function(_, path) {
+    if (!ch_path_el) {
+        ch_path_el = document.createElement("div");
+        ch_path_el.id = "ch_path_el";
+        document.body.appendChild(ch_path_el);
+    }
+
+    ch_path_el.textContent = path;
+    ch_path_el.style.display = "block";
+}
+
+window.move_ch_path = function(e) {
+    ch_path_el.style.top = `calc(${e.clientY}px - 2em)`;
+    ch_path_el.style.left = `calc(${e.clientX}px + 2em)`;
+}
+
+window.hide_ch_path = function(_) {
+    ch_path_el.style.display = "none";
+}
+
+
 // send msg to python side by filling a hidden text box
 // then will click a button to trigger an action
 // msg is an object, not a string, will be stringify in this function
@@ -133,11 +159,11 @@ function getActiveNegativePrompt() {
 
 
 //button's click function
-window.open_model_url = async function(event, model_type, search_term) {
+window.open_model_url = async function(e, model_type, search_term) {
     console.log("start open_model_url");
 
     // stop parent event
-    stopEvent(event);
+    stopEvent(e);
 
     //get hidden components of extension
     let js_open_url_btn = gradioApp().getElementById("ch_js_open_url_btn");
@@ -180,11 +206,11 @@ window.open_model_url = async function(event, model_type, search_term) {
 }
 
 
-window.add_trigger_words = function(event, model_type, search_term) {
+window.add_trigger_words = function(e, model_type, search_term) {
     console.log("start add_trigger_words");
 
     // stop parent event
-    stopEvent(event);
+    stopEvent(e);
 
     //get hidden components of extension
     let js_add_trigger_words_btn = gradioApp().getElementById("ch_js_add_trigger_words_btn");
@@ -214,11 +240,11 @@ window.add_trigger_words = function(event, model_type, search_term) {
 }
 
 
-window.use_preview_prompt = function(event, model_type, search_term) {
+window.use_preview_prompt = function(e, model_type, search_term) {
     console.log("start use_preview_prompt");
 
     // stop parent event
-    stopEvent(event);
+    stopEvent(e);
 
     //get hidden components of extension
     const js_use_preview_prompt_btn = gradioApp().getElementById("ch_js_use_preview_prompt_btn");
@@ -249,22 +275,51 @@ window.use_preview_prompt = function(event, model_type, search_term) {
 }
 
 
-window.remove_card = async function(event, model_type, search_term) {
+window.remove_dup_card = async function(e, model_type, search_term) {
+    e.stopPropagation();
+    e.preventDefault();
+
+    let el = e.currentTarget;
+
+    let success = await remove_card(e, model_type, search_term);
+
+    if (success === true) {
+        let parent = el.parentElement;
+
+        let sha256 = search_term.split(" ").pop().toUpperCase();
+        let row_id = `ch_${sha256}`;
+        let cards_id = `${row_id}_cards`;
+
+        let cards = document.getElementById(cards_id);
+
+        cards.removeChild(parent);
+
+        if (cards.children.length < 2) {
+            let row = document.getElementById(row_id);
+            row.parentElement.removeChild(row);
+        }
+    }
+}
+
+
+window.remove_card = async function(e, model_type, search_term) {
     console.log("start remove_card");
 
     // stop parent event
-    stopEvent(event);
+    stopEvent(e);
+
+    let status = false;
 
     //get hidden components of extension
     let js_remove_card_btn = gradioApp().getElementById("ch_js_remove_card_btn");
     if (!js_remove_card_btn) {
-        return;
+        return status;
     }
 
     // must confirm before removing
     let rm_confirm = "\nConfirm to remove this model and all related files. This process is irreversible.";
     if (!confirm(rm_confirm)) {
-        return;
+        return status;
     }
 
     //msg to python side
@@ -300,19 +355,22 @@ window.remove_card = async function(event, model_type, search_term) {
     }
 
     if (result == "Done") {
+        status = true;
         refresh_cards_list();
     }
 
     console.log("end remove_card");
 
+    return status;
+
 }
 
 
-window.rename_card = async function(event, model_type, search_term, model_name) {
+window.rename_card = async function(e, model_type, search_term, model_name) {
     console.log("start rename_card");
 
     // stop parent event
-    stopEvent(event);
+    stopEvent(e);
 
     //get hidden components of extension
     let js_rename_card_btn = gradioApp().getElementById("ch_js_rename_card_btn");
@@ -389,11 +447,11 @@ window.replace_preview = function(e, page, type, name) {
 
 
 // download model's new version into SD at python side
-window.ch_dl_model_new_version = function(event, model_path, version_id, download_url, model_type) {
+window.ch_dl_model_new_version = function(e, model_path, version_id, download_url, model_type) {
     console.log("start ch_dl_model_new_version");
 
     // stop parent event
-    stopEvent(event);
+    stopEvent(e);
 
     // must confirm before downloading
     const dl_confirm = "\nConfirm to download.\n\nCheck Download Model Section's log and console log for detail.";
@@ -703,7 +761,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     }
 
     // get search_term
-    search_term = search_term_node.textContent;
+    search_term = search_term_node.textContent.replace("'", "\\'");
     if (!search_term) {
         console.log("search_term is empty for cards in " + active_tab_type + "_" + active_extra_tab_type + "_cards");
         return;
@@ -716,15 +774,15 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
             let page = active_tab_type;
             let type = getLongModelTypeFromShort(model_type);
             let name = card.dataset.name;
-            child.el.setAttribute("onclick", `${child.func}(event, '${page}', '${type}', '${name}')`);
+            child.el.setAttribute("onclick", `${child.func}(e, '${page}', '${type}', '${name}')`);
             continue;
         }
         if (child.func == "rename_card") {
             let name = card.dataset.name;
-            child.el.setAttribute("onclick", `${child.func}(event, '${model_type}', '${search_term}', '${name}')`);
+            child.el.setAttribute("onclick", `${child.func}(e, '${model_type}', '${search_term}', '${name}')`);
             continue;
         }
-        child.el.setAttribute("onclick", `${child.func}(event, '${model_type}', '${search_term}')`);
+        child.el.setAttribute("onclick", `${child.func}(e, '${model_type}', '${search_term}')`);
     }
 
     additional_node.appendChild(ul_node);
