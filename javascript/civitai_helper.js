@@ -312,30 +312,33 @@ async function remove_dup_card(event, model_type, search_term) {
     event.stopPropagation();
     event.preventDefault();
 
-    let success = remove_card(event, model_type, search_term);
+    let el = event.currentTarget;
+
+    let success = await remove_card(event, model_type, search_term);
 
     if (success === true) {
-        let parent = this.parentElement;
+        let parent = el.parentElement;
 
-        let sha256 = search_term.split(" ")[-1];
+        let sha256 = search_term.split(" ").pop().toUpperCase();
         let row_id = `ch_${sha256}`;
         let cards_id = `${row_id}_cards`;
 
-        row = document.getElementById(row_id);
-        cards = document.getElementById(cards_id);
+        let cards = document.getElementById(cards_id);
 
         cards.removeChild(parent);
+
         if (cards.children.length < 2) {
+            let row = document.getElementById(row_id);
             row.parentElement.removeChild(row);
         }
-
-        return;
     }
 }
 
 
 async function remove_card(event, model_type, search_term) {
     console.log("start remove_card");
+
+    let status = false
 
     // stop parent event
     event.stopPropagation()
@@ -344,13 +347,13 @@ async function remove_card(event, model_type, search_term) {
     //get hidden components of extension
     let js_remove_card_btn = gradioApp().getElementById("ch_js_remove_card_btn");
     if (!js_remove_card_btn) {
-        return false;
+        return status;
     }
 
     // must confirm before removing
     let rm_confirm = "\nConfirm to remove this model and all related files. This process is irreversible.";
     if (!confirm(rm_confirm)) {
-        return false;
+        return status;
     }
 
     //msg to python side
@@ -390,12 +393,13 @@ async function remove_card(event, model_type, search_term) {
     }
 
     if (result == "Done") {
+        status = true;
         refresh_cards_list();
-        return true;
     }
 
     console.log("end remove_card");
-    return false;
+
+    return status;
 
 }
 

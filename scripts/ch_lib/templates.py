@@ -46,7 +46,7 @@ no_download = Template(util.dedent("""
 """).strip())
 
 duplicate_card = Template(util.dedent("""
-    <a href='#' onclick="remove_card(event, '$model_type', '$search_term')" onmouseover="display_ch_path(event, '$path')" onmouseout="hide_ch_path(event)" onmousemove="move_ch_path(event)">
+    <a href='#' onclick="remove_dup_card(event, '$model_type', '$search_term')" onmouseover="display_ch_path(event, '$path')" onmouseout="hide_ch_path(event)" onmousemove="move_ch_path(event)">
         <div class='card' style=$style data-name="$name">
             $background_image
             <div class='actions'>
