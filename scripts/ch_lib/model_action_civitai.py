@@ -237,7 +237,8 @@ def get_model_info_by_input(
     if not model_id:
         output = f"failed to parse model id from url: {model_url_or_id}"
         util.printD(output)
-        return output
+        yield output
+        return
 
     # get model file path
     # model could be in subfolder
@@ -246,7 +247,8 @@ def get_model_info_by_input(
     if model_path is None:
         output = "Could not get Model Path"
         util.printD(output)
-        return output
+        yield output
+        return
 
     # get model info
     #we call it model_info, but in civitai, it is actually version info
@@ -255,12 +257,11 @@ def get_model_info_by_input(
     model.process_model_info(model_path, model_info, model_type)
 
     # check preview image + webui-visible progress bar
-    for result in civitai.get_preview_image_by_model_path(
+    yield from civitai.get_preview_image_by_model_path(
         model_path,
         max_size_preview,
         nsfw_preview_threshold
-    ):
-        yield result
+    )
 
     yield output
 
@@ -345,7 +346,7 @@ def check_models_new_version_to_md(model_types:list) -> str:
     return output
 
 
-def get_model_info_by_url(model_url_or_id:str) -> tuple:
+def get_model_info_by_url(model_url_or_id:str) -> dict:
     """
     Retrieves model information necessary to populate HTML
     with Model Name, Model Type, valid saving directories,
@@ -379,11 +380,12 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
         model_versions = model_info["modelVersions"]
 
     except (KeyError, ValueError, TypeError) as e:
-        util.printD(f"An error occurred while attempting to process model info: {e}")
+        util.printD(f"An error occurred while attempting to process model info: \n\t{e}")
         return None
 
     filenames = []
     version_strs = []
+    previews = {}
     for version in model_versions:
         # version name can not be used as id
         # version id is not readable
@@ -398,6 +400,7 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
 
         filenames.append(filename)
         version_strs.append(version_str)
+        previews[version_str] = version["images"]
 
     # get folder by model type
     folder = model.folders[model_type]
@@ -411,10 +414,24 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
         {model_type=}
         {version_strs=}
         {subfolders=}
+        {previews=}
     """)
     util.printD(msg)
 
-    return (model_info, model_name, model_type, filenames, subfolders, version_strs)
+    return {
+        "model_info": model_info,
+        "model_name": model_name,
+        "model_type": model_type,
+        "filenames": filenames,
+        "subfolders": subfolders,
+        "version_strs": version_strs,
+        "previews": previews
+    }
+
+
+def useable_previews(previews):
+
+    return civitai.verify_preview
 
 
 def get_ver_info_by_ver_str(version_str:str, model_info:dict) -> dict:
@@ -633,7 +650,8 @@ def dl_model_by_input(
     dl_all_bool:bool,
     max_size_preview:bool,
     nsfw_preview_threshold:bool,
-    duplicate:str
+    duplicate:str,
+    preview:str,
 ) -> str:
     """ download model from civitai by input
         output to markdown log
@@ -743,7 +761,8 @@ def dl_model_by_input(
     for result in civitai.get_preview_image_by_model_path(
         output,
         max_size_preview,
-        nsfw_preview_threshold
+        nsfw_preview_threshold,
+        preferred_preview=preview
     ):
         yield f"Downloading model preview:\n{result}"
 

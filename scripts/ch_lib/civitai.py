@@ -353,6 +353,9 @@ def preview_exists(model_path):
 def should_skip(user_rating, image_rating):
     """ return: True if preview_nsfw level higher than user threshold """
     order = NSFW_LEVELS
+    if user_rating == "Skip":
+        # Old config
+        return False
     return order.index(image_rating) >= order.index(user_rating)
 
 
@@ -397,7 +400,7 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
 
 # get preview image by model path
 # image will be saved to file, so no return
-def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_preview_threshold):
+def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_preview_threshold, preferred_preview=None):
     """
     Downloads a preview image for a model if one doesn't already exist.
     Skips images that are more NSFW than the user's NSFW threshold
@@ -420,8 +423,26 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
     util.printD(f"Checking preview image for model: {model_path}")
 
     if preview_exists(model_path):
-        util.printD("Existing model image found. Skipping.")
+        output = "Existing model image found. Skipping."
+        util.printD(output)
+        yield output
         return
+
+    if preferred_preview:
+        for result in downloader.dl_file(preferred_preview, file_path=preview_path):
+            if isinstance(result, str):
+                yield result
+                continue
+
+            success, msg = result
+
+            if success:
+                return
+
+            util.printD(msg)
+            util.printD("Failed to download preferred preview. Trying to find another")
+
+            break
 
     # load model_info file
     if not os.path.isfile(info_file):

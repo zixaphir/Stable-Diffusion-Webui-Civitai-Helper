@@ -5,7 +5,7 @@ blockquote ul {
 
 blockquote ol {
     list-style:decimal;
-    margin:4px 40px;
+    margin: 4px 40px;
 }
 
 .block.padded.ch_box {
@@ -16,10 +16,27 @@ blockquote ol {
     padding: 10px 0 !important;
 }
 
+#tab_civitai_helper .ch_vmargin {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
 .card-button {
     margin: 0px 2px;
     padding: 2px;
     font-size: 150%;
+}
+
+#tab_civitai_helper .justify-bottom {
+    justify-content: flex-end;
+}
+
+#ch_preview_img {
+    max-width: 512px;
+}
+
+#ch_dl_preview_img {
+    max-height: 768px;
 }
 
 /* SD WebUI has not line height limit for model names.
