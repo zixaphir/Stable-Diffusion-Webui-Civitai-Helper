@@ -152,8 +152,7 @@ def on_ui_tabs():
 
     # ====UI====
     with gr.Blocks(
-        analytics_enabled=False,
-        css="#tab-civitai_helper { max-width: 1024px }"
+        analytics_enabled=False
     ) as civitai_helper:
     # with gr.Blocks(css=".block.padded {padding: 10px !important}") as civitai_helper:
 
@@ -172,8 +171,8 @@ def on_ui_tabs():
             "filenames": {
                 # dl_version_str: filename,
             },
-            "images": {
-                # dl_version_str: [urls...],
+            "previews": {
+                # dl_version_str: [{url: url, nsfw: nsfw}],
             }
         })
 
