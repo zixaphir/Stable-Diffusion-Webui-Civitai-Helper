@@ -429,11 +429,6 @@ def get_model_info_by_url(model_url_or_id:str) -> dict:
     }
 
 
-def useable_previews(previews):
-
-    return civitai.verify_preview
-
-
 def get_ver_info_by_ver_str(version_str:str, model_info:dict) -> dict:
     """
     get version info by version string
