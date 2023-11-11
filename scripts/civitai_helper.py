@@ -27,7 +27,7 @@ EXTENSION_PATH = scripts.basedir()
 BUTTONS = {
     "replace_preview_button": False,
     "open_url_button": False,
-    "add_trigger_words_button": util.newer_version(util.webui_version(), '1.5.0', allow_equal=True),
+    "add_trigger_words_button": False,
     "add_preview_prompt_button": False,
     "rename_model_button": False,
     "remove_model_button": False,
@@ -49,6 +49,13 @@ def on_ui_tabs():
         util.printD(f"Set Proxy: {proxy}")
         util.PROXIES["http"] = proxy
         util.PROXIES["https"] = proxy
+
+    try:
+        BUTTONS["add_trigger_words_button"] = util.newer_version(
+            util.webui_version(), '1.5.0', allow_equal=True
+        )
+    except ValueError: # packaging.version.InvalidVersion
+        BUTTONS["add_trigger_words_button"] = False
 
     # get prompt textarea
     # check modules/ui.py, search for txt2img_paste_fields
