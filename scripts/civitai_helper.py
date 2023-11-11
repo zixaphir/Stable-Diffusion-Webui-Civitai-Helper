@@ -192,6 +192,19 @@ def on_ui_settings():
         )
     )
     shared.opts.add_option(
+        "ch_dl_lyco_to_lora",
+        shared.OptionInfo(
+            False,
+            (
+                "Save LyCORIS models to Lora directory. Do not use this if you are on "
+                "older versions of webui or you use an extension that handles LyCORIS "
+                "models."
+            ),
+            gr.Checkbox,
+            {"interactive": True},
+            section=section)
+    )
+    shared.opts.add_option(
         "ch_open_url_with_js",
         shared.OptionInfo(
             True,

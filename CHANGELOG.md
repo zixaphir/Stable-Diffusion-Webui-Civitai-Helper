@@ -7,6 +7,8 @@
   * Preview Image selection
   * Per-file Download selection
   * Model Renaming now works with Download All Files
+  * Models that include a recommended VAEs will now have their VAE placed in the appropriate VAE directory.
+    * Preferred VAE will also be added to the model metadata so that it will be used if your VAE settings are set to `Automatic`.
 
 ![](img/download_section.png)
 

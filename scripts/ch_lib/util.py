@@ -270,7 +270,7 @@ whitelist = re.compile(r"</?(a|img|br|p|b|strong|i|h[0-9]|code)[^>]*>")
 # Allowed HTML attributes
 attrs = re.compile(r"""(?:href|src|target)=['"]?[^\s'"]*['"]?""")
 
-def safe_html_replace(match:match) -> str:
+def safe_html_replace(match) -> str:
     """ Given a block of text, returns that block with most HTML removed
         and unneeded attributes pruned.
     """

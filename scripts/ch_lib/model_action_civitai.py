@@ -733,6 +733,10 @@ def dl_model_by_input(
 
     model_root_folder = model.folders[model_type]
 
+    if not os.path.exists(model_root_folder):
+        # Model directories may not exist by default
+        os.mkdir(model_root_folder)
+
     # get subfolder
     if subfolder_str in ["/", "\\"]:
         subfolder = ""

@@ -83,6 +83,9 @@ def get_custom_model_folder():
     if shared.cmd_opts.vae_dir and os.path.isdir(shared.cmd_opts.vae_dir):
         vae_folder = shared.cmd_opts.vae_dir
 
+    if util.get_opts("ch_dl_lyco_to_lora"):
+        folders["lycoris"] = folders["lora"]
+
     try:
         # pre-1.5.0
         if os.path.isdir(shared.cmd_opts.lyco_dir):
