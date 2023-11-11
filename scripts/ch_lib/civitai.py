@@ -25,6 +25,10 @@ MODEL_TYPES = {
     "LoCon": "lycoris",
 }
 
+FILE_TYPES = [
+    "Model", "Training Data", "Config", "VAE"
+]
+
 NSFW_LEVELS = ["None", "Soft", "Mature", "X", "Allow All"]
 
 def civitai_get(civitai_url:str):

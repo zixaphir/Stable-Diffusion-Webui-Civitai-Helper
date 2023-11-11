@@ -160,6 +160,9 @@ def get_model_info_by_url_section():
 def download_section():
     """ Download Models Section """
 
+    model_filetypes = civitai.FILE_TYPES
+    file_elems = {}
+
     dl_state = gr.State({
         "model_info": {},
         "filenames": {
@@ -167,6 +170,13 @@ def download_section():
         },
         "previews": {
             # dl_version_str: [{url: url, nsfw: nsfw}],
+        },
+        "files": {
+            # dl_version_str: {
+            #   Model: bool,
+            #   Config: bool,
+            #   ...
+            # }
         }
     })
 
@@ -179,7 +189,8 @@ def download_section():
         dl_state = {
             "model_info": {},
             "filenames": {},
-            "previews": {}
+            "previews": {},
+            "files": {},
         }
 
         subfolders = data["subfolders"]
@@ -194,6 +205,17 @@ def download_section():
 
         for filename, version in zip(filenames, version_strs):
             dl_state["filenames"][version] = filename
+
+        for version_files, version in zip(data["files"], version_strs):
+            filetypes = dl_state["files"][version] = {}
+            for filedata in version_files:
+                if filedata["type"] in model_filetypes:
+                    ch_filedata = {
+                        "id": filedata["id"],
+                        "name": filedata["name"],
+                    }
+
+                    filetypes[filedata["type"]] = (True, ch_filedata)
 
         return [
             dl_state, data["model_name"], data["model_type"],
@@ -235,6 +257,21 @@ def download_section():
             else:
                 preview = previews[0]
 
+        output_add = []
+
+        for key, elems in file_elems.items():
+            filedata = state["files"][dl_version].get(key, False)
+
+            visible = False
+            filename = ""
+            if filedata:
+                _, data = filedata
+                visible = True
+                filename = data["name"]
+
+            output_add.append(elems["txtbx"].update(value=filename))
+            output_add.append(elems["row"].update(visible=visible))
+
         return [
             dl_filename_txtbox.update(
                 value=base
@@ -246,18 +283,32 @@ def download_section():
                 choices=previews,
                 value=preview
             )
-        ]
+        ] + output_add
 
     def update_dl_preview(dl_previews_drop):
         return dl_preview_img.update(
             value=dl_previews_drop
         )
 
+    def update_dl_files_visibility(dl_all):
+        files_chkboxes = []
+        for chkbox in ch_dl_model_types_visibility:
+            files_chkboxes.append(
+                chkbox.update(
+                    visible=not dl_all
+                )
+            )
+
+        return files_chkboxes
+
     with gr.Row():
         gr.Markdown("### Download Model")
 
     with gr.Row():
         with gr.Column(scale=2, elem_id="ch_dl_model_inputs"):
+
+            gr.Markdown(value="1. Add URL and retrieve Model Info")
+
             with gr.Row():
                 with gr.Column(scale=2, elem_classes="justify-bottom"):
                     dl_model_url_or_id_txtbox = gr.Textbox(
@@ -265,15 +316,16 @@ def download_section():
                         lines=1,
                         max_lines=1,
                         value="",
-                        placeholder="Model URL or ID"
+                        placeholder="Model URL or Model ID"
                     )
                 with gr.Column(elem_classes="justify-bottom"):
                     dl_model_info_btn = gr.Button(
-                        value="1. Get Model Info by Civitai Url",
+                        value="Get Model Info by Civitai Url",
                         variant="primary"
                     )
 
             gr.Markdown(value="2. Pick Subfolder and Model Version")
+
             with gr.Row():
                 with gr.Column():
                     dl_model_name_txtbox = gr.Textbox(
@@ -327,11 +379,42 @@ def download_section():
                     elem_id="ch_dl_all_ckb",
                     elem_classes="ch_vpadding"
                 )
+            # with gr.Row(): ...
+            ch_output_add = []
+            ch_dl_model_types = []
+            ch_dl_model_types_visibility = []
+            for filetype in model_filetypes:
+                with gr.Row(
+                    visible=False,
+                    equal_height=True
+                ) as row:
+                    file_elems[filetype] = elems = {}
+                    elems["row"] = row
+                    with gr.Column(scale=0, min_width=24, elem_classes="flex-center") as ckb_column:
+                        elems["ckb"] = filetype_ckb = gr.Checkbox(
+                            label="",
+                            value=True,
+                            min_width=0,
+                            interactive=(not filetype == "Model")
+                        )
+                    with gr.Column(scale=1):
+                        elems["txtbx"] = gr.Textbox(
+                            value="",
+                            interactive=False,
+                            label=filetype,
+                            max_lines=1
+                        )
+
+                    ch_dl_model_types_visibility.append(ckb_column)
+                    ch_dl_model_types.append(filetype_ckb)
+
+                    ch_output_add.append(elems["txtbx"])
+                    ch_output_add.append(row)
 
             with gr.Row():
                 with gr.Column(scale=2, elem_classes="justify-bottom"):
                     dl_filename_txtbox = gr.Textbox(
-                        label="Model filename",
+                        label="Rename Model",
                         value="",
                         lines=1,
                         max_lines=1,
@@ -351,10 +434,6 @@ def download_section():
                         elem_classes="ch_vmargin",
                         variant="primary"
                     )
-            with gr.Row():
-                for filetype in ["Model", "Training Data", "Config", "VAE"]:
-                    print(filetype)
-
 
         with gr.Column(scale=1, elem_id="ch_preview_img"):
             with gr.Row():
@@ -371,6 +450,7 @@ def download_section():
                     elem_id="ch_dl_preview_img",
                     width=256
                 )
+
     with gr.Row():
         dl_log_md = gr.Markdown(
             value="Check Console log for Downloading Status"
@@ -388,32 +468,40 @@ def download_section():
             dl_version_drop
         ]
     )
-    dl_civitai_model_by_id_btn.click(
-        model_action_civitai.dl_model_by_input,
-        inputs=[
+
+    dl_inputs = [
             dl_state, dl_model_type_txtbox,
             dl_subfolder_drop, dl_version_drop,
             dl_filename_txtbox, dl_extension_txtbox,
             dl_all_ckb, nsfw_preview_dl_drop,
             dl_duplicate_drop, dl_previews_drop
-        ],
+        ] + ch_dl_model_types
+
+    dl_civitai_model_by_id_btn.click(
+        model_action_civitai.dl_model_by_input,
+        inputs=dl_inputs,
         outputs=dl_log_md
     )
+
+    ver_outputs = [
+        dl_filename_txtbox, dl_extension_txtbox,
+        dl_previews_drop
+    ] + ch_output_add
+
     dl_version_drop.change(
         update_dl_inputs,
         inputs=[dl_version_drop, dl_state, nsfw_preview_dl_drop, dl_previews_drop],
-        outputs=[
-            dl_filename_txtbox, dl_extension_txtbox,
-            dl_previews_drop
-        ]
+        outputs=ver_outputs
+    )
+    dl_all_ckb.change(
+        update_dl_files_visibility,
+        inputs=dl_all_ckb,
+        outputs=ch_dl_model_types_visibility
     )
     nsfw_preview_dl_drop.change(
         update_dl_inputs,
         inputs=[dl_version_drop, dl_state, nsfw_preview_dl_drop, dl_previews_drop],
-        outputs=[
-            dl_filename_txtbox, dl_extension_txtbox,
-            dl_previews_drop
-        ]
+        outputs=ver_outputs
     )
     dl_previews_drop.change(
         update_dl_preview,

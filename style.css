@@ -36,6 +36,11 @@ blockquote ol {
     justify-content: flex-end;
 }
 
+#tab_civitai_helper .flex-center {
+    justify-content: center;
+    align-content: center;
+}
+
 #ch_preview_img {
     max-width: 512px;
 }
