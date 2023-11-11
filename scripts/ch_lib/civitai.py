@@ -295,7 +295,7 @@ def is_valid_file(root, filename, no_info_only, empty_info_only):
             # load model info
             model_info = model.load_model_info(info_file)
             # check content
-            if model_info and "id" in model_info.keys():
+            if model_info and not model_info.get("id", "") == "":
                 # find a non-empty model info file
                 return False
 

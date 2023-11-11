@@ -79,6 +79,7 @@ def scan_single_model(filename, root, model_type, refetch_old, delay):
             output = f"failed generating SHA256 for model: {filename}"
             util.printD(output)
             yield output
+            time.sleep(delay)
             yield False
 
         # use this sha256 to get model info from civitai
@@ -98,7 +99,7 @@ def scan_single_model(filename, root, model_type, refetch_old, delay):
     yield True
 
 
-def scan_model(scan_model_types, max_size_preview, nsfw_preview_threshold, refetch_old):
+def scan_model(scan_model_types, nsfw_preview_threshold, refetch_old):
     """ Scan model to generate SHA256, then use this SHA256 to get model info from civitai
         return output msg
     """
@@ -107,6 +108,8 @@ def scan_model(scan_model_types, max_size_preview, nsfw_preview_threshold, refet
 
     util.printD("Start scan_model")
     output = ""
+
+    max_size_preview = util.get_opts("ch_max_size_preview")
 
     # check model types
     if not scan_model_types:
@@ -118,10 +121,10 @@ def scan_model(scan_model_types, max_size_preview, nsfw_preview_threshold, refet
     model_types = []
 
     # check type if it is a string
-    if isinstance(scan_model_types, str):
-        model_types.append(scan_model_types)
-    else:
-        model_types = scan_model_types
+
+    model_types = (
+        [scan_model_types] if isinstance(scan_model_types, str) else scan_model_types
+    )
 
     count = 0
 
@@ -151,12 +154,12 @@ def scan_model(scan_model_types, max_size_preview, nsfw_preview_threshold, refet
                 filepath = os.path.join(root, filename)
 
                 # webui-visible progress bar
-                for result in civitai.get_preview_image_by_model_path(
+                for _ in civitai.get_preview_image_by_model_path(
                     filepath,
                     max_size_preview,
                     nsfw_preview_threshold
                 ):
-                    yield result
+                    pass
 
     # this previously had an image count, but it always matched the model count.
     output = f"Done. Scanned {count} models."
@@ -224,13 +227,15 @@ def dummy_model_info(path, sha256_hash, model_type):
 
 
 def get_model_info_by_input(
-    model_type, model_name, model_url_or_id, max_size_preview, nsfw_preview_threshold
+    model_type, model_name, model_url_or_id, nsfw_preview_threshold
 ):
     """
     Get model info by model type, name and url
     output is log info to display on markdown component
     """
     output = ""
+
+    max_size_preview = util.get_opts("ch_max_size_preview")
 
     # parse model id
     model_id = civitai.get_model_id_from_url(model_url_or_id)
@@ -643,7 +648,6 @@ def dl_model_by_input(
     filename:str,
     file_ext:str,
     dl_all_bool:bool,
-    max_size_preview:bool,
     nsfw_preview_threshold:bool,
     duplicate:str,
     preview:str,
@@ -653,6 +657,7 @@ def dl_model_by_input(
     """
 
     model_info = ch_state["model_info"]
+    max_size_preview = util.get_opts("ch_max_size_preview")
 
     if not (model_info and model_type and subfolder_str and version_str):
         output = util.indented_msg(f"""

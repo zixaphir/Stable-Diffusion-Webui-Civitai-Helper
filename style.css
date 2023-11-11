@@ -21,6 +21,11 @@ blockquote ol {
     margin-bottom: 10px;
 }
 
+#tab_civitai_helper .extra-network-cards {
+    min-height: 0;
+    max-height: 50vh;
+}
+
 .card-button {
     margin: 0px 2px;
     padding: 2px;
