@@ -535,7 +535,7 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
 
     return (version_id, download_url)
 
-def parse_file_info(file_info, filename):
+def parse_file_info(file_info, basename):
     """
         returns data required to download a file from civitai
     """
@@ -544,15 +544,15 @@ def parse_file_info(file_info, filename):
     if download_url is None:
         return None
 
-    if filename:
-        filename = f"{filename}.{file_info['name'].split('.').pop()}"
-    else:
-        filename = file_info["name"]
+    filetype = file_info["type"]
+    filename = file_info["name"]
+    if basename and not filetype == "VAE":
+        filename = f"{basename}.{filename.split('.')[-1]}"
 
     return {
         "url": download_url,
         "filename": filename,
-        "type": file_info["type"]
+        "type": filetype
     }
 
 
@@ -604,7 +604,7 @@ def download_files(filename, model_folder, ver_info, headers, filetypes, dl_all,
             snippet = f"{errors_count}/{total} files failed"
 
         dl_folder = model_folder
-        if dl_info.get("VAE", False):
+        if dl_info["type"] == "VAE":
             dl_folder = model.vae_folder
 
         # webui visible progress bar
