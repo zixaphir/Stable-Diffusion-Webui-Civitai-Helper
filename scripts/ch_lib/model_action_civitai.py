@@ -79,6 +79,7 @@ def scan_single_model(filename, root, model_type, refetch_old, delay):
             output = f"failed generating SHA256 for model: {filename}"
             util.printD(output)
             yield output
+            time.sleep(delay)
             yield False
 
         # use this sha256 to get model info from civitai
@@ -98,7 +99,7 @@ def scan_single_model(filename, root, model_type, refetch_old, delay):
     yield True
 
 
-def scan_model(scan_model_types, max_size_preview, nsfw_preview_threshold, refetch_old):
+def scan_model(scan_model_types, nsfw_preview_threshold, refetch_old):
     """ Scan model to generate SHA256, then use this SHA256 to get model info from civitai
         return output msg
     """
@@ -107,6 +108,8 @@ def scan_model(scan_model_types, max_size_preview, nsfw_preview_threshold, refet
 
     util.printD("Start scan_model")
     output = ""
+
+    max_size_preview = util.get_opts("ch_max_size_preview")
 
     # check model types
     if not scan_model_types:
@@ -118,10 +121,10 @@ def scan_model(scan_model_types, max_size_preview, nsfw_preview_threshold, refet
     model_types = []
 
     # check type if it is a string
-    if isinstance(scan_model_types, str):
-        model_types.append(scan_model_types)
-    else:
-        model_types = scan_model_types
+
+    model_types = (
+        [scan_model_types] if isinstance(scan_model_types, str) else scan_model_types
+    )
 
     count = 0
 
@@ -151,12 +154,12 @@ def scan_model(scan_model_types, max_size_preview, nsfw_preview_threshold, refet
                 filepath = os.path.join(root, filename)
 
                 # webui-visible progress bar
-                for result in civitai.get_preview_image_by_model_path(
+                for _ in civitai.get_preview_image_by_model_path(
                     filepath,
                     max_size_preview,
                     nsfw_preview_threshold
                 ):
-                    yield result
+                    pass
 
     # this previously had an image count, but it always matched the model count.
     output = f"Done. Scanned {count} models."
@@ -224,7 +227,7 @@ def dummy_model_info(path, sha256_hash, model_type):
 
 
 def get_model_info_by_input(
-    model_type, model_name, model_url_or_id, max_size_preview, nsfw_preview_threshold
+    model_type, model_name, model_url_or_id, nsfw_preview_threshold
 ):
     """
     Get model info by model type, name and url
@@ -232,12 +235,15 @@ def get_model_info_by_input(
     """
     output = ""
 
+    max_size_preview = util.get_opts("ch_max_size_preview")
+
     # parse model id
     model_id = civitai.get_model_id_from_url(model_url_or_id)
     if not model_id:
         output = f"failed to parse model id from url: {model_url_or_id}"
         util.printD(output)
-        return output
+        yield output
+        return
 
     # get model file path
     # model could be in subfolder
@@ -246,7 +252,8 @@ def get_model_info_by_input(
     if model_path is None:
         output = "Could not get Model Path"
         util.printD(output)
-        return output
+        yield output
+        return
 
     # get model info
     #we call it model_info, but in civitai, it is actually version info
@@ -255,12 +262,11 @@ def get_model_info_by_input(
     model.process_model_info(model_path, model_info, model_type)
 
     # check preview image + webui-visible progress bar
-    for result in civitai.get_preview_image_by_model_path(
+    yield from civitai.get_preview_image_by_model_path(
         model_path,
         max_size_preview,
         nsfw_preview_threshold
-    ):
-        yield result
+    )
 
     yield output
 
@@ -345,7 +351,7 @@ def check_models_new_version_to_md(model_types:list) -> str:
     return output
 
 
-def get_model_info_by_url(model_url_or_id:str) -> tuple:
+def get_model_info_by_url(model_url_or_id:str) -> dict:
     """
     Retrieves model information necessary to populate HTML
     with Model Name, Model Type, valid saving directories,
@@ -379,11 +385,13 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
         model_versions = model_info["modelVersions"]
 
     except (KeyError, ValueError, TypeError) as e:
-        util.printD(f"An error occurred while attempting to process model info: {e}")
+        util.printD(f"An error occurred while attempting to process model info: \n\t{e}")
         return None
 
     filenames = []
+    files = []
     version_strs = []
+    previews = {}
     for version in model_versions:
         # version name can not be used as id
         # version id is not readable
@@ -392,12 +400,17 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
 
         filename = ""
         try:
-            filename = version["files"][0]["name"]
+            for filedata in version["files"]:
+                if filedata["type"] == "Model":
+                    filename = filedata["name"]
+
         except (ValueError, KeyError):
             pass
 
+        files.append(version["files"])
         filenames.append(filename)
         version_strs.append(version_str)
+        previews[version_str] = version["images"]
 
     # get folder by model type
     folder = model.folders[model_type]
@@ -411,10 +424,20 @@ def get_model_info_by_url(model_url_or_id:str) -> tuple:
         {model_type=}
         {version_strs=}
         {subfolders=}
+        {previews=}
     """)
     util.printD(msg)
 
-    return (model_info, model_name, model_type, filenames, subfolders, version_strs)
+    return {
+        "model_info": model_info,
+        "model_name": model_name,
+        "model_type": model_type,
+        "files": files,
+        "filenames": filenames,
+        "subfolders": subfolders,
+        "version_strs": version_strs,
+        "previews": previews
+    }
 
 
 def get_ver_info_by_ver_str(version_str:str, model_info:dict) -> dict:
@@ -512,26 +535,36 @@ def get_id_and_dl_url_by_version_str(version_str:str, model_info:dict) -> tuple:
 
     return (version_id, download_url)
 
-
-def download_all(filename, model_folder, ver_info, headers, duplicate):
+def parse_file_info(file_info, basename):
     """
-    get all download url from files info
+        returns data required to download a file from civitai
+    """
+
+    download_url = file_info.get("downloadUrl", None)
+    if download_url is None:
+        return None
+
+    filetype = file_info["type"]
+    filename = file_info["name"]
+    if basename and not filetype == "VAE":
+        filename = f"{basename}.{filename.split('.')[-1]}"
+
+    return {
+        "url": download_url,
+        "filename": filename,
+        "type": filetype
+    }
+
+
+def download_files(filename, model_folder, ver_info, headers, filetypes, dl_all, duplicate):
+    """
+    get download urls from files info
     some model versions have multiple files
     """
 
     version_id = ver_info["id"]
 
-    download_urls = []
-
-    for file_info in ver_info.get("files", {}):
-        download_url = file_info.get("downloadUrl", None)
-        if download_url is not None:
-            download_urls.append(download_url)
-
-    if len(download_urls) == 0:
-        download_url = ver_info.get("downloadUrl", None)
-        if download_url is not None:
-            download_urls.append(download_url)
+    downloads = []
 
     # check if this model already exists
     result = civitai.search_local_model_info_by_version_id(model_folder, version_id)
@@ -540,44 +573,62 @@ def download_all(filename, model_folder, ver_info, headers, duplicate):
         util.printD(output)
         yield (False, output)
 
+    for file_info in ver_info.get("files", {}):
+        if not dl_all:
+            if not file_info["type"] in filetypes:
+                continue
+
+        dl_info = parse_file_info(file_info, filename)
+
+        if dl_info:
+            downloads.append(dl_info)
+
+    if len(downloads) == 0:
+        dl_info = parse_file_info(ver_info, filename)
+        if dl_info:
+            downloads.append(dl_info)
+
     # download
     success = False
     output = ""
-    filepath = ""
-    file_candidate = ""
-    total = len(download_urls)
+    filepath = None
+    total = len(downloads)
     errors = []
     errors_count = 0
+    snippet = None
 
-    for count, url in enumerate(download_urls):
+    for count, dl_info in enumerate(downloads):
 
-        snippet = ""
+        url = dl_info["url"]
         if errors_count > 0:
-            snippet = f"| {errors_count}/{total} models failed"
+            snippet = f"{errors_count}/{total} files failed"
+
+        dl_folder = model_folder
+        if dl_info["type"] == "VAE":
+            dl_folder = model.vae_folder
 
         # webui visible progress bar
         for result in downloader.dl_file(
-            url, folder=model_folder, duplicate=duplicate,
+            url, filename=dl_info["filename"], folder=dl_folder, duplicate=duplicate,
             headers=headers
         ):
             if not isinstance(result, str):
                 success, output = result
                 break
 
-            yield f"{result} | {count}/{total} models {snippet}"
+            output = f"{result} | {count}/{total} files"
+            if snippet:
+                " | ".join([output, snippet])
+
+            yield output
 
         if not success:
             errors.append(downloader.error(url, output))
             errors_count += 1
             continue
 
-        file_candidate = output
-
-        if url == ver_info["downloadUrl"]:
-            filepath = file_candidate
-
-    if not filepath:
-        filepath = file_candidate
+        if dl_info["type"] == "Model":
+            filepath = output
 
     additional = None
     if errors_count > 0:
@@ -630,16 +681,18 @@ def dl_model_by_input(
     version_str:str,
     filename:str,
     file_ext:str,
-    dl_all_bool:bool,
-    max_size_preview:bool,
+    dl_all:bool,
     nsfw_preview_threshold:bool,
-    duplicate:str
+    duplicate:str,
+    preview:str,
+    *args
 ) -> str:
     """ download model from civitai by input
         output to markdown log
     """
 
     model_info = ch_state["model_info"]
+    max_size_preview = util.get_opts("ch_max_size_preview")
 
     if not (model_info and model_type and subfolder_str and version_str):
         output = util.indented_msg(f"""
@@ -649,7 +702,6 @@ def dl_model_by_input(
             {version_str=}*
             {filename=}
             {file_ext=}
-            {dl_all_bool=}
             {max_size_preview=}
             {nsfw_preview_threshold=}
             {duplicate=}
@@ -674,14 +726,16 @@ def dl_model_by_input(
     output = ""
     version_info = None
 
-    if filename and file_ext:
-        filename = f"{filename}.{file_ext}"
-    else:
-        # Will force downloader function to get filename
-        # from download headers
-        filename = None
+    filetypes = []
+    for filetype, will_dl in zip(civitai.FILE_TYPES, args):
+        if will_dl:
+            filetypes.append(filetype)
 
     model_root_folder = model.folders[model_type]
+
+    if not os.path.exists(model_root_folder):
+        # Model directories may not exist by default
+        os.mkdir(model_root_folder)
 
     # get subfolder
     if subfolder_str in ["/", "\\"]:
@@ -707,11 +761,6 @@ def dl_model_by_input(
         yield output
         return
 
-    success = False
-    downloader_fn = download_one
-    if dl_all_bool:
-        downloader_fn = download_all
-
     headers = {
         "content-type": "application/json"
     }
@@ -720,7 +769,7 @@ def dl_model_by_input(
         headers["Authorization"] = f"Bearer {api_key}"
 
     additional = None
-    for result in downloader_fn(filename, folder, ver_info, headers, duplicate):
+    for result in download_files(filename, folder, ver_info, headers, filetypes, dl_all, duplicate):
         if not isinstance(result, str):
             if len(result) > 2:
                 success, output, additional = result
@@ -743,11 +792,12 @@ def dl_model_by_input(
     for result in civitai.get_preview_image_by_model_path(
         output,
         max_size_preview,
-        nsfw_preview_threshold
+        nsfw_preview_threshold,
+        preferred_preview=preview
     ):
         yield f"Downloading model preview:\n{result}"
 
-    output = f"Done. Model downloaded to: {output}"
+    output = f"Done. Downloaded to: {output}"
     if additional:
         output = f"{output}. Additionally, the following failures occurred: \n{additional}"
     util.printD(output)

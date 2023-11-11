@@ -23,19 +23,17 @@ Civitai: ![Civitai Url](https://civitai.com/models/16768/civitai-helper-sd-webui
 # Features
 * Scans all models to download model information and preview images from Civitai.
 * Link local model to a civitai model by civitai model's url
-* Download a model(with info+preview) by Civitai Url into SD's model folder or subfolder.
-* Downloading can resume at break-point, which is good for large file.
-* Checking all your local model's new version from Civitai
-* Download a new version directly into SD model folder (with info+preview)
+* Download a model(with info and preview) by Civitai Url into SD's model folder or subfolders.
+* Downloading can be resumed if an issue occurs, which is good for large files.
+* Checking all your local models for new versions from Civitai
+* Download a new version directly into SD model folder (with info and preview)
 * Modified Built-in "Extra Network" cards, to add the following buttons on each card:
   - 🖼️: Modified "replace preview" text into this icon
   - 🌐: Open this model's Civitai url in a new tab
   - 💡: Add this model's trigger words to prompt
   - ✏️: Rename model
   - ❌: Remove/Delete model
-* Above buttons support thumbnail mode of Extra Network in versions of webui prior to 1.5.0.
-    * Thumbnail mode was removed in v1.5.0 of webui and replaced customizable model card sizes.
-* Option to always show additional buttons, to work with touchscreen.
+* Option to always show additional buttons, to help with touchscreens.
 * To the best of my knowledge, this extension should still work in versions of webui prior to v1.5.0, but it is not tested. I make best-effort attempts to write code that *should* maintain compatibility with older versions, but if you have run into problems, please file an issue and I'll attempt to resolve it.
 
 # Install
@@ -51,8 +49,9 @@ Done.
 ## Branches
 Development of this extension happens in three development branches:
 * **`master`**: The current version of the extension intended for end users. Out-of-version changes to this branch only exist to hotfix critical issues found after the release of a new version.
-* **`dev`**: The active development version of this extension. This will always have the most up-to-date changes but is also the most likely to contain bugs
+* **`dev`**: The active development version of this extension. This will always have the most up-to-date changes but is also the most likely to contain bugs.
 * **`v1.6ONLY`**: Not supported and not really intended for anybody except for me. Slowest to update and less tested than other branches, this branch only runs on the latest version of webui. Compatibility code for older versions is actively removed, and whether I'm running it on webui stable or webui dev is in flux. In theory, this is the most optimized version of the extension, but it's often just me chasing waterfalls. Do not submit issues if you use this branch. They will be marked as invalid, closed, and otherwise ignored.
+* **`Feature Branches`**: These are branches separated from the main development branches to add new features. They are likely to be in a state of active development and incomplete.
 
 ## Update Your SD Webui
 This extension need to get extra network's cards id. Which is added since **2023-02-06**.
@@ -67,7 +66,7 @@ Go to extension tab "Civitai Helper". There is a button called "Scan model".
 
 Click it and the extension will scan all your models to generate SHA256 hashes, using them to retreive model information and preview images from Civitai.
 
-**Scanning takes time, just wait it finish**
+**Scanning takes time, just wait until it finish**
 
 For each model, it will create two files to save all model info from Civitai. These model info files will be `[model_name].civitai.info` and `[model_name].json` in your model folder.
 
@@ -113,15 +112,15 @@ This data can be accessed by clicking the metadata button on the model card.
 ## Download
 To download a model by Civitai Model Page's Url, you need 3 steps:
 * Fill the Civitai URL or Model ID
-* Click "1. Get Model Information by Civitai Url.
-* It will fill model name, type, sub-folder, and model version automatically, but you can change the sub-folder and model version if you need to.
+* Click "Get Model Info by Civitai Url.
+* It will fill in the details automatically, but you can change several options if you need to, including the model version, which subfolder to download the model to, and which optional files to download with the model, if any.
   * If you need to add more sub-folders, you must do this by navigating to the model directory on the system running your webui version.
 * Click download.
 
-![](img/download_model.jpg)
+![](img/download_section.png)
 
 Detail will be displayed on console log, with a progress bar.
-Downloading can resume from break-point, so no fear for large file.
+Downloading can be resumed on failure, so no fear of having to restart large files.
 
 ## Checking Model's New Version
 You can checking your local model's new version from civitai by model types. You can select multiple model types.
@@ -174,9 +173,9 @@ For some sock5 proxy, need to be used as "socks5h://xxxxx".
 ![](img/other_setting.jpg)
 
 ## Preview Image
-Extra network uses both `model_file.png` and `model_file.preview.png` as preview image. But `model_file.png` has higher priority, because it is created by yourself.
+Extra networks use both `model_file.png` and `model_file.preview.png` as preview image. But `model_file.png` has higher priority, because it is created by yourself.
 
-When you don't have the higher priority one, it will use the other automatically.
+When you don't have the higher priority one, it will use the other automatically. SD WebUI also supports other filetypes for previews but `.png` files will always have priority over every other filetype. For instance, `model_file.jpg` will supercede `model_file.preview.jpg` but not `model_file.preview.png`.
 
 ## Prompt
 When you click the button "Use prompt from preview image", it does not use the prompt from your own preview image. It uses the one from civitai's preview image.
@@ -203,7 +202,7 @@ Enjoy!
 All pull requests should target the dev branch. For those who take a stab at the code, I apologize for the lack of consistency in coding style, naming, and other syntactical oddities. At some point, I intend to clean up the code and have everything pass linting, but we're not there yet.
 
 ## Common Issue
-### 4 Buttons on card didn't show
+### Buttons on card didn't show
 #### Localization
 There was a Localization issue if you are not using English version of SD webui. This is fixed in the latest version of this extension. **Bilingual localization extension is supported by PR since v1.6.1.1.**
 

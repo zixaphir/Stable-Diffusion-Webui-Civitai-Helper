@@ -35,6 +35,10 @@ folders = {
     "lycoris": os.path.join(ROOT_PATH, "models", "LyCORIS"),
 }
 
+# Separate because the above is used for detecting supported models
+# in other features
+vae_folder = os.path.join(ROOT_PATH, "models", "VAE")
+
 
 class VersionMismatchException(Exception):
     """ Used for version comarison failures """
@@ -75,6 +79,12 @@ def get_custom_model_folder():
 
     if shared.cmd_opts.lora_dir and os.path.isdir(shared.cmd_opts.lora_dir):
         folders["lora"] = shared.cmd_opts.lora_dir
+
+    if shared.cmd_opts.vae_dir and os.path.isdir(shared.cmd_opts.vae_dir):
+        vae_folder = shared.cmd_opts.vae_dir
+
+    if util.get_opts("ch_dl_lyco_to_lora"):
+        folders["lycoris"] = folders["lora"]
 
     try:
         # pre-1.5.0
@@ -277,6 +287,10 @@ def process_sd15_info(sd15_file, model_info, parent, model_type, refetch_old):
         }.get(version, 'Unknown')
 
     sd_data["sd version"] = sd_version
+
+    for filedata in model_info["files"]:
+        if filedata["type"] == "VAE":
+            sd_data["vae"] = filedata["name"]
 
     # INFO: On Civitai, all non-checkpoint models can have trained words.
     # The SD WebUI interface only displays them for Lora/Lycoris.

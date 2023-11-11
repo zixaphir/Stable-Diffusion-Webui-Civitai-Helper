@@ -767,18 +767,18 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         return;
     }
 
+    let page = active_tab_type;
+    let type = getLongModelTypeFromShort(model_type);
+    let name = card.dataset.name.replace("'", "\\'");
+
     const children = nodes.children;
     for (const key in children) {
         const child = children[key];
         if (child.func == "replace_preview") {
-            let page = active_tab_type;
-            let type = getLongModelTypeFromShort(model_type);
-            let name = card.dataset.name;
             child.el.setAttribute("onclick", `${child.func}(event, '${page}', '${type}', '${name}')`);
             continue;
         }
         if (child.func == "rename_card") {
-            let name = card.dataset.name;
             child.el.setAttribute("onclick", `${child.func}(event, '${model_type}', '${search_term}', '${name}')`);
             continue;
         }

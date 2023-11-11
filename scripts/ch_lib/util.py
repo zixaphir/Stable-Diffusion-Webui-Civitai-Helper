@@ -20,13 +20,13 @@ from packaging.version import parse as parse_version
 SHORT_NAME = "sd_civitai_helper"
 
 # current version of the exension
-VERSION = "1.7.9"
+VERSION = "1.8.0"
 
 # Civitai INFO files below this version will regenerated
 COMPAT_VERSION_CIVITAI = "1.7.2"
 
 # SD webui model info JSON below this version will be regenerated
-COMPAT_VERSION_SDWEBUI = "1.7.4"
+COMPAT_VERSION_SDWEBUI = "1.8.0"
 
 DEFAULT_HEADERS = {
     "User-Agent": (
@@ -270,7 +270,7 @@ whitelist = re.compile(r"</?(a|img|br|p|b|strong|i|h[0-9]|code)[^>]*>")
 # Allowed HTML attributes
 attrs = re.compile(r"""(?:href|src|target)=['"]?[^\s'"]*['"]?""")
 
-def safe_html_replace(match:match) -> str:
+def safe_html_replace(match) -> str:
     """ Given a block of text, returns that block with most HTML removed
         and unneeded attributes pruned.
     """

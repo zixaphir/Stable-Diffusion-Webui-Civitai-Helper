@@ -12,10 +12,9 @@ from modules import shared
 from modules import script_callbacks
 from scripts.ch_lib import model
 from scripts.ch_lib import js_action_civitai
-from scripts.ch_lib import model_action_civitai
 from scripts.ch_lib import civitai
-from scripts.ch_lib import duplicate_check
 from scripts.ch_lib import util
+from scripts import sections
 
 # init
 # root path
@@ -28,7 +27,7 @@ EXTENSION_PATH = scripts.basedir()
 BUTTONS = {
     "replace_preview_button": False,
     "open_url_button": False,
-    "add_trigger_words_button": util.newer_version(util.webui_version(), '1.5.0', allow_equal=True),
+    "add_trigger_words_button": False,
     "add_preview_prompt_button": False,
     "rename_model_button": False,
     "remove_model_button": False,
@@ -51,6 +50,13 @@ def on_ui_tabs():
         util.PROXIES["http"] = proxy
         util.PROXIES["https"] = proxy
 
+    try:
+        BUTTONS["add_trigger_words_button"] = util.newer_version(
+            util.webui_version(), '1.5.0', allow_equal=True
+        )
+    except ValueError: # packaging.version.InvalidVersion
+        BUTTONS["add_trigger_words_button"] = False
+
     # get prompt textarea
     # check modules/ui.py, search for txt2img_paste_fields
     # Negative prompt is the second element
@@ -59,332 +65,42 @@ def on_ui_tabs():
     img2img_prompt = modules.ui.img2img_paste_fields[0][0]
     img2img_neg_prompt = modules.ui.img2img_paste_fields[1][0]
 
-    # ====Event's function====
-    def get_model_names_by_input(model_type, empty_info_only):
-        names = civitai.get_model_names_by_input(model_type, empty_info_only)
-        return model_name_drop.update(choices=names)
-
-    def get_model_info_by_url(url, subfolder):
-        request = model_action_civitai.get_model_info_by_url(url)
-
-        ch_state = {
-            "model_info": {},
-            "filenames": {}
-        }
-        model_info = {}
-        model_name = ""
-        model_type = ""
-        subfolders = []
-        version_strs = []
-        if request:
-            model_info, model_name, model_type, filenames, subfolders, version_strs = request
-
-        if subfolder == "" or subfolder not in subfolders:
-            subfolder = "/"
-
-        ch_state["model_info"] = model_info
-
-        for filename, version in zip(filenames, version_strs):
-            ch_state["filenames"][version] = filename
-
-        file_parts = filenames[0].split(".")
-        ext = file_parts.pop()
-        base = ".".join(file_parts)
-
-        return [
-            ch_state, model_name, model_type,
-            dl_subfolder_drop.update(
-                choices=subfolders,
-                value=subfolder
-            ),
-            dl_version_drop.update(
-                choices=version_strs,
-                value=version_strs[0]
-            ),
-            dl_filename_txtbox.update(
-                value=base
-            ),
-            dl_extension_txtbox.update(
-                value=ext
-            )
-        ]
-
-    def update_dl_filename(dl_version, state):
-        filename = state["filenames"][dl_version]
-        if not filename:
-            filename = dl_filename_txtbox.value
-
-        file_parts = filename.split(".")
-        ext = file_parts.pop()
-        base = ".".join(file_parts)
-
-        return [
-            dl_filename_txtbox.update(
-                value=base
-            ),
-            dl_extension_txtbox.update(
-                value=ext
-            )
-        ]
-
-    def update_dl_filename_visibility(dl_all):
-        return dl_filename_txtbox.update(
-            visible=(not dl_all)
-        )
+    # Used by some elements to pass messages to python
+    js_msg_txtbox = gr.Textbox(
+        label="Request Msg From Js",
+        visible=False,
+        lines=1,
+        value="",
+        elem_id="ch_js_msg_txtbox"
+    )
 
     # ====UI====
-    with gr.Blocks(analytics_enabled=False) as civitai_helper:
+    with gr.Blocks(
+        analytics_enabled=False
+    ) as civitai_helper:
     # with gr.Blocks(css=".block.padded {padding: 10px !important}") as civitai_helper:
 
         # init
-        max_size_preview = util.get_opts("ch_max_size_preview")
-        nsfw_preview_threshold = util.get_opts("ch_nsfw_preview_threshold")
-        proxy = util.get_opts("ch_proxy")
-
-        model_types = list(model.folders.keys())
-        no_info_model_names = civitai.get_model_names_by_input("ckp", False)
-
-        # session data
-        # dl_model_info = gr.State({})
-        ch_state = gr.State({
-            "model_info": {},
-            "filenames": {
-                # dl_version_str: filename,
-            },
-        })
+        with gr.Box(elem_classes="ch_box"):
+            sections.scan_models_section()
 
         with gr.Box(elem_classes="ch_box"):
-            with gr.Column():
-                gr.Markdown("### Scan Models for Civitai")
-                with gr.Row():
-                    with gr.Column():
-                        max_size_preview_ckb = gr.Checkbox(
-                            label="Download Max Size Preview",
-                            value=max_size_preview,
-                            elem_id="ch_max_size_preview_ckb"
-                        )
-                    with gr.Column():
-                        nsfw_preview_threshold_drop = gr.Dropdown(
-                            label="Block NSFW Level Above",
-                            choices=civitai.NSFW_LEVELS[1:],
-                            value=nsfw_preview_threshold,
-                            elem_id="ch_nsfw_preview_threshold_drop"
-                        )
-                    with gr.Column():
-                        refetch_old_ckb = gr.Checkbox(
-                            label="Replace Old Metadata Formats*",
-                            value=False,
-                            elem_id="ch_refetch_old_ckb"
-                        )
-                        gr.HTML("""
-                            <div style="margin-top:-1em;margin-left:2em;">* [<a href=https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Metadata-Format-Changes>wiki</a>]</div> Do not use this option if you have made changes with the metadata editor without backing up your data!!
-                        """)
-                    with gr.Column():
-                        scan_model_types_drop = gr.CheckboxGroup(
-                            choices=model_types,
-                            label="Model Types",
-                            value=model_types
-                        )
-
-                # with gr.Row():
-                scan_model_civitai_btn = gr.Button(
-                    value="Scan",
-                    variant="primary",
-                    elem_id="ch_scan_model_civitai_btn"
-                )
-
-                scan_civitai_info_image_meta_btn = gr.Button(
-                    value="Update image generation information (Experimental)",
-                    variant="primary",
-                    elem_id="ch_Scan_civitai_info_image_meta_btn"
-                )
-
-                # with gr.Row():
-                scan_model_log_md = gr.Markdown(
-                    value="Scanning takes time, just wait. Check console log for details",
-                    elem_id="ch_scan_model_log_md"
-                )
-
+            sections.get_model_info_by_url_section()
 
         with gr.Box(elem_classes="ch_box"):
-            with gr.Column():
-                gr.Markdown("### Get Model Info from Civitai by URL")
-                gr.Markdown("Use this when scanning can not find a local model on civitai")
-                with gr.Row():
-                    model_type_drop = gr.Dropdown(
-                        choices=model_types,
-                        label="Model Type",
-                        value="ckp",
-                        multiselect=False
-                    )
-                    empty_info_only_ckb = gr.Checkbox(
-                        label="Only Show Models have no Info",
-                        value=False,
-                        elem_id="ch_empty_info_only_ckb",
-                        elem_classes="ch_vpadding"
-                    )
-                    model_name_drop = gr.Dropdown(
-                        choices=no_info_model_names,
-                        label="Model",
-                        value="ckp",
-                        multiselect=False
-                    )
-
-                model_url_or_id_txtbox = gr.Textbox(
-                    label="Civitai URL",
-                    lines=1,
-                    value=""
-                )
-                get_civitai_model_info_by_id_btn = gr.Button(
-                    value="Get Model Info from Civitai",
-                    variant="primary"
-                )
-                get_model_by_id_log_md = gr.Markdown("")
+            sections.download_section()
 
         with gr.Box(elem_classes="ch_box"):
-            with gr.Column():
-                gr.Markdown("### Download Model")
-                with gr.Row():
-                    dl_model_url_or_id_txtbox = gr.Textbox(
-                        label="Civitai URL",
-                        lines=1,
-                        max_lines=1,
-                        value=""
-                    )
-                    dl_model_info_btn = gr.Button(
-                        value="1. Get Model Info by Civitai Url",
-                        variant="primary"
-                    )
-
-                gr.Markdown(value="2. Pick Subfolder and Model Version")
-                with gr.Row():
-                    dl_model_name_txtbox = gr.Textbox(
-                        label="Model Name",
-                        interactive=False,
-                        lines=1,
-                        max_lines=1,
-                        value=""
-                    )
-                    dl_model_type_txtbox = gr.Textbox(
-                        label="Model Type",
-                        interactive=False,
-                        lines=1,
-                        max_lines=1,
-                        value=""
-                    )
-                    dl_subfolder_drop = gr.Dropdown(
-                        choices=[],
-                        label="Sub-folder",
-                        value="",
-                        interactive=True,
-                        multiselect=False
-                    )
-                    dl_version_drop = gr.Dropdown(
-                        choices=[],
-                        label="Model Version",
-                        value="",
-                        interactive=True,
-                        multiselect=False
-                    )
-                    dl_duplicate_drop = gr.Dropdown(
-                        choices=["Skip", "Overwrite", "Rename New"],
-                        label="Duplicate File Behavior",
-                        value="Skip",
-                        interactive=True,
-                        multiselect=False
-                    )
-                    dl_all_ckb = gr.Checkbox(
-                        label="Download All files",
-                        value=False,
-                        elem_id="ch_dl_all_ckb",
-                        elem_classes="ch_vpadding"
-                    )
-
-                with gr.Row():
-                    dl_filename_txtbox = gr.Textbox(
-                        label="Model filename",
-                        value="",
-                        lines=1,
-                        max_lines=1,
-                        elem_id="ch_dl_filename_txtbox",
-                        elem_classes="ch_vpadding",
-                        visible=(not dl_all_ckb.value)
-                    )
-                    dl_extension_txtbox = gr.Textbox(
-                        label="Model filename",
-                        value="",
-                        elem_id="ch_dl_extension_txtbox",
-                        visible=False
-                    )
-
-                dl_civitai_model_by_id_btn = gr.Button(
-                    value="3. Download Model",
-                    variant="primary"
-                )
-                dl_log_md = gr.Markdown(
-                    value="Check Console log for Downloading Status"
-                )
+            sections.scan_for_duplicates_section()
 
         with gr.Box(elem_classes="ch_box"):
-            with gr.Column():
-                gr.Markdown("### Scan for duplicate models")
-                with gr.Row():
-                    with gr.Column():
-                        scan_dup_model_types_drop = gr.CheckboxGroup(
-                            choices=model_types,
-                            label="Model Types",
-                            value=model_types
-                        )
-                        cached_hash_ckb = gr.Checkbox(
-                            label="Use Hash from Metadata (May have false-positives but can be useful if you've pruned models)",
-                            value=False,
-                            elem_id="ch_cached_hash_ckb"
-                        )
-
-                # with gr.Row():
-                scan_dup_model_btn = gr.Button(
-                    value="Scan",
-                    variant="primary",
-                    elem_id="ch_scan_dup_model_civitai_btn"
-                )
-
-                # with gr.Row():
-                scan_dup_model_log_md = gr.HTML(
-                    value="Scanning takes time, just wait. Check console log for details",
-                    elem_id="ch_scan_dup_model_log_md"
-                )
-
-        with gr.Box(elem_classes="ch_box"):
-            with gr.Column():
-                gr.Markdown("### Check models' new version")
-                with gr.Row():
-                    model_types_ckbg = gr.CheckboxGroup(
-                        choices=model_types,
-                        label="Model Types",
-                        value=[
-                            "ti", "hyper", "ckp", "lora", "lycoris"
-                        ]
-                    )
-                    check_models_new_version_btn = gr.Button(
-                        value="Check New Version from Civitai",
-                        variant="primary"
-                    )
-
-                check_models_new_version_log_md = gr.HTML(
-                    "It takes time, just wait. Check console log for details"
-                )
+            sections.check_new_versions_section(js_msg_txtbox)
 
         # ====Footer====
         gr.HTML(f"<center>{util.SHORT_NAME} version: {util.VERSION}</center>")
 
         # ====hidden component for js, not in any tab====
-        js_msg_txtbox = gr.Textbox(
-            label="Request Msg From Js",
-            visible=False,
-            lines=1,
-            value="",
-            elem_id="ch_js_msg_txtbox"
-        )
+        js_msg_txtbox.render()
         py_msg_txtbox = gr.Textbox(
             label="Response Msg From Python",
             visible=False,
@@ -408,11 +124,6 @@ def on_ui_tabs():
             visible=False,
             elem_id="ch_js_use_preview_prompt_btn"
         )
-        js_dl_model_new_version_btn = gr.Button(
-            value="Download Model's new version",
-            visible=False,
-            elem_id="ch_js_dl_model_new_version_btn"
-        )
         js_rename_card_btn = gr.Button(
             value="Rename Card",
             visible=False,
@@ -425,98 +136,6 @@ def on_ui_tabs():
         )
 
         # ====events====
-        # Scan Models for Civitai
-        scan_model_civitai_btn.click(
-            model_action_civitai.scan_model,
-            inputs=[
-                scan_model_types_drop, max_size_preview_ckb,
-                nsfw_preview_threshold_drop, refetch_old_ckb
-            ],
-            outputs=scan_model_log_md
-        )
-
-        scan_civitai_info_image_meta_btn.click(
-            model.scan_civitai_info_image_meta,
-            outputs=scan_model_log_md
-        )
-
-        # Get Civitai Model Info by Model Page URL
-        model_type_drop.change(
-            get_model_names_by_input,
-            inputs=[
-                model_type_drop, empty_info_only_ckb
-            ],
-            outputs=model_name_drop
-        )
-        empty_info_only_ckb.change(
-            get_model_names_by_input,
-            inputs=[
-                model_type_drop, empty_info_only_ckb
-            ],
-            outputs=model_name_drop
-        )
-
-        get_civitai_model_info_by_id_btn.click(
-            model_action_civitai.get_model_info_by_input,
-            inputs=[
-                model_type_drop, model_name_drop,
-                model_url_or_id_txtbox, max_size_preview_ckb,
-                nsfw_preview_threshold_drop
-            ],
-            outputs=get_model_by_id_log_md
-        )
-
-        # Download Model
-        dl_model_info_btn.click(
-            get_model_info_by_url,
-            inputs=[
-                dl_model_url_or_id_txtbox, dl_subfolder_drop
-            ],
-            outputs=[
-                ch_state, dl_model_name_txtbox,
-                dl_model_type_txtbox, dl_subfolder_drop,
-                dl_version_drop, dl_filename_txtbox,
-                dl_extension_txtbox
-            ]
-        )
-        dl_civitai_model_by_id_btn.click(
-            model_action_civitai.dl_model_by_input,
-            inputs=[
-                ch_state, dl_model_type_txtbox,
-                dl_subfolder_drop, dl_version_drop,
-                dl_filename_txtbox, dl_extension_txtbox, dl_all_ckb, max_size_preview_ckb,
-                nsfw_preview_threshold_drop, dl_duplicate_drop
-            ],
-            outputs=dl_log_md
-        )
-        dl_version_drop.change(
-            update_dl_filename,
-            inputs=[dl_version_drop, ch_state],
-            outputs=[dl_filename_txtbox, dl_extension_txtbox]
-        )
-        dl_all_ckb.change(
-            update_dl_filename_visibility,
-            inputs=dl_all_ckb,
-            outputs=dl_filename_txtbox
-        )
-
-        # Scan Duplicate Models
-        scan_dup_model_btn.click(
-            duplicate_check.scan_for_dups,
-            inputs=[
-                scan_dup_model_types_drop,
-                cached_hash_ckb
-            ],
-            outputs=scan_dup_model_log_md
-        )
-
-        # Check models' new version
-        check_models_new_version_btn.click(
-            model_action_civitai.check_models_new_version_to_md,
-            inputs=model_types_ckbg,
-            outputs=check_models_new_version_log_md
-        )
-
         # js action
         js_open_url_btn.click(
             js_action_civitai.open_model_url,
@@ -537,14 +156,6 @@ def on_ui_tabs():
                 txt2img_prompt, txt2img_neg_prompt,
                 img2img_prompt, img2img_neg_prompt
             ]
-        )
-        js_dl_model_new_version_btn.click(
-            js_action_civitai.dl_model_new_version,
-            inputs=[
-                js_msg_txtbox, max_size_preview_ckb,
-                nsfw_preview_threshold_drop
-            ],
-            outputs=dl_log_md
         )
         js_rename_card_btn.click(
             js_action_civitai.rename_model_by_path,
@@ -579,6 +190,19 @@ def on_ui_settings():
             "Wiki",
             "https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Civitai-API-Key"
         )
+    )
+    shared.opts.add_option(
+        "ch_dl_lyco_to_lora",
+        shared.OptionInfo(
+            False,
+            (
+                "Save LyCORIS models to Lora directory. Do not use this if you are on "
+                "older versions of webui or you use an extension that handles LyCORIS "
+                "models."
+            ),
+            gr.Checkbox,
+            {"interactive": True},
+            section=section)
     )
     shared.opts.add_option(
         "ch_open_url_with_js",
