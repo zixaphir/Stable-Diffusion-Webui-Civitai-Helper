@@ -360,7 +360,22 @@ def should_skip(user_rating, image_rating):
     if user_rating == "Skip":
         # Old config
         return False
+    if isinstance(image_rating, bool):
+        # Image using old NSFW system?
+        if image_rating:
+            image_rating = order[-1]
+        else:
+            image_rating = order[0]
     return order.index(image_rating) >= order.index(user_rating)
+
+
+def show_only_nsfw(user_rating, image_rating):
+    """ return: True if image is NSFW """
+    order = NSFW_LEVELS
+    if user_rating == "Skip":
+        # Old config
+        return True
+    return order.index(image_rating) <= order.index(user_rating)
 
 
 def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
