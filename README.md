@@ -75,6 +75,9 @@ For each model, it will create two files to save all model info from Civitai. Th
 
 If a model info file already exists, by default it will be skipped. If a model cannot be found in Civitai, a minimal model info file will be created with any information that can be extracted from the model. By default, a model with model pre-existing model info files will not be scanned.
 
+### Update Image Generation Information
+In the same place you can scan a model, you can also scan the model info and the extension will attempt to fill in any missing information from the images themselves. This is a very hit-or-miss process, but if you are trying to get the prompt from an image  the "preview image prompt" button and it fails to work, performing this scan may retrieve the information necessary to fix it.
+
 ### Adding New Models
 When you have some new models, just click scan button again to get new model's information and preview images. Only new models will be scanned with default options.
 
@@ -153,26 +156,6 @@ After clicking button, extension will download that civitai model's info and pre
 
 ![](img/get_one_model_info.jpg)
 
-## Proxy
-**If you are updating to new version, you need to re-lanuch SD webui before using it.**
-
-Proxy textbox is at the bottom of extension tab.
-
-**Each time you fill or clear a proxy value, you need to save setting, and Re-load UI with setting tab's reload button.**
-
-Then all requests to civitai will use the proxy.
-
-For some sock5 proxy, need to be used as "socks5h://xxxxx".
-
-## Other Setting
-**The Save Setting button, will save both "Scan Model"'s setting and other setting.**
-
-* "Always Display Button" is good for touch screen.
-* "Show Buttons on Thumb Mode" will turn on/off additional Buttons on thumbnail.
-    * Thumbnail Mode was removed in v1.5.0 of webui.
-
-![](img/other_setting.jpg)
-
 ## Preview Image
 Extra networks use both `model_file.png` and `model_file.preview.png` as preview image. But `model_file.png` has higher priority, because it is created by yourself.
 
@@ -193,6 +176,36 @@ There are 2 cases this hash code can not find the model on civitai:
 * The model's owner changed file on civitai, but does not change version name and description. So, the file on civitai is actually not the one on your manchine.
 
 In these cases, you can always link a model to civitai by filling its URL in this extension.
+
+
+## Settings
+While many options are provided in the Civitai Helper's extension tab, a dedicated settings section can be found in WebUI's Setting's tab. Here you will find a variety of options that are either not available in the Civitai Helper tab or that can be set here so that they do not reset when you reload the page. For example, you can hide buttons added by the extension that you do not use, enable always showing buttons to make functionality more touch-screen friendly, or choose to download the highest resolution versions of preview images available.
+
+The next couple sections explain some of the more advanced option.
+
+### API Key
+Some models on Civitai require you to be logged in to download them. Unfortunately, it is not currently possible to just enter in your login information with this extension, but with an API Key, you will still be able to download these models. For information on how to generate an API Key for your Civitai account, please see our **[wiki](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Civitai-API-Key)**.
+
+### Proxy
+You may set a proxy for the extension to use and then all requests to civitai will use the proxy.
+
+For some sock5 proxies, you may need to enter it in the form "socks5h://xxxxx".
+
+### Choosing a Hashing function
+For the longest time, this extension used its own code for performing Hashng, or fingerprinting, of model files. While this worked fine, and was quite good, this implementation had a finicky history with colabs and lacked some useful features like saving generated hashes so that future scans wouldn't need to re-hash the file. While the old implementation is still available through this setting, currently the default setting is to simply let WebUI handle that functionality and benefit from the exceptional development happening over there.
+
+### Lycoris Models
+By default, models known as "Lycoris" are saved to their own directory, but you can also choose to instead download them to the Lora directory instead. For most end-user purposes, LyCoris models are functionally the same as Loras, so this may be benefical if you simply want everything in one place. However, some extensions previously required LyCoris models to have their own directory, so the default will continue to be to keep them in separate directories for compatibility reasons.
+
+## Other Setting
+**The Save Setting button, will save both "Scan Model"'s setting and other setting.**
+
+* "Always Display Button" is good for touch screen.
+* "Show Buttons on Thumb Mode" will turn on/off additional Buttons on thumbnail.
+    * Thumbnail Mode was removed in v1.5.0 of webui.
+
+![](img/other_setting.jpg)
+
 
 ## Feature Request
 Feel free to submit feature requests, but pull requests are preferred.
