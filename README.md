@@ -75,11 +75,13 @@ For each model, it will create two files to save all model info from Civitai. Th
 
 If a model info file already exists, by default it will be skipped. If a model cannot be found in Civitai, a minimal model info file will be created with any information that can be extracted from the model. By default, a model with model pre-existing model info files will not be scanned.
 
+### Adding New Models
+When you want to grab some new models, you can either download them to the appropriate directory yourself or you can use the built-in model [downloader](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper#download). If you use the Model Downloader, the model information and preview will also be downloaded, along providing the option to download other files, like the model config or VAE.
+
+If you just want to download the models into the appropriate directories yourself, you can simply run a scan again to get new model's information and preview images, although other files like the model config or VAE may be missing. Only new models will be scanned with default options.
+
 ### Update Image Generation Information
 In the same place you can scan a model, you can also scan the model info and the extension will attempt to fill in any missing information from the images themselves. This is a very hit-or-miss process, but if you are trying to get the prompt from an image  the "preview image prompt" button and it fails to work, performing this scan may retrieve the information necessary to fix it.
-
-### Adding New Models
-When you have some new models, just click scan button again to get new model's information and preview images. Only new models will be scanned with default options.
 
 ## Model Card
 
