@@ -197,15 +197,9 @@ For the longest time, this extension used its own code for performing Hashng, or
 ### Lycoris Models
 By default, models known as "Lycoris" are saved to their own directory, but you can also choose to instead download them to the Lora directory instead. For most end-user purposes, LyCoris models are functionally the same as Loras, so this may be benefical if you simply want everything in one place. However, some extensions previously required LyCoris models to have their own directory, so the default will continue to be to keep them in separate directories for compatibility reasons.
 
-## Other Setting
-**The Save Setting button, will save both "Scan Model"'s setting and other setting.**
-
-* "Always Display Button" is good for touch screen.
+### Other Setting
 * "Show Buttons on Thumb Mode" will turn on/off additional Buttons on thumbnail.
     * Thumbnail Mode was removed in v1.5.0 of webui.
-
-![](img/other_setting.jpg)
-
 
 ## Feature Request
 Feel free to submit feature requests, but pull requests are preferred.
