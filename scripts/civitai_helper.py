@@ -35,6 +35,20 @@ BUTTONS = {
 
 model.get_custom_model_folder()
 
+def update_proxy():
+    """ Set proxy, allow for changes at runtime """
+    proxy = util.get_opts("ch_proxy")
+
+    util.printD(f"Set Proxy: {proxy}")
+    if proxy:
+        util.PROXIES["http"] = proxy
+        util.PROXIES["https"] = proxy
+        return
+
+    util.PROXIES["http"] = None
+    util.PROXIES["https"] = None
+
+
 def on_ui_tabs():
     # init
     # init_py_msg = {
@@ -44,11 +58,7 @@ def on_ui_tabs():
     # init_py_msg_str = json.dumps(init_py_msg)
 
     # set proxy
-    proxy = util.get_opts("ch_proxy")
-    if proxy:
-        util.printD(f"Set Proxy: {proxy}")
-        util.PROXIES["http"] = proxy
-        util.PROXIES["https"] = proxy
+    update_proxy()
 
     try:
         BUTTONS["add_trigger_words_button"] = util.newer_version(
@@ -312,6 +322,11 @@ def on_ui_settings():
             {"interactive": True},
             section=section)
     )
+    shared.opts.onchange(
+        "ch_proxy",
+        update_proxy
+    )
+
 
 script_callbacks.on_ui_settings(on_ui_settings)
 script_callbacks.on_ui_tabs(on_ui_tabs)
