@@ -252,8 +252,10 @@ def download_section():
     def filter_previews(previews, nsfw_preview_url_drop):
         images = []
         for preview in previews:
-            nsfw = preview["nsfw"]
-            if not civitai.should_skip(nsfw_preview_url_drop, nsfw):
+            if civitai.should_skip(nsfw_preview_url_drop, preview["nsfw"]):
+                continue
+            if preview["type"] == "image":
+                # Civitai added videos as previews, and webui does not like it
                 images.append(preview["url"])
 
         return images
