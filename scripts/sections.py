@@ -213,15 +213,24 @@ def download_section():
         for version_files, version in zip(data["files"], version_strs):
             filetypes = dl_state["files"][version] = {}
             files_count = 0
+            unhandled_files = []
             for filedata in version_files:
                 files_count += 1
-                if filedata["type"] in model_filetypes:
-                    ch_filedata = {
-                        "id": filedata["id"],
-                        "name": filedata["name"],
-                    }
+                ch_filedata = {
+                    "id": filedata["id"],
+                    "name": filedata["name"],
+                }
 
+                if filedata["type"] in model_filetypes:
                     filetypes[filedata["type"]] = (True, ch_filedata)
+                    continue
+
+                unhandled_files.append(f"{ch_filedata['id']}: {ch_filedata['name']}")
+
+            if len(unhandled_files) > 0:
+                filetypes["unhandled_files"] = "\n".join(unhandled_files)
+            else:
+                filetypes["unhandled_files"] = None
 
             dl_state["files_count"][version] = files_count
 
@@ -428,9 +437,22 @@ def download_section():
                         ch_output_add.append(elems["txtbx"])
                         ch_output_add.append(row)
 
+                with gr.Row(visible=False) as unhandled_files_row:
+                    file_elems["unhandled_files"] = elems = {}
+                    elems["row"] = row
+
+                    elems["txtbx"] = gr.Textbox(
+                        value="",
+                        interactive=False,
+                        label="Unhandled Files (Files that we don't know what to do with but will still downloaded with \"Download All Files\")",
+                    )
+
+                    ch_output_add.append(elems["txtbx"])
+                    ch_output_add.append(unhandled_files_row)
+
                 with gr.Row(visible=False) as download_all_row:
                     dl_all_ckb = gr.Checkbox(
-                        label="Download All files",
+                        label="Download All Files",
                         value=False,
                         elem_id="ch_dl_all_ckb",
                         elem_classes="ch_vpadding"
