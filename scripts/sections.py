@@ -180,21 +180,23 @@ def download_section():
         },
         "files_count": {
             # dl_version_str: int
-        }
+        },
+        "filtered_previews": []
     })
 
-    def get_model_info_by_url(url, subfolder):
+    def get_model_info_by_url(url, subfolder, state):
         data = model_action_civitai.get_model_info_by_url(url)
 
         if not data:
             return None
 
-        dl_state = {
+        state = {
             "model_info": {},
             "filenames": {},
             "previews": {},
             "files": {},
-            "files_count": {}
+            "files_count": {},
+            "filtered_previews": []
         }
 
         subfolders = data["subfolders"]
@@ -204,14 +206,14 @@ def download_section():
         if subfolder == "" or subfolder not in subfolders:
             subfolder = "/"
 
-        dl_state["model_info"] = data["model_info"]
-        dl_state["previews"] = data["previews"]
+        state["model_info"] = data["model_info"]
+        state["previews"] = data["previews"]
 
         for filename, version in zip(filenames, version_strs):
-            dl_state["filenames"][version] = filename
+            state["filenames"][version] = filename
 
         for version_files, version in zip(data["files"], version_strs):
-            filetypes = dl_state["files"][version] = {}
+            filetypes = state["files"][version] = {}
             files_count = 0
             unhandled_files = []
             for filedata in version_files:
@@ -232,10 +234,10 @@ def download_section():
             else:
                 filetypes["unhandled_files"] = None
 
-            dl_state["files_count"][version] = files_count
+            state["files_count"][version] = files_count
 
         return [
-            dl_state, data["model_name"], data["model_type"],
+            state, data["model_name"], data["model_type"],
             dl_subfolder_drop.update(
                 choices=subfolders,
                 value=subfolder
@@ -260,7 +262,7 @@ def download_section():
 
         return images
 
-    def update_dl_inputs(dl_version, state, nsfw_threshold, current_preview):
+    def update_dl_inputs(state, dl_version, nsfw_threshold, dl_preview_index):
         filename = state["filenames"][dl_version]
 
         if not filename:
@@ -271,13 +273,11 @@ def download_section():
         base = ".".join(file_parts)
 
         previews = filter_previews(state["previews"][dl_version], nsfw_threshold)
+        state["filtered_previews"] = previews
 
         preview = None
-        if len(previews) > 0:
-            if current_preview in previews:
-                preview = current_preview
-            else:
-                preview = previews[0]
+        if len(previews) >= dl_preview_index:
+            preview = previews[dl_preview_index]
 
         output_add = []
 
@@ -295,25 +295,23 @@ def download_section():
             output_add.append(elems["row"].update(visible=visible))
 
         return [
+            state,
             dl_filename_txtbox.update(
                 value=base
             ),
             dl_extension_txtbox.update(
                 value=ext
             ),
-            dl_previews_drop.update(
-                choices=previews,
+            dl_preview_img.update(
+                value=previews
+            ),
+            dl_preview_url.update(
                 value=preview
             ),
             download_all_row.update(
                 visible=(state["files_count"][dl_version] > 1)
             )
         ] + output_add
-
-    def update_dl_preview(dl_previews_drop):
-        return dl_preview_img.update(
-            value=dl_previews_drop
-        )
 
     def update_dl_files_visibility(dl_all):
         files_chkboxes = []
@@ -325,6 +323,25 @@ def download_section():
             )
 
         return files_chkboxes
+
+    def update_dl_preview_url(state, dl_preview_index):
+        util.printD(dl_preview_index)
+        util.printD(state["filtered_previews"])
+        preview_url = state["filtered_previews"][dl_preview_index]
+
+        return dl_preview_url.update(
+            value=preview_url
+        )
+
+    def update_dl_preview_index(evt: gr.SelectData):
+        # For some reason, you can't pass gr.SelectData and
+        # inputs at the same time. :/
+
+        util.printD(evt.index)
+
+        return dl_preview_index.update(
+            value=evt.index
+        )
 
     with gr.Row():
         gr.Markdown("### Download Model")
@@ -461,18 +478,26 @@ def download_section():
                     )
 
         with gr.Column(scale=1, elem_id="ch_preview_col", min_width=512):
-            with gr.Row():
-                dl_previews_drop = gr.Dropdown(
-                    choices=[],
-                    label="Preview Image Selection",
-                    value="",
-                    elem_id="ch_dl_previews_drop",
-                )
             with gr.Row(elem_classes="flex-center"):
-                dl_preview_img = gr.Image(
+                dl_preview_img = gr.Gallery(
+                    show_label=True,
                     label="Preview Image",
                     value=None,
-                    elem_id="ch_dl_preview_img"
+                    elem_id="ch_dl_preview_img",
+                    allow_preview=True,
+                    preview=False,
+                    object_fit="scale-down"
+                )
+                dl_preview_url = gr.Textbox(
+                    value="",
+                    visible=False,
+                    elem_id="ch_dl_preview_url"
+                )
+                dl_preview_index = gr.Number(
+                    value=0,
+                    visible=False,
+                    elem_id="ch_dl_preview_index",
+                    precision=0
                 )
 
     with gr.Row():
@@ -508,7 +533,7 @@ def download_section():
     dl_model_info_btn.click(
         get_model_info_by_url,
         inputs=[
-            dl_model_url_or_id_txtbox, dl_subfolder_drop
+            dl_model_url_or_id_txtbox, dl_subfolder_drop, dl_state
         ],
         outputs=[
             dl_state, dl_model_name_txtbox,
@@ -522,7 +547,7 @@ def download_section():
             dl_subfolder_drop, dl_version_drop,
             dl_filename_txtbox, dl_extension_txtbox,
             dl_all_ckb, nsfw_preview_dl_drop,
-            dl_duplicate_drop, dl_previews_drop
+            dl_duplicate_drop, dl_preview_url
         ] + ch_dl_model_types
 
     dl_civitai_model_by_id_btn.click(
@@ -532,13 +557,13 @@ def download_section():
     )
 
     ver_outputs = [
-        dl_filename_txtbox, dl_extension_txtbox,
-        dl_previews_drop, download_all_row
+        dl_state, dl_filename_txtbox, dl_extension_txtbox,
+        dl_preview_img, dl_preview_url, download_all_row,
     ] + ch_output_add
 
     dl_version_drop.change(
         update_dl_inputs,
-        inputs=[dl_version_drop, dl_state, nsfw_preview_dl_drop, dl_previews_drop],
+        inputs=[dl_state, dl_version_drop, nsfw_preview_dl_drop, dl_preview_index],
         outputs=ver_outputs
     )
     dl_all_ckb.change(
@@ -548,14 +573,21 @@ def download_section():
     )
     nsfw_preview_dl_drop.change(
         update_dl_inputs,
-        inputs=[dl_version_drop, dl_state, nsfw_preview_dl_drop, dl_previews_drop],
+        inputs=[dl_version_drop, dl_state, nsfw_preview_dl_drop],
         outputs=ver_outputs
     )
-    dl_previews_drop.change(
-        update_dl_preview,
-        inputs=dl_previews_drop,
-        outputs=dl_preview_img
+    # Gradio has so many issues with Gradio.Gallery...
+    dl_preview_img.select(
+        update_dl_preview_index,
+        None,
+        dl_preview_index
     )
+    dl_preview_index.change(
+        update_dl_preview_url,
+        [dl_state, dl_preview_index],
+        dl_preview_url
+    )
+
 
 def scan_for_duplicates_section():
     """ Scan Duplicate Models Section """
