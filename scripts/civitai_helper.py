@@ -57,9 +57,6 @@ def on_ui_tabs():
     # }
     # init_py_msg_str = json.dumps(init_py_msg)
 
-    # set proxy
-    update_proxy()
-
     try:
         BUTTONS["add_trigger_words_button"] = util.newer_version(
             util.webui_version(), '1.5.0', allow_equal=True
