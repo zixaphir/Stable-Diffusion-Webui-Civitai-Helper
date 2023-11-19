@@ -276,8 +276,10 @@ def download_section():
         state["filtered_previews"] = previews
 
         preview = None
-        if len(previews) >= dl_preview_index:
+        if len(previews) > dl_preview_index:
             preview = previews[dl_preview_index]
+        elif len(previews) > 0:
+            preview = previews[0]
 
         output_add = []
 
@@ -325,8 +327,6 @@ def download_section():
         return files_chkboxes
 
     def update_dl_preview_url(state, dl_preview_index):
-        util.printD(dl_preview_index)
-        util.printD(state["filtered_previews"])
         preview_url = state["filtered_previews"][dl_preview_index]
 
         return dl_preview_url.update(
