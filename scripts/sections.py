@@ -337,8 +337,6 @@ def download_section():
         # For some reason, you can't pass gr.SelectData and
         # inputs at the same time. :/
 
-        util.printD(evt.index)
-
         return dl_preview_index.update(
             value=evt.index
         )
