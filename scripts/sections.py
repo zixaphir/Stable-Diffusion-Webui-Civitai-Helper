@@ -199,7 +199,7 @@ def download_section():
             "filtered_previews": []
         }
 
-        subfolders = data["subfolders"]
+        subfolders = sorted(data["subfolders"])
         version_strs = data["version_strs"]
         filenames = data["filenames"]
 
