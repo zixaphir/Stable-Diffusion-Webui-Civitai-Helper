@@ -306,19 +306,6 @@ def on_ui_settings():
             {"interactive": True, "max_lines": 1},
             section=section)
     )
-    shared.opts.add_option(
-        "ch_use_a1111_sha256",
-        shared.OptionInfo(
-            True,
-            (
-                "Use SD webui's built-in hashing functions for model hashes. "
-                "This provides a hash cache, which should make repeat model "
-                "scanning faster and make hashes reusable across features."
-            ),
-            gr.Checkbox,
-            {"interactive": True},
-            section=section)
-    )
     shared.opts.onchange(
         "ch_proxy",
         update_proxy

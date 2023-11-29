@@ -6,13 +6,14 @@ import os
 import html
 import json
 import traceback
+import gradio as gr
 from . import util
 from . import model
 from . import civitai
 from . import templates
 
 
-def scan_for_dups(scan_model_types, cached_hash):
+def scan_for_dups(scan_model_types, cached_hash, progress=gr.Progress()):
     """ Scans model metadata to detect duplicates
         by using the model hash.
     """
@@ -34,7 +35,13 @@ def scan_for_dups(scan_model_types, cached_hash):
     else:
         model_types = scan_model_types
 
-    models = gather_model_data(model_types, cached_hash)
+    result = None
+    for result in gather_model_data(model_types, cached_hash):
+        if isinstance(result, tuple):
+            percent, status = result
+            progress(percent, desc=status)
+    models = result
+
     dups = check_for_dups(models)
 
     output = create_dups_html(dups)
@@ -51,9 +58,12 @@ def gather_model_data(model_types, cached_hash):
         if model_type not in model_types:
             continue
 
-        models[model_type] = scan_dir(model_folder, model_type, cached_hash)
+        for result in scan_dir(model_folder, model_type, cached_hash):
+            yield result
 
-    return models
+        models[model_type] = result
+
+    yield models
 
 def scan_dir(model_folder, model_type, cached_hash):
     """
@@ -69,7 +79,9 @@ def scan_dir(model_folder, model_type, cached_hash):
         for filename in files:
             try:
                 if filename[suffix_len:] == suffix:
-                    data = parse_metadata(model_folder, root, filename, suffix, model_type, cached_hash)
+                    for result in parse_metadata(model_folder, root, filename, suffix, model_type, cached_hash):
+                        yield result
+                    data = result
                     if data:
                         metadata.append(data)
 
@@ -79,7 +91,7 @@ def scan_dir(model_folder, model_type, cached_hash):
                 util.printD("You can probably ignore this")
                 continue
 
-    return metadata
+    yield metadata
 
 
 def parse_metadata(model_folder, root, filename, suffix, model_type, cached_hash):
@@ -96,7 +108,8 @@ def parse_metadata(model_folder, root, filename, suffix, model_type, cached_hash
         try:
             model_info = json.load(file)
         except json.JSONDecodeError:
-            return None
+            yield None
+            return
 
     model_file = model_info["files"][0]
     model_ext = model_file["name"].split(".").pop()
@@ -120,10 +133,12 @@ def parse_metadata(model_folder, root, filename, suffix, model_type, cached_hash
 
         if not (model_path and os.path.isfile(model_path)):
             util.printD(f"No model path found for {filepath}")
-            return None
+            yield None
+            return
 
-    sha256 = get_hash(model_path, model_file, model_type, cached_hash)
-
+    for result in get_hash(model_path, model_file, model_type, cached_hash):
+        yield result
+    sha256 = result
 
     metadata = {
         "model_name": model_name,
@@ -136,7 +151,7 @@ def parse_metadata(model_folder, root, filename, suffix, model_type, cached_hash
         "search_term": make_search_term(model_type, model_path, sha256)
     }
 
-    return metadata
+    yield metadata
 
 
 def get_hash(model_path, model_file, model_type, cached_hash):
@@ -153,7 +168,8 @@ def get_hash(model_path, model_file, model_type, cached_hash):
             pass
 
         if sha256:
-            return sha256
+            yield sha256
+            return
 
         util.printD(f"No sha256 hash in metadata for {model_file}. \
                 \n\tGenerating one. This will be slower")
@@ -166,13 +182,17 @@ def get_hash(model_path, model_file, model_type, cached_hash):
         "lycoris": "lycoris"
     }[model_type]
 
-    sha256 = util.gen_file_sha256(
+    result = None
+    for result in util.gen_file_sha256(
         model_path,
         model_type=model_hash_type,
         use_addnet_hash=False
-    ).upper()
+    ):
+        yield result
 
-    return sha256
+    sha256 = result.upper()
+
+    yield sha256
 
 
 def make_search_term(model_type, model_path, sha256):
