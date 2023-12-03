@@ -13,9 +13,15 @@ import gradio as gr
 from modules import shared
 from modules.shared import opts
 from modules import hashes
-import modules.cache as sha256_cache
 import launch
 from packaging.version import parse as parse_version
+
+try:
+    # Automatic1111 SD WebUI
+    import modules.cache as sha256_cache
+except ModuleNotFoundError:
+    # Vladmandic "SD.Next"
+    import modules.hashes as sha256_cache
 
 # used to append extension information to JSON/INFO files
 SHORT_NAME = "sd_civitai_helper"
