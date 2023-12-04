@@ -402,6 +402,11 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
             util.printD("Skip NSFW image")
             yield (False, None)
 
+    preview_type = img_dict.get("type")
+    if preview_type != "image":
+        util.printD(f"Preview is not an image. Found {preview_type} instead. Skipping.")
+        yield (False, None)
+
     img_url = get_image_url(img_dict, max_size_preview)
 
     success = False
