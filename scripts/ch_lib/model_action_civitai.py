@@ -4,6 +4,7 @@ handle msg between js and python side
 import os
 import time
 import re
+import gradio as gr
 from modules import sd_models
 from . import util
 from . import model
@@ -48,21 +49,17 @@ def get_metadata_skeleton():
     return metadata
 
 
-def scan_single_model(filename, root, model_type, refetch_old, delay):
+def scan_single_model(filepath, model_type, refetch_old, delay):
     """
     Gets model info for a model by feeding its sha256 hash into civitai's api
 
     return: success:bool
     """
 
-    # check ext
-    item = os.path.join(root, filename)
-    _, ext = os.path.splitext(item)
-    if ext not in model.EXTS:
-        yield False
+    filename = os.path.basename(filepath)
 
     # find a model, get info file
-    info_file, sd15_file = model.get_model_info_paths(item)
+    info_file, sd15_file = model.get_model_info_paths(filepath)
 
     output = ""
 
@@ -73,7 +70,13 @@ def scan_single_model(filename, root, model_type, refetch_old, delay):
         yield output
 
         # get model's sha256
-        sha256_hash = util.gen_file_sha256(item)
+        result = None
+        for result in util.gen_file_sha256(filepath):
+            if isinstance(result, tuple):
+                yield result
+        sha256_hash = result
+
+        util.printD(f"model action sha256: {sha256_hash}")
 
         if not sha256_hash:
             output = f"failed generating SHA256 for model: {filename}"
@@ -82,13 +85,14 @@ def scan_single_model(filename, root, model_type, refetch_old, delay):
             time.sleep(delay)
             yield False
 
+        yield "Requestion model information from Civitai"
         # use this sha256 to get model info from civitai
         model_info = civitai.get_model_info_by_hash(sha256_hash)
 
         if not model_info:
-            model_info = dummy_model_info(item, sha256_hash, model_type)
+            model_info = dummy_model_info(filepath, sha256_hash, model_type)
 
-        model.process_model_info(item, model_info, model_type, refetch_old=refetch_old)
+        model.process_model_info(filepath, model_info, model_type, refetch_old=refetch_old)
 
         # delay before next request, to prevent being treated as a DDoS attack
         time.sleep(delay)
@@ -99,7 +103,7 @@ def scan_single_model(filename, root, model_type, refetch_old, delay):
     yield True
 
 
-def scan_model(scan_model_types, nsfw_preview_threshold, refetch_old):
+def scan_model(scan_model_types, nsfw_preview_threshold, refetch_old, progress=gr.Progress()):
     """ Scan model to generate SHA256, then use this SHA256 to get model info from civitai
         return output msg
     """
@@ -118,16 +122,12 @@ def scan_model(scan_model_types, nsfw_preview_threshold, refetch_old):
         yield output
         return
 
-    model_types = []
+    model_types = scan_model_types
+    if isinstance(scan_model_types, str):
+        # check if type is a string
+        model_types = [scan_model_types]
 
-    # check type if it is a string
-
-    model_types = (
-        [scan_model_types] if isinstance(scan_model_types, str) else scan_model_types
-    )
-
-    count = 0
-
+    models = []
     for model_type, model_folder in model.folders.items():
         if model_type not in model_types:
             continue
@@ -135,34 +135,58 @@ def scan_model(scan_model_types, nsfw_preview_threshold, refetch_old):
         util.printD(f"Scanning path: {model_folder}")
         for root, _, files in os.walk(model_folder, followlinks=True):
             for filename in files:
-                success = None
-                for result in scan_single_model(filename, root, model_type, refetch_old, delay):
-                    if isinstance(result, str):
-                        yield result
-                        continue
 
-                    success = result
-                    break
-
-                if not success:
+                # check ext
+                filepath = os.path.join(root, filename)
+                _, ext = os.path.splitext(filepath)
+                if ext not in model.EXTS:
                     continue
 
-                # set model_count
-                count = count + 1
+                models.append((filepath, model_type))
 
-                # check preview image
-                filepath = os.path.join(root, filename)
+    count = [0, 0]
+    total = len(models)
+    for filepath, model_type in models:
+        success = None
 
-                # webui-visible progress bar
-                for _ in civitai.get_preview_image_by_model_path(
-                    filepath,
-                    max_size_preview,
-                    nsfw_preview_threshold
-                ):
-                    pass
+        tracker = (count[0], total)
+
+        progress(
+            tracker,
+            desc="Scanning...",
+            unit="models"
+        )
+
+        count[0] = count[0] + 1
+
+        for result in scan_single_model(filepath, model_type, refetch_old, delay):
+            if isinstance(result, str):
+                progress(tracker, desc=result, unit="models")
+                continue
+            if isinstance(result, tuple):
+                percent, status = result
+                progress(percent, desc=status)
+                continue
+
+            success = result
+            break
+
+        if not success:
+            continue
+
+        # set model_count
+        count[1] = count[1] + 1
+
+        # check preview image
+        for _ in civitai.get_preview_image_by_model_path(
+            filepath,
+            max_size_preview,
+            nsfw_preview_threshold
+        ):
+            pass
 
     # this previously had an image count, but it always matched the model count.
-    output = f"Done. Scanned {count} models."
+    output = f"Done. Successfully scanned {count[1]} of {len(models)} models."
 
     util.printD(output)
 

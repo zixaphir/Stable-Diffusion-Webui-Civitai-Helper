@@ -60,15 +60,6 @@ def civitai_get(civitai_url:str):
 
     return content
 
-def get_full_size_image_url(image_url, width):
-    """
-    Get image with full size
-    Width is in number, not string
-
-    return: url str
-    """
-    return re.sub(r'/width=\d+/', '/width=' + str(width) + '/', image_url)
-
 
 def append_parent_model_metadata(content):
     """
@@ -360,7 +351,39 @@ def should_skip(user_rating, image_rating):
     if user_rating == "Skip":
         # Old config
         return False
+    if isinstance(image_rating, bool):
+        # Image using old NSFW system?
+        if image_rating:
+            image_rating = order[-1]
+        else:
+            image_rating = order[0]
     return order.index(image_rating) >= order.index(user_rating)
+
+
+def show_only_nsfw(user_rating, image_rating):
+    """ return: True if image is NSFW """
+    order = NSFW_LEVELS
+    if user_rating == "Skip":
+        # Old config
+        return True
+    return order.index(image_rating) <= order.index(user_rating)
+
+
+def get_image_url(img_dict, max_size_preview):
+    """
+    Create the image download URL
+
+    return: url:str
+    """
+
+    url = img_dict["url"]
+    if max_size_preview:
+        # use max width
+        width = img_dict.get("width", False)
+        if width:
+            url = re.sub(r'/width=\d+/', '/width=' + str(width) + '/', url)
+
+    return url
 
 
 def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
@@ -379,11 +402,12 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
             util.printD("Skip NSFW image")
             yield (False, None)
 
-    if max_size_preview:
-        # use max width
-        if "width" in img_dict.keys():
-            if img_dict["width"]:
-                img_url = get_full_size_image_url(img_url, img_dict["width"])
+    preview_type = img_dict.get("type")
+    if preview_type != "image":
+        util.printD(f"Preview is not an image. Found {preview_type} instead. Skipping.")
+        yield (False, None)
+
+    img_url = get_image_url(img_dict, max_size_preview)
 
     success = False
     preview_path = ""
@@ -432,8 +456,24 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
         yield output
         return
 
+    # load model_info file
+    if not os.path.isfile(info_file):
+        return
+
+    try:
+        images = model.load_model_info(info_file)["images"]
+
+    except (KeyError, TypeError):
+        return
+
     if preferred_preview:
-        for result in downloader.dl_file(preferred_preview, file_path=preview_path):
+        img_url = preferred_preview
+        for img_dict in images:
+            if img_dict["url"] == preferred_preview:
+                img_url = get_image_url(img_dict, max_size_preview)
+                break
+
+        for result in downloader.dl_file(img_url, file_path=preview_path):
             if isinstance(result, str):
                 yield result
                 continue
@@ -448,17 +488,6 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
 
             break
 
-    # load model_info file
-    if not os.path.isfile(info_file):
-        return
-
-    try:
-        images = model.load_model_info(info_file)["images"]
-
-    except (KeyError, TypeError):
-        return
-
-    success = False
     for img_dict in images:
         for result in verify_preview(
             preview_path, img_dict, max_size_preview, nsfw_preview_threshold

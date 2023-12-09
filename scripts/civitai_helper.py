@@ -35,6 +35,20 @@ BUTTONS = {
 
 model.get_custom_model_folder()
 
+def update_proxy():
+    """ Set proxy, allow for changes at runtime """
+    proxy = util.get_opts("ch_proxy")
+
+    util.printD(f"Set Proxy: {proxy}")
+    if proxy:
+        util.PROXIES["http"] = proxy
+        util.PROXIES["https"] = proxy
+        return
+
+    util.PROXIES["http"] = None
+    util.PROXIES["https"] = None
+
+
 def on_ui_tabs():
     # init
     # init_py_msg = {
@@ -42,13 +56,6 @@ def on_ui_tabs():
     #     "EXTENSION_PATH": util.get_relative_path(EXTENSION_PATH, ROOT_PATH),
     # }
     # init_py_msg_str = json.dumps(init_py_msg)
-
-    # set proxy
-    proxy = util.get_opts("ch_proxy")
-    if proxy:
-        util.printD(f"Set Proxy: {proxy}")
-        util.PROXIES["http"] = proxy
-        util.PROXIES["https"] = proxy
 
     try:
         BUTTONS["add_trigger_words_button"] = util.newer_version(
@@ -289,19 +296,11 @@ def on_ui_settings():
             {"interactive": True, "max_lines": 1},
             section=section)
     )
-    shared.opts.add_option(
-        "ch_use_a1111_sha256",
-        shared.OptionInfo(
-            True,
-            (
-                "Use SD webui's built-in hashing functions for model hashes. "
-                "This provides a hash cache, which should make repeat model "
-                "scanning faster and make hashes reusable across features."
-            ),
-            gr.Checkbox,
-            {"interactive": True},
-            section=section)
+    shared.opts.onchange(
+        "ch_proxy",
+        update_proxy
     )
+
 
 script_callbacks.on_ui_settings(on_ui_settings)
 script_callbacks.on_ui_tabs(on_ui_tabs)

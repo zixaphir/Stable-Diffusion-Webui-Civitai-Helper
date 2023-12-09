@@ -36,17 +36,20 @@ blockquote ol {
     justify-content: flex-end;
 }
 
+#tab_civitai_helper .ch_grid div {
+    flex-basis: 30%;
+}
+
 #tab_civitai_helper .flex-center {
     justify-content: center;
     align-content: center;
 }
-
-#ch_preview_img {
-    max-width: 512px;
-}
-
-#ch_dl_preview_img {
-    max-height: 768px;
+@media only screen and (min-width: 600px) {
+    #ch_dl_preview_img {
+        max-width: 512px;
+        min-width: 512px;
+        max-height: 768px;
+    }
 }
 
 /* SD WebUI has not line height limit for model names.

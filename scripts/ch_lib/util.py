@@ -16,11 +16,18 @@ from modules import hashes
 import launch
 from packaging.version import parse as parse_version
 
+try:
+    # Automatic1111 SD WebUI
+    import modules.cache as sha256_cache
+except ModuleNotFoundError:
+    # Vladmandic "SD.Next"
+    import modules.hashes as sha256_cache
+
 # used to append extension information to JSON/INFO files
 SHORT_NAME = "sd_civitai_helper"
 
 # current version of the exension
-VERSION = "1.8.0"
+VERSION = "1.8.1"
 
 # Civitai INFO files below this version will regenerated
 COMPAT_VERSION_CIVITAI = "1.7.2"
@@ -134,15 +141,6 @@ def dedent(text:str) -> str:
     return textwrap.dedent(text)
 
 
-def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE) -> bytes:
-    """ Yield pieces of data from a file-like object until EOF. """
-    while True:
-        chunk = file.read(size)
-        if not chunk:
-            break
-        yield chunk
-
-
 def get_name(model_path:str, model_type:str) -> str:
     """ return: {model_type}/{model_name} """
 
@@ -158,30 +156,80 @@ def get_opts(key):
 def gen_file_sha256(filename:str, model_type="lora", use_addnet_hash=False) -> str:
     """ return a sha256 hash for a file """
 
+    cache = sha256_cache.cache
+    dump_cache = sha256_cache.dump_cache
+    model_name = get_name(filename, model_type)
+
+    sha256_hashes = None
+    if use_addnet_hash:
+        sha256_hashes = cache("hashes-addnet")
+    else:
+        sha256_hashes = cache("hashes")
+
+    sha256_value = hashes.sha256_from_cache(filename, model_name, use_addnet_hash)
+    if sha256_value is not None:
+        yield sha256_value
+        return
+
     if shared.cmd_opts.no_hashing:
         printD("SD WebUI Civitai Helper requires hashing functions for this feature. \
             Please remove the commandline argument `--no-hashing` for this functionality.")
-        return None
+        yield None
+        return
 
-    if get_opts("ch_use_a1111_sha256"):
-        printD("Using SD Webui SHA256")
-        name = get_name(filename, model_type)
-        return hashes.sha256(filename, name, use_addnet_hash=use_addnet_hash)
+    with open(filename, "rb") as model_file:
+        result = None
+        for result in calculate_sha256(model_file, use_addnet_hash):
+            yield result
+        sha256_value = result
 
-    # pip-style sha256 hash generation
-    printD("Use Memory Optimized SHA256")
-    blocksize=1 << 20
+    printD(f"sha256: {sha256_value}")
+
+    sha256_hashes[model_name] = {
+        "mtime": os.path.getmtime(filename),
+        "sha256": sha256_value,
+    }
+
+    dump_cache()
+
+    yield sha256_value
+
+def calculate_sha256(model_file, use_addnet_hash=False):
+    """ calculate the sha256 hash for a model file """
+
+    blocksize= 1 << 20
     sha256_hash = hashlib.sha256()
-    length = 0
-    with open(os.path.realpath(filename), 'rb') as read_file:
-        for block in read_chunks(read_file, size=blocksize):
-            length += len(block)
-            sha256_hash.update(block)
+
+    size = os.fstat(model_file.fileno()).st_size
+
+    offset = 0
+    if use_addnet_hash:
+        model_file.seek(0)
+        header= model_file.read(8)
+        offset = int.from_bytes(header, "little") + 8
+        model_file.seek(offset)
+
+    pos = 0
+    for block in read_chunks(model_file, size=blocksize):
+        pos += len(block)
+
+        percent = (pos - offset) / (size - offset)
+
+        yield (percent, f"hashing model {model_file.name}")
+
+        sha256_hash.update(block)
 
     hash_value =  sha256_hash.hexdigest()
-    printD(f"sha256: {hash_value}")
-    printD(f"length: {length}")
-    return hash_value
+    yield hash_value
+
+
+def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE) -> bytes:
+    """ Yield pieces of data from a file-like object until EOF. """
+    while True:
+        chunk = file.read(size)
+        if not chunk:
+            break
+        yield chunk
 
 
 def get_subfolders(folder:str) -> list[str]:
