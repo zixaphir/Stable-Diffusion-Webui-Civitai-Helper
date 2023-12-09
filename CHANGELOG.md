@@ -1,4 +1,9 @@
 # Change Log
+## v1.8.3
+* Dropping compatibility for webui versions less than 1.6.0
+  * The branch v1.5-compatible has been added for users of versions before 1.6.0, but it will no longer be updated.
+  * The v1.6ONLY branch has been merged into the main project, which includes JS optimizations and some JS sandboxing intended to reduce the potential for extension conflicts.
+
 ## v1.8.2
 * Model scanning and duplicate scanning now have progress bars.
 * Replaced the preview file selection dropdown when downloading a model with a gallery.

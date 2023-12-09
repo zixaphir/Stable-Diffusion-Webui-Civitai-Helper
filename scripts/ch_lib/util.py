@@ -439,49 +439,6 @@ def create_extension_block(data=None, skeleton=False) -> dict:
     return data
 
 
-def webui_version() -> str:
-    ''' Gets the current webui version using webui's launch tools
-
-        The version is expected to be in the format `v1.6.0-128-g792589fd`,
-        tho all that is explicitly required is `vX`.
-
-        returns the version in the form 'X.Y.Z'
-    '''
-    version = None
-    try:
-        tag = launch.git_tag()
-        match = re.match(r"v([\d.]+)", tag)
-        if match:
-            version = match.group(1)
-        else:
-            # XXX assume a modern SD Webui version if one cannot be found.
-            version = "1.6.0"
-
-    except AttributeError:
-        try:
-            return subprocess.check_output(
-                ["git", "describe", "--tags"],
-                shell=False,
-                encoding='utf8'
-            ).strip()
-
-        except subprocess.SubprocessError:
-            try:
-                changelog_md = os.path.join(
-                    os.path.dirname(os.path.dirname(__file__)),
-                    "CHANGELOG.md"
-                )
-                with open(changelog_md, "r", encoding="utf-8") as file:
-                    line = next((line.strip() for line in file if line.strip()), "<none>")
-                    line = line.replace("## ", "")
-                    version = line
-
-            except OSError:
-                version = "1.6.0"
-
-    return version
-
-
 filename_re = re.compile(r"[^A-Za-z\d\s\^\-\+_.\(\)\[\]]")
 def bash_filename(filename:str) -> str:
     """

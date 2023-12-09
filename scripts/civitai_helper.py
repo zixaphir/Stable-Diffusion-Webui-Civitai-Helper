@@ -57,13 +57,6 @@ def on_ui_tabs():
     # }
     # init_py_msg_str = json.dumps(init_py_msg)
 
-    try:
-        BUTTONS["add_trigger_words_button"] = util.newer_version(
-            util.webui_version(), '1.5.0', allow_equal=True
-        )
-    except ValueError: # packaging.version.InvalidVersion
-        BUTTONS["add_trigger_words_button"] = False
-
     # get prompt textarea
     # check modules/ui.py, search for txt2img_paste_fields
     # Negative prompt is the second element
