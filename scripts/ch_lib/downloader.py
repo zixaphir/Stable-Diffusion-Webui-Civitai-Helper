@@ -14,10 +14,27 @@ from . import util
 
 
 DL_EXT = ".downloading"
-MAX_RETRIES = 3
+MAX_RETRIES = 30
 
 # disable ssl warning info
 urllib3.disable_warnings()
+
+# hard-coded for now, could further expand to make it customizeable
+def calculate_stepback_delay_seconds(
+    retries: int
+) -> int:
+    if retries == 0:
+        return 0
+    elif retries < 5:
+        return 5
+    elif retries < 10:
+        return 10
+    elif retries < 15:
+        return 30
+    elif retries < 20:
+        return 60
+    else:
+        return 180
 
 
 def request_get(
@@ -68,8 +85,18 @@ def request_get(
             response.raise_for_status()
 
         if status_code != 404 and retries < MAX_RETRIES:
-            util.printD("Retrying")
-            return request_get(url, headers, retries + 1)
+            retry_delay = calculate_stepback_delay_seconds(retries);
+            util.printD(f"Retrying after {retry_delay} seconds")
+
+            # Step-back delay to allow for website to recover
+            time.sleep(retry_delay)
+
+            # recursive retry
+            return request_get(
+                url,
+                headers,
+                retries + 1
+            )
 
         return (False, reason)
 
