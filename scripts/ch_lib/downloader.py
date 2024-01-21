@@ -85,7 +85,7 @@ def request_get(
             response.raise_for_status()
 
         if status_code != 404 and retries < MAX_RETRIES:
-            retry_delay = calculate_stepback_delay_seconds(retries);
+            retry_delay = calculate_stepback_delay_seconds(retries)
             util.printD(f"Retrying after {retry_delay} seconds")
 
             # Step-back delay to allow for website to recover
