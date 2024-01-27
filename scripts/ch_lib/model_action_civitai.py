@@ -85,7 +85,7 @@ def scan_single_model(filepath, model_type, refetch_old, delay):
             time.sleep(delay)
             yield False
 
-        yield "Requestion model information from Civitai"
+        yield "Requesting model information from Civitai"
         # use this sha256 to get model info from civitai
         model_info = civitai.get_model_info_by_hash(sha256_hash)
 
