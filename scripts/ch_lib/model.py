@@ -63,6 +63,25 @@ def get_model_info_paths(model_path):
     return (info_file, sd15_file)
 
 
+def local_image(model_info, img):
+    """
+    Check if a model_info already has a local download for the given image.
+    return: The path to the local image, if it exists, otherwise None.
+    """
+    if "url" not in img:
+        raise ValueError("No URL to fetch the image.")
+    if "images" not in model_info:
+        return None
+
+    for eimg in model_info["images"]:
+        if "url" not in eimg:
+            continue
+        if img["url"] == eimg["url"]:
+            return eimg.get("local_file", None)
+
+    return None
+
+
 def next_example_image_path(model_path):
     """
     Find the next nonexistent path that can be used to store an example image.
@@ -217,6 +236,11 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
         return
 
     info_file, sd15_file = get_model_info_paths(model_path)
+    existing_info = {}
+    try:
+        existing_info = load_model_info(info_file)
+    except:
+        util.printD("No existing model info.")
 
     parent = model_info["model"]
 
@@ -239,27 +263,34 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
 
     # Download preview images locally, for other extensions to display without
     # depending on civitai being up, or an internet connection at all.
+    updated = False
     if util.get_opts("ch_download_examples"):
         for img in model_info["images"]:
-            if (url := img.get('url', None)) and 'local_file' not in img:
-                path = urllib.parse.urlparse(url).path
-                _, ext = os.path.splitext(path)
-                outpath = next_example_image_path(model_path) + ext
-                for result in downloader.dl_file(
-                        url,
-                        folder=os.path.dirname(outpath),
-                        filename=os.path.basename(outpath)):
-                    if not isinstance(result, str):
-                        success, output = result
-                        break
-                    print("Not yet")
-                if not success:
-                    downloader.error(url, "Failed to download model image.")
-                    continue
-                img['local_file'] = outpath
+            if url := img.get("url", None):
+                if existing_dl := local_image(existing_info, img):
+                    # Ensure it's set in the new model info.
+                    img["local_file"] = existing_dl
+                else:
+                    # Fetch it, save it, set it in the model info.
+                    path = urllib.parse.urlparse(url).path
+                    _, ext = os.path.splitext(path)
+                    outpath = next_example_image_path(model_path) + ext
+                    for result in downloader.dl_file(
+                            url,
+                            folder=os.path.dirname(outpath),
+                            filename=os.path.basename(outpath)):
+                        if not isinstance(result, str):
+                            success, output = result
+                            break
+                    if not success:
+                        downloader.error(url, "Failed to download model image.")
+                        continue
+
+                    img["local_file"] = outpath
+                    updated = True
 
     # civitai model info file
-    if metadata_needed_for_type(info_file, "civitai", refetch_old):
+    if metadata_needed_for_type(info_file, "civitai", refetch_old) or updated:
         if refetch_old:
             try:
                 if verify_overwrite_eligibility(info_file, model_info):
