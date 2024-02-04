@@ -239,23 +239,24 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
 
     # Download preview images locally, for other extensions to display without
     # depending on civitai being up, or an internet connection at all.
-    for img in model_info["images"]:
-        if (url := img.get('url', None)) and 'local_file' not in img:
-            path = urllib.parse.urlparse(url).path
-            _, ext = os.path.splitext(path)
-            outpath = next_example_image_path(model_path) + ext
-            for result in downloader.dl_file(
-                    url,
-                    folder=os.path.dirname(outpath),
-                    filename=os.path.basename(outpath)):
-                if not isinstance(result, str):
-                    success, output = result
-                    break
-                print("Not yet")
-            if not success:
-                downloader.error(url, "Failed to download model image.")
-                continue
-            img['local_file'] = outpath
+    if util.get_opts("ch_download_examples"):
+        for img in model_info["images"]:
+            if (url := img.get('url', None)) and 'local_file' not in img:
+                path = urllib.parse.urlparse(url).path
+                _, ext = os.path.splitext(path)
+                outpath = next_example_image_path(model_path) + ext
+                for result in downloader.dl_file(
+                        url,
+                        folder=os.path.dirname(outpath),
+                        filename=os.path.basename(outpath)):
+                    if not isinstance(result, str):
+                        success, output = result
+                        break
+                    print("Not yet")
+                if not success:
+                    downloader.error(url, "Failed to download model image.")
+                    continue
+                img['local_file'] = outpath
 
     # civitai model info file
     if metadata_needed_for_type(info_file, "civitai", refetch_old):

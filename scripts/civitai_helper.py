@@ -267,6 +267,16 @@ def on_ui_settings():
         )
     )
     shared.opts.add_option(
+        "ch_download_examples",
+        shared.OptionInfo(
+            False,
+            "Download Example Images Locally",
+            gr.Checkbox,
+            {"interactive": True},
+            section=section
+        )
+    )
+    shared.opts.add_option(
         "ch_nsfw_preview_threshold",
         shared.OptionInfo(
             civitai.NSFW_LEVELS[-1], # Allow all
