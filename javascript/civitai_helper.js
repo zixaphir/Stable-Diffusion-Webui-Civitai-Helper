@@ -722,7 +722,6 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     let additional_node = null;
     let replace_preview_btn = null;
     let ul_node = null;
-    let search_term_node = null;
     let model_name = "";
     let search_term = "";
     let model_type = active_extra_tab_type;
@@ -852,14 +851,29 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
 
     // search_term node
     // search_term = subfolder path + model name + ext
-    search_term_node = card.querySelector(".actions .additional .search_term, .actions .additional .search_terms");
-    if (!search_term_node) {
+    // get search_term
+    let search_term_nodes = card.querySelectorAll(".actions .additional .search_term, .actions .additional .search_terms");
+    if (!search_term_nodes) {
         console.log("can not find search_term node for cards in " + active_tab_type + "_" + active_extra_tab_type + "_cards");
         return;
+    } else if (search_term_nodes.length > 1) {
+        let search_terms = [];
+        for (let search_term_node of search_term_nodes) {
+            search_terms.push(search_term_node.textContent);
+        }
+
+        let model_path = search_terms[0];
+        let separator = model_path.match(/[\/\\]/)[0];
+        model_path = model_path.split(separator).slice(1).join(separator);
+
+        search_term = model_path;
+        search_term = search_term.replace("'", "\\'");
+    } else {
+        search_term = search_term[0].textContent
     }
 
-    // get search_term
-    search_term = search_term_node.textContent.replace("'", "\\'");
+    search_term = search_term.replace("'", "\\'");
+
     if (!search_term) {
         console.log("search_term is empty for cards in " + active_tab_type + "_" + active_extra_tab_type + "_cards");
         return;
