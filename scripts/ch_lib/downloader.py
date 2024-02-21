@@ -19,22 +19,18 @@ MAX_RETRIES = 30
 # disable ssl warning info
 urllib3.disable_warnings()
 
-# hard-coded for now, could further expand to make it customizeable
 def calculate_stepback_delay_seconds(
     retries: int
 ) -> int:
-    if retries == 0:
-        return 0
-    elif retries < 5:
-        return 5
-    elif retries < 10:
-        return 10
-    elif retries < 15:
-        return 30
-    elif retries < 20:
-        return 60
-    else:
-        return 180
+    """
+        calculate a delay to be used when Civitai
+        is having network issues
+
+        TODO: maybe allow some degree of customization.
+    """
+
+    delay = 3 + ((retries >> 1)**2) # at 30 retries, ~4 minutes
+    return delay
 
 
 def request_get(
