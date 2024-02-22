@@ -289,9 +289,17 @@ def download_section():
             visible = False
             filename = ""
             if filedata:
-                _, data = filedata
                 visible = True
-                filename = data["name"]
+                if isinstance(filedata, str):
+                    filename = ", ".join([
+                        filedata_str.split(":")[1].strip()
+                        for filedata_str in filedata.split("\n")
+                    ])
+                elif isinstance(filedata, tuple):
+                    _, data = filedata
+                    filename = data["name"]
+                else:
+                    raise ValueError(f"Invalid filedata: {filedata}")
 
             output_add.append(elems["txtbx"].update(value=filename))
             output_add.append(elems["row"].update(visible=visible))
