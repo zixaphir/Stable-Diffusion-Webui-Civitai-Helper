@@ -869,7 +869,7 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         search_term = model_path;
         search_term = search_term.replace("'", "\\'");
     } else {
-        search_term = search_term[0].textContent
+        search_term = search_term_nodes[0].textContent
     }
 
     search_term = search_term.replace("'", "\\'");
