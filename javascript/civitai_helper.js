@@ -881,11 +881,13 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
         // for whatever reason, sometimes search_terms will not include hashes.
         if (search_term_node.classList.contains("search_terms")) {
             let separator = search_term.match(/[\/\\]/)[0];
-            search_term = search_term.split(separator).slice(1).join(separator);
+            search_term = search_term.split(separator).slice(1).join(
+                separator === "\\" ? "\\\\" : "/"
+            );
         }
     }
 
-    search_term = search_term.replace("'", "\\'");
+    search_term = search_term.replaceAll("\\", "\\\\").replace("'", "\\'");
 
     if (!search_term) {
         console.log("search_term is empty for cards in " + active_tab_type + "_" + active_extra_tab_type + "_cards");
