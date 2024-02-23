@@ -394,7 +394,7 @@ async function remove_card(event, model_type, search_term) {
 
     if (result == "Done") {
         status = true;
-        refresh_cards_list();
+        refresh_cards_list(model_type);
     }
 
     console.log("end remove_card");
@@ -463,7 +463,7 @@ async function rename_card(event, model_type, search_term, model_name) {
     }
 
     if (result == "Done") {
-        refresh_cards_list();
+        refresh_cards_list(model_type);
     }
 
     console.log("end rename_card");
@@ -533,7 +533,7 @@ function ch_dl_model_new_version(event, model_path, version_id, download_url, mo
 }
 
 
-function refresh_cards_list() {
+function refresh_cards_list(model_type) {
     console.log("refresh card list");
     //refresh card list
     let active_tab = getActiveTabType();
@@ -541,6 +541,11 @@ function refresh_cards_list() {
     if (active_tab) {
         let refresh_btn_id = `${active_tab}_extra_refresh`;
         let refresh_btn = gradioApp().getElementById(refresh_btn_id);
+        if (!refresh_btn) {
+            // webui 1.8
+            refresh_btn_id = `${active_tab}_${model_type}_extra_refresh`;
+            refresh_btn = gradioApp().getElementById(refresh_btn_id);
+        }
         if (refresh_btn) {
             console.log(`click button: ${refresh_btn_id}`);
             refresh_btn.click();
