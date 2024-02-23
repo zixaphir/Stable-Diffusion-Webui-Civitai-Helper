@@ -850,26 +850,34 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     }
 
     // search_term node
-    // search_term = subfolder path + model name + ext
+    // search_term: /[subfolder path]/[model name].[ext] [hash]
     // get search_term
     let search_term_nodes = card.querySelectorAll(".actions .additional .search_term, .actions .additional .search_terms");
     if (!search_term_nodes) {
         console.log("can not find search_term node for cards in " + active_tab_type + "_" + active_extra_tab_type + "_cards");
         return;
-    } else if (search_term_nodes.length > 1) {
+    }
+
+    if (search_term_nodes.length > 1) {
         let search_terms = [];
         for (let search_term_node of search_term_nodes) {
             search_terms.push(search_term_node.textContent);
         }
 
-        let model_path = search_terms[0];
+        let model_path = search_terms.join(" ");
         let separator = model_path.match(/[\/\\]/)[0];
         model_path = model_path.split(separator).slice(1).join(separator);
 
         search_term = model_path;
-        search_term = search_term.replace("'", "\\'");
     } else {
-        search_term = search_term_nodes[0].textContent
+        let search_term_node = search_term_nodes[0];
+        search_term = search_term_node.textContent;
+
+        // for whatever reason, sometimes search_terms will not include hashes.
+        if (search_term_node.classList.contains("search_terms")) {
+            let separator = search_term.match(/[\/\\]/)[0];
+            search_term = search_term.split(separator).slice(1).join(separator);
+        }
     }
 
     search_term = search_term.replace("'", "\\'");
@@ -1019,7 +1027,12 @@ onUiLoaded(() => {
                 // get all card nodes
                 cards = extra_network_node.querySelectorAll(".card");
                 for (const card of cards) {
-                    processSingleCard(active_tab_type, active_extra_tab_type, card);
+                    // don't let an issue with a single card kill functionality for following cards
+                    try {
+                        processSingleCard(active_tab_type, active_extra_tab_type, card);
+                    } catch(err) {
+                        console.log(err);
+                    }
                 }
 
             }
