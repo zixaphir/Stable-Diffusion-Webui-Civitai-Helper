@@ -451,7 +451,7 @@ def get_model_path_by_search_term(model_type, search_term):
     """
     util.printD(f"Search model of {search_term} in {model_type}")
     if folders.get(model_type, None) is None:
-        util.printD("unknow model type: " + model_type)
+        util.printD("Unknown model type: " + model_type)
         return None
 
     # for lora: search_term = subfolderpath + model name + ext + " " + hash.
