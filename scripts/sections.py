@@ -587,7 +587,7 @@ def download_section():
     )
     nsfw_preview_dl_drop.change(
         update_dl_inputs,
-        inputs=[dl_version_drop, dl_state, nsfw_preview_dl_drop],
+        inputs=[dl_state, dl_version_drop, nsfw_preview_dl_drop, dl_preview_index],
         outputs=ver_outputs
     )
     # Gradio has so many issues with Gradio.Gallery...
