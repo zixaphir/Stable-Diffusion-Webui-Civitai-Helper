@@ -381,7 +381,7 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
     image_rating = img_dict.get("nsfwLevel", 32)
     if image_rating > 1:
         util.printD(f"This image is NSFW: {image_rating}")
-        if civitai.NSFW_LEVELS[nsfw_preview_threshold] < image_rating:
+        if NSFW_LEVELS[nsfw_preview_threshold] < image_rating:
             util.printD("Skip NSFW image")
             yield (False, None)
 
