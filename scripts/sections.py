@@ -25,8 +25,8 @@ def scan_models_section():
             )
             nsfw_preview_scan_drop = gr.Dropdown(
                 label="Block NSFW Level Above",
-                choices=civitai.NSFW_LEVELS[1:],
-                value=util.get_opts("ch_nsfw_preview_threshold"),
+                choices=list(civitai.NSFW_LEVELS.keys()),
+                value=util.get_opts("ch_nsfw_threshold"),
                 elem_id="ch_nsfw_preview_scan_drop"
             )
     with gr.Row():
@@ -113,8 +113,8 @@ def get_model_info_by_url_section():
             with gr.Column(scale=1):
                 nsfw_preview_url_drop = gr.Dropdown(
                     label="Block NSFW Level Above",
-                    choices=civitai.NSFW_LEVELS[1:],
-                    value=util.get_opts("ch_nsfw_preview_threshold"),
+                    choices=list(civitai.NSFW_LEVELS.keys()),
+                    value=util.get_opts("ch_nsfw_threshold"),
                     elem_id="ch_nsfw_preview_url_drop"
                 )
         with gr.Row():
@@ -254,7 +254,15 @@ def download_section():
     def filter_previews(previews, nsfw_preview_url_drop):
         images = []
         for preview in previews:
-            if civitai.should_skip(nsfw_preview_url_drop, preview["nsfw"]):
+            try:
+                nsfw_level = preview["nsfwLevel"]
+            except KeyError:
+                util.printD("NSFW status of preview image could not be determined. :(")
+                if nsfw_preview_url_drop != civitai.NSFW_LEVELS["XXX"]:
+                    continue
+                nsfw_level = 0
+
+            if civitai.NSFW_LEVELS[nsfw_preview_url_drop] < nsfw_level:
                 continue
             if preview["type"] == "image":
                 # Civitai added videos as previews, and webui does not like it
@@ -414,8 +422,8 @@ def download_section():
                 )
                 nsfw_preview_dl_drop = gr.Dropdown(
                     label="Block NSFW Level Above",
-                    choices=civitai.NSFW_LEVELS[1:],
-                    value=util.get_opts("ch_nsfw_preview_threshold"),
+                    choices=list(civitai.NSFW_LEVELS.keys()),
+                    value=util.get_opts("ch_nsfw_threshold"),
                     min_width=320,
                     elem_id="ch_nsfw_preview_dl_drop"
                 )
@@ -652,8 +660,8 @@ def check_new_versions_section(js_msg_txtbox):
                 )
                 nsfw_preview_update_drop = gr.Dropdown(
                     label="Block NSFW Level Above",
-                    choices=civitai.NSFW_LEVELS[1:],
-                    value=util.get_opts("ch_nsfw_preview_threshold"),
+                    choices=list(civitai.NSFW_LEVELS.keys()),
+                    value=util.get_opts("ch_nsfw_threshold"),
                     elem_id="ch_nsfw_preview_dl_drop"
                 )
         with gr.Row():

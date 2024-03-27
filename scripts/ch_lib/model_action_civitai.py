@@ -706,7 +706,7 @@ def dl_model_by_input(
     filename:str,
     file_ext:str,
     dl_all:bool,
-    nsfw_preview_threshold:bool,
+    nsfw_preview_threshold:int,
     duplicate:str,
     preview:str,
     *args

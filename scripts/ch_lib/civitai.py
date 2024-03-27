@@ -29,7 +29,16 @@ FILE_TYPES = [
     "Model", "Training Data", "Config", "VAE"
 ]
 
-NSFW_LEVELS = ["None", "Soft", "Mature", "X", "Allow All"]
+# https://github.com/civitai/civitai/blob/a7b9fbfadc0e463b568be015c381e2452e32b210/src/server/common/enums.ts#L196-L203
+NSFW_LEVELS = {
+    "PG": 1,
+    "PG13": 2,
+    "R": 4,
+    "X": 8,
+    "XXX": 16
+    # Probably not actually visible through the API without being logged in?
+    # "Blocked": 32,
+}
 
 def civitai_get(civitai_url:str):
     """
@@ -344,31 +353,6 @@ def preview_exists(model_path):
 
     return False
 
-
-def should_skip(user_rating, image_rating):
-    """ return: True if preview_nsfw level higher than user threshold """
-    order = NSFW_LEVELS
-    if user_rating == "Skip":
-        # Old config
-        return False
-    if isinstance(image_rating, bool):
-        # Image using old NSFW system?
-        if image_rating:
-            image_rating = order[-1]
-        else:
-            image_rating = order[0]
-    return order.index(image_rating) >= order.index(user_rating)
-
-
-def show_only_nsfw(user_rating, image_rating):
-    """ return: True if image is NSFW """
-    order = NSFW_LEVELS
-    if user_rating == "Skip":
-        # Old config
-        return True
-    return order.index(image_rating) <= order.index(user_rating)
-
-
 def get_image_url(img_dict, max_size_preview):
     """
     Create the image download URL
@@ -385,7 +369,6 @@ def get_image_url(img_dict, max_size_preview):
 
     return url
 
-
 def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
     """
     Downloads a preview image if it meets the user's requirements.
@@ -395,10 +378,10 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
     if img_url is None:
         yield (False, None)
 
-    image_rating = img_dict.get("nsfw", "None")
-    if image_rating != "None":
+    image_rating = img_dict.get("nsfwLevel", 32)
+    if image_rating > 1:
         util.printD(f"This image is NSFW: {image_rating}")
-        if should_skip(nsfw_preview_threshold, image_rating):
+        if civitai.NSFW_LEVELS[nsfw_preview_threshold] < image_rating:
             util.printD("Skip NSFW image")
             yield (False, None)
 
