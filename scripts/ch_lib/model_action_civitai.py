@@ -375,7 +375,7 @@ def check_models_new_version_to_md(model_types:list) -> str:
     return output
 
 
-def get_model_info_by_url(model_url_or_id:str) -> dict:
+def get_model_info_by_id(model_id:str) -> dict:
     """
     Retrieves model information necessary to populate HTML
     with Model Name, Model Type, valid saving directories,
@@ -383,12 +383,9 @@ def get_model_info_by_url(model_url_or_id:str) -> dict:
 
     return: tuple or None
     """
-    util.printD(f"Getting model info by: {model_url_or_id}")
+    util.printD(f"Getting model info for: {model_id}")
 
     try:
-        # parse model id
-        model_id = civitai.get_model_id_from_url(model_url_or_id)
-
         # download model info
         model_info = civitai.get_model_info_by_id(model_id)
 
