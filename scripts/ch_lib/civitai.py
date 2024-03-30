@@ -312,11 +312,10 @@ def get_model_names_by_input(model_type, empty_info_only):
 
 
 # get id from url
-def get_model_id_from_url(url:str, include_model_ver=False) -> str:
+def get_model_id_from_url(url:str) -> str:
     """ return: model_id from civitai url """
     util.printD("Run get_model_id_from_url")
     model_id = ""
-    model_version_id = False
 
     if not url:
         util.printD("url or model id can not be empty")
@@ -333,22 +332,14 @@ def get_model_id_from_url(url:str, include_model_ver=False) -> str:
         return ""
 
     if split_url[-2].isnumeric():
-        model_id = split_url[-2]
+        model_id  = split_url[-2]
     elif split_url[-1].isnumeric():
-        model_id = split_url[-1]
+        model_id  = split_url[-1]
     else:
         util.printD("There is no model id in this url")
         return ""
 
-    if not include_model_ver:
-        return model_id
-
-    model_version_id = False
-    if "modelVersionId" in url:
-        if split_url[-1].isnumeric():
-            model_version_id = split_url[-1]
-
-    return (model_id, model_version_id)
+    return model_id
 
 
 def preview_exists(model_path):

@@ -95,11 +95,7 @@ def on_ui_tabs():
             sections.get_model_info_by_url_section()
 
         with gr.Box(elem_classes="ch_box"):
-            gr.Markdown("### Download Model")
-            with gr.Tab("Single"):
-                sections.download_section()
-            with gr.Tab("Batch Download"):
-                sections.download_multiple_section()
+            sections.download_section()
 
         with gr.Box(elem_classes="ch_box"):
             sections.scan_for_duplicates_section()
