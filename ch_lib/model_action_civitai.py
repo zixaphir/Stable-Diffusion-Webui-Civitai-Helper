@@ -361,11 +361,13 @@ def check_models_new_version_to_md(model_types:list) -> str:
 
     articles = []
     count = 0
-    for count, new_version in enumerate(new_versions):
+    for index, new_version in enumerate(new_versions):
         article = build_article_from_version(new_version)
         articles.append(article)
 
     output = f"Found new versions for following models: <section>{''.join(articles)}</section>"
+
+    count = index + 1
 
     if count != 1:
         util.printD(f"Done. Found {count} models that have new versions. Check UI for detail")
@@ -624,7 +626,7 @@ def download_files(filename, model_folder, ver_info, headers, filetypes, dl_all,
     errors_count = 0
     snippet = None
 
-    for count, dl_info in enumerate(downloads):
+    for index, dl_info in enumerate(downloads):
 
         url = dl_info["url"]
         if errors_count > 0:
@@ -643,7 +645,7 @@ def download_files(filename, model_folder, ver_info, headers, filetypes, dl_all,
                 success, output = result
                 break
 
-            output = f"{result} | {count}/{total} files"
+            output = f"{result} | {index+1}/{total} files"
             if snippet:
                 " | ".join([output, snippet])
 
