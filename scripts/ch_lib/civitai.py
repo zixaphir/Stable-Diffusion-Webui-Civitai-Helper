@@ -330,15 +330,18 @@ def get_model_id_from_url(url:str, include_model_ver=False) -> str:
     model_m = re.search(r"/models/(\d+)", url)
     ver_m = re.search(r"modelVersionId=(\d+)", url)
 
-    if model_m.group(1):
-        model_id = model_m.group(1)
-
-    if ver_m.group(1):
-        model_version_id = ver_m.group(1)
-
-    if not model_id:
+    try:
+        if model_m.group(1):
+            model_id = model_m.group(1)
+    except ValueError:
         util.printD("There is no model id in this url")
         return ""
+
+    try:
+        if ver_m.group(1):
+            model_version_id = ver_m.group(1)
+    except ValueError:
+        pass
 
     if not include_model_ver:
         return model_id
