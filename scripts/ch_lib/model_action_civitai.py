@@ -584,13 +584,19 @@ def download_files(filename, model_folder, ver_info, headers, filetypes, dl_all,
     """
 
     version_id = ver_info["id"]
+    model_id = ver_info["model_id"]
+
+    model_ids = {
+        "model": model_id,
+        "version": version_id
+    }
 
     downloads = []
 
     # check if this model already exists
-    result = civitai.search_local_model_info_by_version_id(model_folder, version_id)
+    result = civitai.search_local_model_info_by_version_id(model_folder, model_ids)
     if result:
-        output = "This model version already exists"
+        output = f"This model version already exists at `{result}`"
         util.printD(output)
         yield (False, output)
 
@@ -653,7 +659,7 @@ def download_files(filename, model_folder, ver_info, headers, filetypes, dl_all,
 
     additional = None
     if errors_count > 0:
-        additional = "\n\n".join(errors)
+        additional = "\n\t".join(errors)
 
         if errors_count == total:
             yield (False, additional)
@@ -776,6 +782,7 @@ def dl_model_by_input(
 
     # get version info
     ver_info = get_ver_info_by_ver_str(version_str, model_info)
+    ver_info["model_id"] = model_info["id"]
     if not ver_info:
         output = "Failed to get version info, check console log for detail"
         util.printD(output)

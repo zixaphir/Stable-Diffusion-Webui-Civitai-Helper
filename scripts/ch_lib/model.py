@@ -103,6 +103,22 @@ def get_custom_model_folder():
             return
 
 
+def locate_model_from_partial(root, model_name):
+    """
+        Tries to locate a model if the extension
+        doesn't match the metadata
+    """
+
+    util.printD(model_name)
+
+    for ext in EXTS:
+        filename = os.path.join(root, f"{model_name}{ext}")
+        if os.path.isfile(filename):
+            return filename
+
+    return None
+
+
 def metadata_needed(info_file, sd15_file, refetch_old):
     """ return True if metadata is needed
     """

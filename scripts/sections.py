@@ -612,8 +612,6 @@ def download_multiple_section():
             model_id, model_version_id = civitai.get_model_id_from_url(url, include_model_ver=True)
             model_info = civitai.get_model_info_by_id(model_id)
 
-            util.printD(model_info)
-
             if not model_info:
                 continue
 
@@ -664,10 +662,10 @@ def download_multiple_section():
             dls.append(dl)
         i = 0
         count = len(dls)
-        names = []
+        download_results = []
         for dl in dls:
             i = i + 1
-            names.append(dl["model_name"])
+            status = None
             try:
                 for status in model_action_civitai.dl_model_by_input(
                     {"model_info": dl["model_info"]},
@@ -683,11 +681,21 @@ def download_multiple_section():
                     *filetypes
                 ):
                     yield f"{dl['model_name']} {i}/{count} {status}"
-            except Exception as e:
-                util.printD(f"An error has occurred while downloading: {e.message}\n{e.args}")
 
-        names = "\n".join(names)
-        yield f"Downloaded {names}."
+                download_results.append(f"{dl['model_name']}: {status}")
+            except Exception as e:
+                msg = None
+                if hasattr(e, 'message'):
+                    msg = e.message
+                else:
+                    msg = e
+
+                output = f"An error has occurred while downloading: {msg}\n{e.args}"
+                util.printD(output)
+                download_results.append(f" * {dl['model_name']}: {output}")
+
+        download_results = "\n".join(download_results)
+        yield f"```\nDownloaded:\n{download_results}\n```"
         return
 
     with gr.Row():

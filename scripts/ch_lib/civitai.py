@@ -500,13 +500,16 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
 
 # search local model by version id in 1 folder, no subfolder
 # return - model_info
-def search_local_model_info_by_version_id(folder:str, version_id:int) -> dict:
+def search_local_model_info_by_version_id(folder:str, model_ids:dict) -> dict:
     """ Searches a folder for model_info files,
         returns the model_info from a file if its id matches the model id.
     """
     util.printD("Searching local model by version id")
     util.printD(f"folder: {folder}")
-    util.printD(f"version_id: {version_id}")
+    util.printD(f"model_ids: {model_ids}")
+
+    version_id = model_ids["version"]
+    model_id = model_ids["model"]
 
     if not folder:
         util.printD("folder is none")
@@ -516,8 +519,8 @@ def search_local_model_info_by_version_id(folder:str, version_id:int) -> dict:
         util.printD("folder is not a dir")
         return None
 
-    if not version_id:
-        util.printD("version_id is none")
+    if not (version_id and model_id):
+        util.printD("missing ID for model/version")
         return None
 
     # search civitai model info file
@@ -532,18 +535,20 @@ def search_local_model_info_by_version_id(folder:str, version_id:int) -> dict:
 
             # find a civitai info file
             path = os.path.join(folder, filename)
-            model_info = model.load_model_info(path)
-            if not model_info:
-                continue
 
-            model_id = model_info.get("id", None)
-            if not model_id:
+            try:
+                model_info = model.load_model_info(path)
+                existing_version_id = model_info.get("id", None)
+                existing_model_id = model_info["modelId"]
+
+            except Exception:
                 continue
 
             # util.printD(f"Compare version id, src: {model_id}, target:{version_id}")
-            if f"{model_id}" == f"{version_id}":
+            if f"{existing_version_id}" == f"{version_id}":
                 # find the one
-                return model_info
+                filepath = model.locate_model_from_partial(folder, base[:-8])
+                return f"{filepath}"
 
     return None
 
