@@ -356,7 +356,7 @@ window.remove_card = async function(e, model_type, search_term) {
 
     if (result == "Done") {
         status = true;
-        refresh_cards_list();
+        refresh_cards_list(model_type);
     }
 
     console.log("end remove_card");
@@ -419,7 +419,7 @@ window.rename_card = async function(e, model_type, search_term, model_name) {
     }
 
     if (result == "Done") {
-        refresh_cards_list();
+        refresh_cards_list(model_type);
     }
 
     console.log("end rename_card");
@@ -484,7 +484,7 @@ window.ch_dl_model_new_version = function(e, model_path, version_id, download_ur
 }
 
 
-function refresh_cards_list() {
+function refresh_cards_list(model_type) {
     console.log("refresh card list");
     //refresh card list
     let active_tab = getActiveTabType();
@@ -492,6 +492,11 @@ function refresh_cards_list() {
     if (active_tab) {
         let refresh_btn_id = `${active_tab}_extra_refresh`;
         let refresh_btn = gradioApp().getElementById(refresh_btn_id);
+        if (!refresh_btn) {
+            // webui 1.8
+            refresh_btn_id = `${active_tab}_${model_type}_extra_refresh`;
+            refresh_btn = gradioApp().getElementById(refresh_btn_id);
+        }
         if (refresh_btn) {
             console.log(`click button: ${refresh_btn_id}`);
             refresh_btn.click();
@@ -732,7 +737,7 @@ let createUI = function() {
 function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     let additional_node = null;
     let ul_node = null;
-    let search_term_node = null;
+    let model_name = "";
     let search_term = "";
     let nodes;
     let model_type;
@@ -753,15 +758,40 @@ function processSingleCard(active_tab_type, active_extra_tab_type, card) {
     ul_node = nodes.parent;
 
     // search_term node
-    // search_term = subfolder path + model name + ext
-    search_term_node = card.querySelector(".actions .additional .search_term");
-    if (!search_term_node) {
+    // search_term: /[subfolder path]/[model name].[ext] [hash]
+    // get search_term
+    let search_term_nodes = card.querySelectorAll(".actions .additional .search_term, .actions .additional .search_terms");
+    if (!search_term_nodes) {
         console.log("can not find search_term node for cards in " + active_tab_type + "_" + active_extra_tab_type + "_cards");
         return;
     }
 
-    // get search_term
-    search_term = search_term_node.textContent.replace("'", "\\'");
+    if (search_term_nodes.length > 1) {
+        let search_terms = [];
+        for (let search_term_node of search_term_nodes) {
+            search_terms.push(search_term_node.textContent);
+        }
+
+        let model_path = search_terms.join(" ");
+        let separator = model_path.match(/[\/\\]/)[0];
+        model_path = model_path.split(separator).slice(1).join(separator);
+
+        search_term = model_path;
+    } else {
+        let search_term_node = search_term_nodes[0];
+        search_term = search_term_node.textContent;
+
+        // for whatever reason, sometimes search_terms will not include hashes.
+        if (search_term_node.classList.contains("search_terms")) {
+            let separator = search_term.match(/[\/\\]/)[0];
+            search_term = search_term.split(separator).slice(1).join(
+                separator === "\\" ? "\\\\" : "/"
+            );
+        }
+    }
+
+    search_term = search_term.replaceAll("\\", "\\\\").replace("'", "\\'");
+
     if (!search_term) {
         console.log("search_term is empty for cards in " + active_tab_type + "_" + active_extra_tab_type + "_cards");
         return;
@@ -857,7 +887,12 @@ onUiLoaded(() => {
                 // get all card nodes
                 cards = extra_network_node.querySelectorAll(".card");
                 for (const card of cards) {
-                    processSingleCard(active_tab_type, active_extra_tab_type, card);
+                    // don't let an issue with a single card kill functionality for following cards
+                    try {
+                        processSingleCard(active_tab_type, active_extra_tab_type, card);
+                    } catch(err) {
+                        console.log(err);
+                    }
                 }
             }
         }

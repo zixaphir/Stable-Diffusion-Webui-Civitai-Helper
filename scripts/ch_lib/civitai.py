@@ -29,7 +29,16 @@ FILE_TYPES = [
     "Model", "Training Data", "Config", "VAE"
 ]
 
-NSFW_LEVELS = ["None", "Soft", "Mature", "X", "Allow All"]
+# https://github.com/civitai/civitai/blob/a7b9fbfadc0e463b568be015c381e2452e32b210/src/server/common/enums.ts#L196-L203
+NSFW_LEVELS = {
+    "PG": 1,
+    "PG13": 2,
+    "R": 4,
+    "X": 8,
+    "XXX": 16
+    # Probably not actually visible through the API without being logged in?
+    # "Blocked": 32,
+}
 
 def civitai_get(civitai_url:str):
     """
@@ -303,10 +312,11 @@ def get_model_names_by_input(model_type, empty_info_only):
 
 
 # get id from url
-def get_model_id_from_url(url:str) -> str:
+def get_model_id_from_url(url:str, include_model_ver=False) -> str:
     """ return: model_id from civitai url """
     util.printD("Run get_model_id_from_url")
-    model_id = ""
+    model_id = None
+    model_version_id = None
 
     if not url:
         util.printD("url or model id can not be empty")
@@ -317,20 +327,26 @@ def get_model_id_from_url(url:str) -> str:
         model_id = f"{url}"
         return model_id
 
-    split_url = re.sub("\\?.+$", "", url).split("/")
-    if len(split_url) < 2:
-        util.printD("url is not valid")
-        return ""
+    model_m = re.search(r"/models/(\d+)", url)
+    ver_m = re.search(r"modelVersionId=(\d+)", url)
 
-    if split_url[-2].isnumeric():
-        model_id  = split_url[-2]
-    elif split_url[-1].isnumeric():
-        model_id  = split_url[-1]
-    else:
+    try:
+        if model_m.group(1):
+            model_id = model_m.group(1)
+    except ValueError:
         util.printD("There is no model id in this url")
         return ""
 
-    return model_id
+    try:
+        if ver_m.group(1):
+            model_version_id = ver_m.group(1)
+    except ValueError:
+        pass
+
+    if not include_model_ver:
+        return model_id
+
+    return (model_id, model_version_id)
 
 
 def preview_exists(model_path):
@@ -343,31 +359,6 @@ def preview_exists(model_path):
             return True
 
     return False
-
-
-def should_skip(user_rating, image_rating):
-    """ return: True if preview_nsfw level higher than user threshold """
-    order = NSFW_LEVELS
-    if not user_rating in order:
-        # Weird config or UI didn't initialize properly when fetching previews
-        return False
-    if isinstance(image_rating, bool):
-        # Image using old NSFW system?
-        if image_rating:
-            image_rating = order[-1]
-        else:
-            image_rating = order[0]
-    return order.index(image_rating) >= order.index(user_rating)
-
-
-def show_only_nsfw(user_rating, image_rating):
-    """ return: True if image is NSFW """
-    order = NSFW_LEVELS
-    if user_rating == "Skip":
-        # Old config
-        return True
-    return order.index(image_rating) <= order.index(user_rating)
-
 
 def get_image_url(img_dict, max_size_preview):
     """
@@ -385,7 +376,6 @@ def get_image_url(img_dict, max_size_preview):
 
     return url
 
-
 def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
     """
     Downloads a preview image if it meets the user's requirements.
@@ -395,10 +385,10 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
     if img_url is None:
         yield (False, None)
 
-    image_rating = img_dict.get("nsfw", "None")
-    if image_rating != "None":
+    image_rating = img_dict.get("nsfwLevel", 32)
+    if image_rating > 1:
         util.printD(f"This image is NSFW: {image_rating}")
-        if should_skip(nsfw_preview_threshold, image_rating):
+        if NSFW_LEVELS[nsfw_preview_threshold] < image_rating:
             util.printD("Skip NSFW image")
             yield (False, None)
 
@@ -508,13 +498,16 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
 
 # search local model by version id in 1 folder, no subfolder
 # return - model_info
-def search_local_model_info_by_version_id(folder:str, version_id:int) -> dict:
+def search_local_model_info_by_version_id(folder:str, model_ids:dict) -> dict:
     """ Searches a folder for model_info files,
         returns the model_info from a file if its id matches the model id.
     """
     util.printD("Searching local model by version id")
     util.printD(f"folder: {folder}")
-    util.printD(f"version_id: {version_id}")
+    util.printD(f"model_ids: {model_ids}")
+
+    version_id = model_ids["version"]
+    model_id = model_ids["model"]
 
     if not folder:
         util.printD("folder is none")
@@ -524,8 +517,8 @@ def search_local_model_info_by_version_id(folder:str, version_id:int) -> dict:
         util.printD("folder is not a dir")
         return None
 
-    if not version_id:
-        util.printD("version_id is none")
+    if not (version_id and model_id):
+        util.printD("missing ID for model/version")
         return None
 
     # search civitai model info file
@@ -540,18 +533,20 @@ def search_local_model_info_by_version_id(folder:str, version_id:int) -> dict:
 
             # find a civitai info file
             path = os.path.join(folder, filename)
-            model_info = model.load_model_info(path)
-            if not model_info:
-                continue
 
-            model_id = model_info.get("id", None)
-            if not model_id:
+            try:
+                model_info = model.load_model_info(path)
+                existing_version_id = model_info.get("id", None)
+                existing_model_id = model_info["modelId"]
+
+            except Exception:
                 continue
 
             # util.printD(f"Compare version id, src: {model_id}, target:{version_id}")
-            if f"{model_id}" == f"{version_id}":
+            if f"{existing_version_id}" == f"{version_id}":
                 # find the one
-                return model_info
+                filepath = model.locate_model_from_partial(folder, base[:-8])
+                return f"{filepath}"
 
     return None
 

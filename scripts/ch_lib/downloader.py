@@ -167,13 +167,14 @@ def download_progress(
                 headers=headers_with_range,
             )
 
-        except requests.HTTPError as dl_error:
+        except requests.exceptions.HTTPError as dl_error:
             # 416 - Range Not Satisfiable
-            response = dl_error.response
-            if not response or response.status_code != 416:
+
+            if dl_error.response.status_code != 416:
+                util.printD(f"An unhandled error has occurred while requesting data: {dl_error.response.status_cude}.")
                 raise
 
-            util.printD("Could not resume download from existing temporary file. Restarting download")
+            util.printD("Could not resume download from existing temporary file. Restarting download.")
 
             os.remove(dl_path)
 

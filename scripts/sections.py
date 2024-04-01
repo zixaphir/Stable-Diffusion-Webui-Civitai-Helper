@@ -25,8 +25,8 @@ def scan_models_section():
             )
             nsfw_preview_scan_drop = gr.Dropdown(
                 label="Block NSFW Level Above",
-                choices=civitai.NSFW_LEVELS[1:],
-                value=util.get_opts("ch_nsfw_preview_threshold"),
+                choices=list(civitai.NSFW_LEVELS.keys()),
+                value=util.get_opts("ch_nsfw_threshold"),
                 elem_id="ch_nsfw_preview_scan_drop"
             )
     with gr.Row():
@@ -113,8 +113,8 @@ def get_model_info_by_url_section():
             with gr.Column(scale=1):
                 nsfw_preview_url_drop = gr.Dropdown(
                     label="Block NSFW Level Above",
-                    choices=civitai.NSFW_LEVELS[1:],
-                    value=util.get_opts("ch_nsfw_preview_threshold"),
+                    choices=list(civitai.NSFW_LEVELS.keys()),
+                    value=util.get_opts("ch_nsfw_threshold"),
                     elem_id="ch_nsfw_preview_url_drop"
                 )
         with gr.Row():
@@ -157,6 +157,25 @@ def get_model_info_by_url_section():
         outputs=get_model_by_id_log_md
     )
 
+def filter_previews(previews, nsfw_preview_url_drop):
+    images = []
+    for preview in previews:
+        try:
+            nsfw_level = preview["nsfwLevel"]
+        except KeyError:
+            util.printD("NSFW status of preview image could not be determined. :(")
+            if nsfw_preview_url_drop != civitai.NSFW_LEVELS["XXX"]:
+                continue
+            nsfw_level = 0
+
+        if civitai.NSFW_LEVELS[nsfw_preview_url_drop] < nsfw_level:
+            continue
+        if preview["type"] == "image":
+            # Civitai added videos as previews, and webui does not like it
+            images.append(preview["url"])
+
+    return images
+
 def download_section():
     """ Download Models Section """
 
@@ -184,8 +203,9 @@ def download_section():
         "filtered_previews": []
     })
 
-    def get_model_info_by_url(url, subfolder, state):
-        data = model_action_civitai.get_model_info_by_url(url)
+    def get_model_info_by_url(url, subfolder):
+        model_id = civitai.get_model_id_from_url(url)
+        data = model_action_civitai.get_model_info_by_id(model_id)
 
         if not data:
             return None
@@ -199,15 +219,15 @@ def download_section():
             "filtered_previews": []
         }
 
+        state["model_info"] = data["model_info"]
+        state["previews"] = data["previews"]
+
         subfolders = sorted(data["subfolders"])
         version_strs = data["version_strs"]
         filenames = data["filenames"]
 
         if subfolder == "" or subfolder not in subfolders:
             subfolder = "/"
-
-        state["model_info"] = data["model_info"]
-        state["previews"] = data["previews"]
 
         for filename, version in zip(filenames, version_strs):
             state["filenames"][version] = filename
@@ -251,17 +271,6 @@ def download_section():
             )
         ]
 
-    def filter_previews(previews, nsfw_preview_url_drop):
-        images = []
-        for preview in previews:
-            if civitai.should_skip(nsfw_preview_url_drop, preview["nsfw"]):
-                continue
-            if preview["type"] == "image":
-                # Civitai added videos as previews, and webui does not like it
-                images.append(preview["url"])
-
-        return images
-
     def update_dl_inputs(state, dl_version, nsfw_threshold, dl_preview_index):
         filename = state["filenames"][dl_version]
 
@@ -289,9 +298,17 @@ def download_section():
             visible = False
             filename = ""
             if filedata:
-                _, data = filedata
                 visible = True
-                filename = data["name"]
+                if isinstance(filedata, str):
+                    filename = ", ".join([
+                        filedata_str.split(":")[1].strip()
+                        for filedata_str in filedata.split("\n")
+                    ])
+                elif isinstance(filedata, tuple):
+                    _, data = filedata
+                    filename = data["name"]
+                else:
+                    raise ValueError(f"Invalid filedata: {filedata}")
 
             output_add.append(elems["txtbx"].update(value=filename))
             output_add.append(elems["row"].update(visible=visible))
@@ -340,9 +357,6 @@ def download_section():
         return dl_preview_index.update(
             value=evt.index
         )
-
-    with gr.Row():
-        gr.Markdown("### Download Model")
 
     with gr.Row():
         with gr.Column(scale=2, elem_id="ch_dl_model_inputs"):
@@ -406,8 +420,8 @@ def download_section():
                 )
                 nsfw_preview_dl_drop = gr.Dropdown(
                     label="Block NSFW Level Above",
-                    choices=civitai.NSFW_LEVELS[1:],
-                    value=util.get_opts("ch_nsfw_preview_threshold"),
+                    choices=list(civitai.NSFW_LEVELS.keys()),
+                    value=util.get_opts("ch_nsfw_threshold"),
                     min_width=320,
                     elem_id="ch_nsfw_preview_dl_drop"
                 )
@@ -531,7 +545,7 @@ def download_section():
     dl_model_info_btn.click(
         get_model_info_by_url,
         inputs=[
-            dl_model_url_or_id_txtbox, dl_subfolder_drop, dl_state
+            dl_model_url_or_id_txtbox, dl_subfolder_drop
         ],
         outputs=[
             dl_state, dl_model_name_txtbox,
@@ -584,6 +598,128 @@ def download_section():
         update_dl_preview_url,
         [dl_state, dl_preview_index],
         dl_preview_url
+    )
+
+def download_multiple_section():
+    """ Allows pasting multiple model links to download """
+    def download_all_action(urls_txt:str):
+        urls = urls_txt.split("\n")
+        dls = []
+
+        nsfw_threshold = util.get_opts("ch_nsfw_threshold")
+
+        for url in urls:
+            model_id, model_version_id = civitai.get_model_id_from_url(url, include_model_ver=True)
+            model_info = civitai.get_model_info_by_id(model_id)
+
+            if not model_info:
+                continue
+
+            model_version = None
+            filetypes = []
+
+            dl = {
+                "model_name": model_info["name"],
+                "model_info": model_info,
+                "model_type": civitai.MODEL_TYPES[model_info["type"]],
+                "subfolder": "/",
+                "version_str": None,
+                "filename": None,
+                "file_ext": None,
+                "dl_all": False,
+                "nsfw_preview_threshold": nsfw_threshold,
+                "duplicate": "skip",
+                "preview": None
+            }
+
+
+            try:
+                if model_version_id:
+                    for ver in model_info["modelVersions"]:
+                        if f"{ver['id']}" == model_version_id:
+                            model_version = ver
+                            break
+
+                if not model_version:
+                    model_version = model_info["modelVersions"][0]
+
+                dl["version_str"] = f"{model_version['name']}_{model_version['id']}"
+
+            except KeyError:
+                util.printD(f"Failed to find a model version for model {model_id}")
+                continue
+
+            for file in model_version["files"]:
+                if file["type"] == "Model":
+                    filetypes.append("Model")
+                    filename = file["name"]
+                    filename_frags = filename.split(".")
+                    dl["file_ext"] = filename_frags.pop()
+                    dl["filename"] = ".".join(filename_frags)
+                if file["type"] in civitai.FILE_TYPES:
+
+                    filetypes.append(file["type"])
+
+            dls.append(dl)
+        i = 0
+        count = len(dls)
+        download_results = []
+        for dl in dls:
+            i = i + 1
+            status = None
+            try:
+                for status in model_action_civitai.dl_model_by_input(
+                    {"model_info": dl["model_info"]},
+                    dl["model_type"],
+                    dl["subfolder"],
+                    dl["version_str"],
+                    dl["filename"],
+                    dl["file_ext"],
+                    dl["dl_all"],
+                    dl["nsfw_preview_threshold"],
+                    dl["duplicate"],
+                    dl["preview"],
+                    *filetypes
+                ):
+                    yield f"{dl['model_name']} {i}/{count} {status}"
+
+                download_results.append(f"{dl['model_name']}: {status}")
+            except Exception as e:
+                msg = None
+                if hasattr(e, 'message'):
+                    msg = e.message
+                else:
+                    msg = e
+
+                output = f"An error has occurred while downloading: {msg}\n{e.args}"
+                util.printD(output)
+                download_results.append(f" * {dl['model_name']}: {output}")
+
+        download_results = "\n".join(download_results)
+        yield f"```\nDownloaded:\n{download_results}\n```"
+        return
+
+    with gr.Row():
+        urls = gr.Textbox(
+            lines=5,
+            max_lines=100,
+            placeholder="Supports Model page URLs and Model Version page URLs.",
+            label="Models to download",
+            show_label=True
+        )
+
+    with gr.Row():
+        submit = gr.Button(value="Download Models", variant="primary")
+
+    with gr.Row():
+        dl_all_log_md = gr.Markdown(
+            value="Additional info will be printed to the webui console output."
+        )
+
+    submit.click(
+        download_all_action,
+        inputs=urls,
+        outputs=dl_all_log_md
     )
 
 
@@ -644,8 +780,8 @@ def check_new_versions_section(js_msg_txtbox):
                 )
                 nsfw_preview_update_drop = gr.Dropdown(
                     label="Block NSFW Level Above",
-                    choices=civitai.NSFW_LEVELS[1:],
-                    value=util.get_opts("ch_nsfw_preview_threshold"),
+                    choices=list(civitai.NSFW_LEVELS.keys()),
+                    value=util.get_opts("ch_nsfw_threshold"),
                     elem_id="ch_nsfw_preview_dl_drop"
                 )
         with gr.Row():

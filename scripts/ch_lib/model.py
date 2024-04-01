@@ -136,6 +136,22 @@ def get_custom_model_folder():
             return
 
 
+def locate_model_from_partial(root, model_name):
+    """
+        Tries to locate a model if the extension
+        doesn't match the metadata
+    """
+
+    util.printD(model_name)
+
+    for ext in EXTS:
+        filename = os.path.join(root, f"{model_name}{ext}")
+        if os.path.isfile(filename):
+            return filename
+
+    return None
+
+
 def metadata_needed(info_file, sd15_file, refetch_old):
     """ return True if metadata is needed
     """
@@ -517,7 +533,7 @@ def get_model_path_by_search_term(model_type, search_term):
     """
     util.printD(f"Search model of {search_term} in {model_type}")
     if folders.get(model_type, None) is None:
-        util.printD("unknow model type: " + model_type)
+        util.printD("Unknown model type: " + model_type)
         return None
 
     # for lora: search_term = subfolderpath + model name + ext + " " + hash.

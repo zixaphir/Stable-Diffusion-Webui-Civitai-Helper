@@ -126,10 +126,10 @@ def parse_metadata(model_folder, root, filename, suffix, model_type, cached_hash
     if not description:
         description = ""
 
-    model_path = f"{root}/{model_name}.{model_ext}"
+    model_path = os.path.join(root, f"{model_name}{model_ext}")
 
     if not os.path.isfile(model_path):
-        model_path = locate_model_from_partial(root, model_name)
+        model_path = model.locate_model_from_partial(root, model_name)
 
         if not (model_path and os.path.isfile(model_path)):
             util.printD(f"No model path found for {filepath}")
@@ -213,20 +213,6 @@ def make_search_term(model_type, model_path, sha256):
 
     # All other supported model types seem to use this format
     return f"{subpath} {sha256}"
-
-
-def locate_model_from_partial(root, model_name):
-    """
-        Tries to locate a model if the extension
-        doesn't match the metadata
-    """
-
-    for ext in model.EXTS:
-        filename = f"{root}/{model_name}{ext}"
-        if os.path.isfile(filename):
-            return filename
-
-    return None
 
 
 def check_for_dups(models):

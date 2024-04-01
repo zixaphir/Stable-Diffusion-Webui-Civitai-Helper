@@ -88,7 +88,11 @@ def on_ui_tabs():
             sections.get_model_info_by_url_section()
 
         with gr.Box(elem_classes="ch_box"):
-            sections.download_section()
+            gr.Markdown("### Download Model")
+            with gr.Tab("Single"):
+                sections.download_section()
+            with gr.Tab("Batch Download"):
+                sections.download_multiple_section()
 
         with gr.Box(elem_classes="ch_box"):
             sections.scan_for_duplicates_section()
@@ -260,22 +264,19 @@ def on_ui_settings():
         )
     )
     shared.opts.add_option(
-        "ch_nsfw_preview_threshold",
+        "ch_nsfw_threshold",
         shared.OptionInfo(
-            civitai.NSFW_LEVELS[-1], # Allow all
+            list(civitai.NSFW_LEVELS.keys())[0], # Block NSFW
             util.dedent(
                 """
-                Block NSFW images of a certain threshold and higher.
-                Civitai marks all images for NSFW models as also being NSFW.
-                These ratings do not seem to be explicitly defined on Civitai's
-                end, but "Soft" seems to be suggestive, with NSFW elements but
-                not explicit nudity, "Mature" seems to include nudity but not
-                always, and "X" seems to be explicitly adult content.
+                Blocks images that are more NSFW than the chosen rating.
+                "XXX" allows all NSFW images unless Civitai changes their
+                rating system.
                 """
             ).strip().replace("\n", " "),
             gr.Dropdown,
             {
-                "choices": civitai.NSFW_LEVELS[1:],
+                "choices": list(civitai.NSFW_LEVELS.keys()),
                 "interactive": True
             },
             section=section

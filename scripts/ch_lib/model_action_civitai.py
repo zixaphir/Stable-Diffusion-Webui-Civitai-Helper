@@ -85,7 +85,7 @@ def scan_single_model(filepath, model_type, refetch_old, delay):
             time.sleep(delay)
             yield False
 
-        yield "Requestion model information from Civitai"
+        yield "Requesting model information from Civitai"
         # use this sha256 to get model info from civitai
         model_info = civitai.get_model_info_by_hash(sha256_hash)
 
@@ -375,7 +375,7 @@ def check_models_new_version_to_md(model_types:list) -> str:
     return output
 
 
-def get_model_info_by_url(model_url_or_id:str) -> dict:
+def get_model_info_by_id(model_id:str) -> dict:
     """
     Retrieves model information necessary to populate HTML
     with Model Name, Model Type, valid saving directories,
@@ -383,12 +383,9 @@ def get_model_info_by_url(model_url_or_id:str) -> dict:
 
     return: tuple or None
     """
-    util.printD(f"Getting model info by: {model_url_or_id}")
+    util.printD(f"Getting model info for: {model_id}")
 
     try:
-        # parse model id
-        model_id = civitai.get_model_id_from_url(model_url_or_id)
-
         # download model info
         model_info = civitai.get_model_info_by_id(model_id)
 
@@ -587,13 +584,19 @@ def download_files(filename, model_folder, ver_info, headers, filetypes, dl_all,
     """
 
     version_id = ver_info["id"]
+    model_id = ver_info["model_id"]
+
+    model_ids = {
+        "model": model_id,
+        "version": version_id
+    }
 
     downloads = []
 
     # check if this model already exists
-    result = civitai.search_local_model_info_by_version_id(model_folder, version_id)
+    result = civitai.search_local_model_info_by_version_id(model_folder, model_ids)
     if result:
-        output = "This model version already exists"
+        output = f"This model version already exists at `{result}`"
         util.printD(output)
         yield (False, output)
 
@@ -656,7 +659,7 @@ def download_files(filename, model_folder, ver_info, headers, filetypes, dl_all,
 
     additional = None
     if errors_count > 0:
-        additional = "\n\n".join(errors)
+        additional = "\n\t".join(errors)
 
         if errors_count == total:
             yield (False, additional)
@@ -706,7 +709,7 @@ def dl_model_by_input(
     filename:str,
     file_ext:str,
     dl_all:bool,
-    nsfw_preview_threshold:bool,
+    nsfw_preview_threshold:int,
     duplicate:str,
     preview:str,
     *args
@@ -779,6 +782,7 @@ def dl_model_by_input(
 
     # get version info
     ver_info = get_ver_info_by_ver_str(version_str, model_info)
+    ver_info["model_id"] = model_info["id"]
     if not ver_info:
         output = "Failed to get version info, check console log for detail"
         util.printD(output)
