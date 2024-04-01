@@ -333,14 +333,14 @@ def get_model_id_from_url(url:str, include_model_ver=False) -> str:
     try:
         if model_m.group(1):
             model_id = model_m.group(1)
-    except ValueError:
+    except AttributeError:
         util.printD("There is no model id in this url")
         return ""
 
     try:
         if ver_m.group(1):
             model_version_id = ver_m.group(1)
-    except ValueError:
+    except AttributeError:
         pass
 
     if not include_model_ver:
