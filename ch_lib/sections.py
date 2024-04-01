@@ -3,12 +3,12 @@ Sections for civitai_helper tab.
 """
 
 import gradio as gr
-from scripts.ch_lib import model
-from scripts.ch_lib import js_action_civitai
-from scripts.ch_lib import model_action_civitai
-from scripts.ch_lib import civitai
-from scripts.ch_lib import duplicate_check
-from scripts.ch_lib import util
+from . import model
+from . import js_action_civitai
+from . import model_action_civitai
+from . import civitai
+from . import duplicate_check
+from . import util
 
 model_types = list(model.folders.keys())
 

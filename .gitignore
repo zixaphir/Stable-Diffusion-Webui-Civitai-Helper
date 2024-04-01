@@ -1,4 +1,2 @@
-scripts/__pycache__/
-scripts/ch_lib/__pycache__/
-setting.json
+**/__pycache__/
 **/*.kate-swp

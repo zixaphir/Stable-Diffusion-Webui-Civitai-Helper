@@ -10,11 +10,11 @@ import modules
 from modules import scripts
 from modules import shared
 from modules import script_callbacks
-from scripts.ch_lib import model
-from scripts.ch_lib import js_action_civitai
-from scripts.ch_lib import civitai
-from scripts.ch_lib import util
-from scripts import sections
+from ch_lib import model
+from ch_lib import js_action_civitai
+from ch_lib import civitai
+from ch_lib import util
+from ch_lib import sections
 
 # init
 # root path
