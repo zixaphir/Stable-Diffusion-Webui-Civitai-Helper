@@ -621,6 +621,7 @@ def download_multiple_section():
             filetypes = []
 
             dl = {
+                "model_name": model_info["name"],
                 "model_info": model_info,
                 "model_type": civitai.MODEL_TYPES[model_info["type"]],
                 "subfolder": "/",
@@ -661,22 +662,32 @@ def download_multiple_section():
                     filetypes.append(file["type"])
 
             dls.append(dl)
-
+        i = 0
+        count = len(dls)
+        names = []
         for dl in dls:
-            yield from model_action_civitai.dl_model_by_input(
-                {"model_info": dl["model_info"]},
-                dl["model_type"],
-                dl["subfolder"],
-                dl["version_str"],
-                dl["filename"],
-                dl["file_ext"],
-                dl["dl_all"],
-                dl["nsfw_preview_threshold"],
-                dl["duplicate"],
-                dl["preview"],
-                *filetypes
-            )
+            i = i + 1
+            names.append(dl["model_name"])
+            try:
+                for status in model_action_civitai.dl_model_by_input(
+                    {"model_info": dl["model_info"]},
+                    dl["model_type"],
+                    dl["subfolder"],
+                    dl["version_str"],
+                    dl["filename"],
+                    dl["file_ext"],
+                    dl["dl_all"],
+                    dl["nsfw_preview_threshold"],
+                    dl["duplicate"],
+                    dl["preview"],
+                    *filetypes
+                ):
+                    yield f"{dl['model_name']} {i}/{count} {status}"
+            except Exception as e:
+                util.printD(f"An error has occurred while downloading: {e.message}\n{e.args}")
 
+        names = "\n".join(names)
+        yield f"Downloaded {names}."
         return
 
     with gr.Row():
