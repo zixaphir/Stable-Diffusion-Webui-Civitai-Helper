@@ -651,16 +651,19 @@ def check_single_model_new_version(root, filename, model_type, delay):
     request = request + (model_type,)
 
     # model_path, model_id, model_name, version_id, new_version_name, description, downloadUrl, img_url = request
-    version_id = request[3]
+    model_ids = {
+        'model': request[1],
+        'version': request[3],
+    }
 
     # check exist
-    if not version_id:
+    if not (model_ids['version'] and model_ids['model']):
         return False
 
     # search this new version id to check if this model is already downloaded
-    target_model_info = search_local_model_info_by_version_id(root, version_id)
+    target_model_info = search_local_model_info_by_version_id(root, model_ids)
     if target_model_info:
-        util.printD("New version is already exists")
+        util.printD("New version already exists")
         return False
 
     return request
