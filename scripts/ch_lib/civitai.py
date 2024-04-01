@@ -315,8 +315,8 @@ def get_model_names_by_input(model_type, empty_info_only):
 def get_model_id_from_url(url:str, include_model_ver=False) -> str:
     """ return: model_id from civitai url """
     util.printD("Run get_model_id_from_url")
-    model_id = ""
-    model_version_id = False
+    model_id = None
+    model_version_id = None
 
     if not url:
         util.printD("url or model id can not be empty")
@@ -327,26 +327,21 @@ def get_model_id_from_url(url:str, include_model_ver=False) -> str:
         model_id = f"{url}"
         return model_id
 
-    split_url = re.sub("\\?.+$", "", url).split("/")
-    if len(split_url) < 2:
-        util.printD("url is not valid")
-        return ""
+    model_m = re.search(r"/models/(\d+)", url)
+    ver_m = re.search(r"modelVersionId=(\d+)", url)
 
-    if split_url[-2].isnumeric():
-        model_id = split_url[-2]
-    elif split_url[-1].isnumeric():
-        model_id = split_url[-1]
-    else:
+    if model_m.group(1):
+        model_id = model_m.group(1)
+
+    if ver_m.group(1):
+        model_version_id = ver_m.group(1)
+
+    if not model_id:
         util.printD("There is no model id in this url")
         return ""
 
     if not include_model_ver:
         return model_id
-
-    model_version_id = False
-    if "modelVersionId" in url:
-        if split_url[-1].isnumeric():
-            model_version_id = split_url[-1]
 
     return (model_id, model_version_id)
 

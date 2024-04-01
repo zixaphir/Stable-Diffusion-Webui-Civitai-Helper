@@ -636,8 +636,9 @@ def download_multiple_section():
             try:
                 if model_version_id:
                     for ver in model_info["modelVersions"]:
-                        if ver["id"] == model_version_id:
+                        if f"{ver['id']}" == model_version_id:
                             model_version = ver
+                            break
 
                 if not model_version:
                     model_version = model_info["modelVersions"][0]
