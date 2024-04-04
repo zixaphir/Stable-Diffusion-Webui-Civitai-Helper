@@ -320,7 +320,7 @@ def get_model_id_from_url(url:str, include_model_ver=False) -> str:
 
     if not url:
         util.printD("url or model id can not be empty")
-        return ""
+        return None
 
     if url.isnumeric():
         # is already an model_id
@@ -335,7 +335,7 @@ def get_model_id_from_url(url:str, include_model_ver=False) -> str:
             model_id = model_m.group(1)
     except AttributeError:
         util.printD("There is no model id in this url")
-        return ""
+        return None
 
     try:
         if ver_m.group(1):

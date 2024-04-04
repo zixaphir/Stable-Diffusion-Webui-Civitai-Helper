@@ -601,15 +601,24 @@ def download_section():
     )
 
 def download_multiple_section():
-    """ Allows pasting multiple model links to download """
+    """ Batch Model Download:
+        Allows pasting multiple model links to download
+    """
     def download_all_action(urls_txt:str):
+        utls_txt = urls_txt.strip()
         urls = urls_txt.split("\n")
         dls = []
 
         nsfw_threshold = util.get_opts("ch_nsfw_threshold")
 
         for url in urls:
-            model_id, model_version_id = civitai.get_model_id_from_url(url, include_model_ver=True)
+            result = civitai.get_model_id_from_url(url, include_model_ver=True)
+
+            if not result:
+                continue
+
+            model_id, model_version_id = result
+
             model_info = civitai.get_model_info_by_id(model_id)
 
             if not model_info:
@@ -661,6 +670,7 @@ def download_multiple_section():
                     filetypes.append(file["type"])
 
             dls.append(dl)
+
         i = 0
         count = len(dls)
         download_results = []
