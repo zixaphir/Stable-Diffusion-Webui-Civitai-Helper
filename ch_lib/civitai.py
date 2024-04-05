@@ -86,6 +86,10 @@ def append_parent_model_metadata(content):
     util.printD("Fetching Parent Model Information")
     parent_model = get_model_info_by_id(content["modelId"])
 
+    if not parent_model:
+        # Archived models can give the model version information but 404 on the model metadata itself.
+        parent_model = {}
+
     metadatas = [
         "description", "tags", "allowNoCredit",
         "allowCommercialUse", "allowDerivatives",
