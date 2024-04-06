@@ -604,28 +604,77 @@ def download_multiple_section():
     """ Batch Model Download:
         Allows pasting multiple model links to download
     """
-    def download_all_action(urls_txt:str):
-        utls_txt = urls_txt.strip()
-        urls = urls_txt.split("\n")
+    def append_model_version_info(dl, model_info, model_version):
+        dl["version_str"] = f"{model_version['name']}_{model_version['id']}"
+
+        filetypes = []
+        for file in model_version["files"]:
+            if file["type"] == "Model":
+                filetypes.append("Model")
+                filename = file["name"]
+                filename_frags = filename.split(".")
+                dl["file_ext"] = filename_frags.pop()
+                dl["filename"] = ".".join(filename_frags)
+
+            if file["type"] in civitai.FILE_TYPES:
+                filetypes.append(file["type"])
+
+        dl["filetypes"] = filetypes
+
+        return dl
+
+    def parse_params(params):
+        download_all_files = False
+        download_all_versions = False
+        for param in params:
+            param = param.strip().lower()
+            util.printD(param)
+            if param == "allfiles":
+                download_all_files = True
+                continue
+            if param == "allversions":
+                download_all_versions = True
+                continue
+
+        return (download_all_files, download_all_versions)
+
+    def download_all_action(entries_txt:str):
+        entries_txt = entries_txt.strip()
+        entries = entries_txt.split("\n")
         dls = []
 
         nsfw_threshold = util.get_opts("ch_nsfw_threshold")
 
-        for url in urls:
+        for entry in entries:
+            url = None
+            download_all_files = False
+            download_all_versions = False
+            # filename = None
+
+            if "::" in entry:
+                params = entry.split("::")
+                util.printD(params)
+                url = params.pop(0)
+                download_all_files, download_all_versions = parse_params(params)
+            else:
+                url = entry
+
+            util.printD(f"""
+                {url=}
+                {download_all_files=}
+                {download_all_versions=}
+            """)
+
             result = civitai.get_model_id_from_url(url, include_model_ver=True)
 
             if not result:
                 continue
 
             model_id, model_version_id = result
-
             model_info = civitai.get_model_info_by_id(model_id)
 
             if not model_info:
                 continue
-
-            model_version = None
-            filetypes = []
 
             dl = {
                 "model_name": model_info["name"],
@@ -635,41 +684,39 @@ def download_multiple_section():
                 "version_str": None,
                 "filename": None,
                 "file_ext": None,
-                "dl_all": False,
+                "dl_all": download_all_files,
                 "nsfw_preview_threshold": nsfw_threshold,
                 "duplicate": "skip",
-                "preview": None
+                "preview": None,
+                "filetypes": None
             }
 
+            if download_all_versions:
+                for model_version in model_info["modelVersions"]:
+                    dl_version = append_model_version_info(dl.copy(), model_info, model_version)
+                    dls.append(dl_version)
 
-            try:
-                if model_version_id:
-                    for ver in model_info["modelVersions"]:
-                        if f"{ver['id']}" == model_version_id:
-                            model_version = ver
-                            break
+            else:
+                model_version = None
+                try:
+                    if model_version_id:
+                        for version in model_info["modelVersions"]:
+                            if f"{version['id']}" == model_version_id:
+                                model_version = version
+                                break
+
+                except KeyError:
+                    util.printD(f"Failed to find a model version for model {model_id}")
+                    continue
 
                 if not model_version:
                     model_version = model_info["modelVersions"][0]
 
-                dl["version_str"] = f"{model_version['name']}_{model_version['id']}"
+                dl = append_model_version_info(dl, model_info, model_version)
+                if not dl:
+                    continue
 
-            except KeyError:
-                util.printD(f"Failed to find a model version for model {model_id}")
-                continue
-
-            for file in model_version["files"]:
-                if file["type"] == "Model":
-                    filetypes.append("Model")
-                    filename = file["name"]
-                    filename_frags = filename.split(".")
-                    dl["file_ext"] = filename_frags.pop()
-                    dl["filename"] = ".".join(filename_frags)
-                if file["type"] in civitai.FILE_TYPES:
-
-                    filetypes.append(file["type"])
-
-            dls.append(dl)
+                dls.append(dl)
 
         i = 0
         count = len(dls)
@@ -689,7 +736,7 @@ def download_multiple_section():
                     dl["nsfw_preview_threshold"],
                     dl["duplicate"],
                     dl["preview"],
-                    *filetypes
+                    *dl["filetypes"]
                 ):
                     yield f"{dl['model_name']} {i}/{count} {status}"
 
@@ -709,6 +756,15 @@ def download_multiple_section():
         yield f"```\nDownloaded:\n{download_results}\n```"
         return
 
+    with gr.Row():
+        gr.Markdown("""
+            Add URLs here, one per line, to download multiple models at the same time. You can also add additional parameters by adding "::" after the URL, followed by a parameter.
+            Currently supported parameters:
+            * `AllFiles`: Downloads all model files, including unsupported files, from a model.
+            * `AllVersions`: Downloads every version of a model.
+            e.g., `https://civitai.com/models/XXXXXX::AllFiles::AllModels` would download every file from every version of a model with ID `XXXXXX`.
+            Parameters are not case-senstive.
+        """)
     with gr.Row():
         urls = gr.Textbox(
             lines=5,
