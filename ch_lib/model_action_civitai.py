@@ -74,6 +74,7 @@ def scan_single_model(filepath, model_type, refetch_old, delay):
         for result in util.gen_file_sha256(filepath):
             if isinstance(result, tuple):
                 yield result
+
         sha256_hash = result
 
         util.printD(f"model action sha256: {sha256_hash}")
@@ -163,6 +164,7 @@ def scan_model(scan_model_types, nsfw_preview_threshold, refetch_old, progress=g
             if isinstance(result, str):
                 progress(tracker, desc=result, unit="models")
                 continue
+
             if isinstance(result, tuple):
                 percent, status = result
                 progress(percent, desc=status)

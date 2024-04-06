@@ -1,4 +1,7 @@
 # Change Log
+## v1.8.4
+* Fixes to model scanning and model update checking.
+
 ## v1.8.3
 * Batch Downloader
 * Multiple model preview images can now be downloaded locally. See new option in Settings. Feature by mx.
