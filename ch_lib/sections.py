@@ -628,7 +628,6 @@ def download_multiple_section():
         download_all_versions = False
         for param in params:
             param = param.strip().lower()
-            util.printD(param)
             if param == "allfiles":
                 download_all_files = True
                 continue
@@ -653,17 +652,10 @@ def download_multiple_section():
 
             if "::" in entry:
                 params = entry.split("::")
-                util.printD(params)
                 url = params.pop(0)
                 download_all_files, download_all_versions = parse_params(params)
             else:
                 url = entry
-
-            util.printD(f"""
-                {url=}
-                {download_all_files=}
-                {download_all_versions=}
-            """)
 
             result = civitai.get_model_id_from_url(url, include_model_ver=True)
 
