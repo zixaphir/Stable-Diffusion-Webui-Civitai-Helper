@@ -105,8 +105,6 @@ def append_parent_model_metadata(content):
     return content
 
 
-# use this sha256 to get model info from civitai
-# return: model info dict
 def get_model_info_by_hash(model_hash:str):
     """
     use this sha256 to get model info from civitai's api

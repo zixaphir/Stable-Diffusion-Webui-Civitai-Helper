@@ -604,7 +604,24 @@ def download_multiple_section():
     """ Batch Model Download:
         Allows pasting multiple model links to download
     """
+
+    download_options = {
+        # Download all files, including unsupported files.
+        # Supported files are controlled via `civitai.FILE_TYPES`
+        "all_files": {
+            "param": "AllFiles"
+        },
+        # Download every version of a model.
+        "all_versions": {
+            "param": "AllVersions"
+        }
+    }
+
     def append_model_version_info(dl, model_info, model_version):
+        """
+        Adds the required information to download a particular model version
+        givent the model and version's information.
+        """
         dl["version_str"] = f"{model_version['name']}_{model_version['id']}"
 
         filetypes = []
@@ -624,18 +641,20 @@ def download_multiple_section():
         return dl
 
     def parse_params(params):
-        download_all_files = False
-        download_all_versions = False
-        for param in params:
-            param = param.strip().lower()
-            if param == "allfiles":
-                download_all_files = True
-                continue
-            if param == "allversions":
-                download_all_versions = True
-                continue
+        """
+        Parses a user-provided string to change file downloading options.
+        """
 
-        return (download_all_files, download_all_versions)
+        options = {}
+
+        for key, val in download_options.items():
+            options[key] = False
+            for param in params:
+                if param.strip().lower() == val["param"].lower():
+                    options[key] = True
+                    continue
+
+        return options
 
     def download_all_action(entries_txt:str):
         entries_txt = entries_txt.strip()
@@ -646,16 +665,17 @@ def download_multiple_section():
 
         for entry in entries:
             url = None
-            download_all_files = False
-            download_all_versions = False
-            # filename = None
+            params = None
+            options = None
 
             if "::" in entry:
                 params = entry.split("::")
                 url = params.pop(0)
-                download_all_files, download_all_versions = parse_params(params)
             else:
+                params = []
                 url = entry
+
+            options = parse_params(params)
 
             result = civitai.get_model_id_from_url(url, include_model_ver=True)
 
@@ -676,48 +696,52 @@ def download_multiple_section():
                 "version_str": None,
                 "filename": None,
                 "file_ext": None,
-                "dl_all": download_all_files,
+                "dl_all": options["all_files"],
                 "nsfw_preview_threshold": nsfw_threshold,
                 "duplicate": "skip",
                 "preview": None,
                 "filetypes": None
             }
 
-            if download_all_versions:
+            model_version = None
+
+            if options["all_versions"]:
                 for model_version in model_info["modelVersions"]:
                     dl_version = append_model_version_info(dl.copy(), model_info, model_version)
                     dls.append(dl_version)
 
-            else:
-                model_version = None
-                try:
-                    if model_version_id:
-                        for version in model_info["modelVersions"]:
-                            if f"{version['id']}" == model_version_id:
-                                model_version = version
-                                break
+                continue
 
-                except KeyError:
-                    util.printD(f"Failed to find a model version for model {model_id}")
-                    continue
+            try:
+                if model_version_id:
+                    for version in model_info["modelVersions"]:
+                        if f"{version['id']}" == model_version_id:
+                            model_version = version
+                            break
 
-                if not model_version:
-                    model_version = model_info["modelVersions"][0]
+            except KeyError:
+                util.printD(f"Failed to find a model version for model {model_id}")
+                continue
 
-                dl = append_model_version_info(dl, model_info, model_version)
-                if not dl:
-                    continue
+            if not model_version:
+                model_version = model_info["modelVersions"][0]
 
-                dls.append(dl)
+            dl = append_model_version_info(dl, model_info, model_version)
+            if not dl:
+                continue
+
+            dls.append(dl)
 
         i = 0
         count = len(dls)
         download_results = []
         for dl in dls:
             i = i + 1
-            status = None
+            progress = None
             try:
-                for status in model_action_civitai.dl_model_by_input(
+                dl_status = "\n".join(download_results)
+                status_msg = f"```\nCompleted:\n{dl_status}\n```"
+                for progress in model_action_civitai.dl_model_by_input(
                     {"model_info": dl["model_info"]},
                     dl["model_type"],
                     dl["subfolder"],
@@ -730,9 +754,9 @@ def download_multiple_section():
                     dl["preview"],
                     *dl["filetypes"]
                 ):
-                    yield f"{dl['model_name']} {i}/{count} {status}"
+                    yield f"{dl['model_name']} {i}/{count} {progress} \n {status_msg}"
 
-                download_results.append(f"{dl['model_name']}: {status}")
+                download_results.append(f"{dl['model_name']}: {progress}")
             except Exception as e:
                 msg = None
                 if hasattr(e, 'message'):
@@ -745,7 +769,7 @@ def download_multiple_section():
                 download_results.append(f" * {dl['model_name']}: {output}")
 
         download_results = "\n".join(download_results)
-        yield f"```\nDownloaded:\n{download_results}\n```"
+        yield f"```\nCompleted:\n{download_results}\n```"
         return
 
     with gr.Row():
