@@ -221,7 +221,13 @@ def dl_model_new_version(msg, nsfw_preview_threshold):
 
     success = False
     # download file + webui visible progress bar
-    for result in downloader.dl_file(download_url, folder=model_folder):
+    headers = {
+        "content-type": "application/json"
+    }
+    api_key = util.get_opts("ch_civiai_api_key")
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    for result in downloader.dl_file(download_url, folder=model_folder, headers=headers):
         if not isinstance(result, str):
             success, output = result
             break
