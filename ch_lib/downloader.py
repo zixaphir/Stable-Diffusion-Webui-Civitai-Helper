@@ -102,12 +102,12 @@ def request_get(
 def visualize_progress(percent:int, downloaded:int, total:int, speed:int | float, show_bar=True) -> str:
     """ Used to display progress in webui """
 
-    s_total = f"{total}"
-    s_downloaded = f"{downloaded:>{len(s_total)}}"
+    s_total = f"{human_readable_filesize(total)}"
+    s_downloaded = f"{human_readable_filesize(downloaded):>{len(s_total)}}"
     s_percent = f"{percent:>3}"
     s_speed = f'{human_readable_filesize(speed)}Bps'
 
-    snippet = f"`{s_percent}%: {s_downloaded} / {s_total} @ {s_speed}`"
+    snippet = f"`{s_percent}%: {s_downloaded}B / {s_total}B @ {s_speed}`"
 
     if not show_bar:
         # Unfortunately showing a progress bar in webui
