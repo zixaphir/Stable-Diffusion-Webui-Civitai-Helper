@@ -281,16 +281,19 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
     # depending on civitai being up, or an internet connection at all.
     updated = False
     if util.get_opts("ch_download_examples"):
-        for img in model_info["images"]:
+        images = model_info.get("images", [])
+        for img in images:
             if url := img.get("url", None):
                 if existing_dl := local_image(existing_info, img):
                     # Ensure it's set in the new model info.
                     img["local_file"] = existing_dl
+
                 else:
                     # Fetch it, save it, set it in the model info.
                     path = urllib.parse.urlparse(url).path
                     _, ext = os.path.splitext(path)
                     outpath = next_example_image_path(model_path) + ext
+
                     for result in downloader.dl_file(
                             url,
                             folder=os.path.dirname(outpath),
@@ -298,6 +301,7 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
                         if not isinstance(result, str):
                             success, output = result
                             break
+
                     if not success:
                         downloader.error(url, "Failed to download model image.")
                         continue
