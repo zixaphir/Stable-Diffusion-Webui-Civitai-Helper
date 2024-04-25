@@ -225,29 +225,43 @@ def dummy_model_info(path, sha256_hash, model_type):
     tags = model_info["tags"]
 
     try:
-        file_metadata = sd_models.read_metadata_from_safetensors(path)
+        read_metadata = sd_models.read_metadata_from_safetensors(path)
     except AssertionError:
         # model is not a safetensors file. This is fine,
         # it just doesn't have metadata we can read
-        pass
+        return model_info
 
-    tag_frequency = file_metadata.get("ss_tag_frequency", {})
+    tag_frequency = read_metadata.get("ss_tag_frequency", {})
 
-    for trained_word in tag_frequency.keys():
-        # kohya training scripts use
-        # `{iterations}_{trained_word}`
-        # for training finetune concepts.
-        word = re.sub(r"^\d+_", "", trained_word)
+    util.printD(read_metadata)
+    util.printD(tag_frequency)
+
+    prefix_re = re.compile(r"^\d+_")
+
+    if isinstance(tag_frequency, dict):
+        for trained_word in tag_frequency.keys():
+            # kohya training scripts use
+            # `{iterations}_{trained_word}`
+            # for training finetune concepts.
+            word = prefix_re.sub("", trained_word)
+            trained_words.append(word)
+
+            util.printD(trained_word)
+
+            # "tags" in this case are just words used in image captions
+            # when training the finetune model.
+            # They may or may not be useful for prompting
+            for tag in tag_frequency[trained_word].keys():
+                tag = tag.replace(",", "").strip()
+                util.printD(tag)
+                if tag == "" or tag in tags:
+                    continue
+                tags.append(tag)
+
+    elif isinstance(tag_frequency, str):
+        util.printD("STR")
+        word = prefix_re.sub("", trained_word)
         trained_words.append(word)
-
-        # "tags" in this case are just words used in image captions
-        # when training the finetune model.
-        # They may or may not be useful for prompting
-        for tag in tag_frequency[trained_word].keys():
-            tag = tag.replace(",", "").strip()
-            if tag == "":
-                continue
-            tags.append(tag)
 
     return model_info
 
