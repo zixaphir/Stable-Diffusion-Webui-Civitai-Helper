@@ -233,9 +233,6 @@ def dummy_model_info(path, sha256_hash, model_type):
 
     tag_frequency = read_metadata.get("ss_tag_frequency", {})
 
-    util.printD(read_metadata)
-    util.printD(tag_frequency)
-
     prefix_re = re.compile(r"^\d+_")
 
     if isinstance(tag_frequency, dict):
@@ -246,20 +243,16 @@ def dummy_model_info(path, sha256_hash, model_type):
             word = prefix_re.sub("", trained_word)
             trained_words.append(word)
 
-            util.printD(trained_word)
-
             # "tags" in this case are just words used in image captions
             # when training the finetune model.
             # They may or may not be useful for prompting
             for tag in tag_frequency[trained_word].keys():
                 tag = tag.replace(",", "").strip()
-                util.printD(tag)
                 if tag == "" or tag in tags:
                     continue
                 tags.append(tag)
 
     elif isinstance(tag_frequency, str):
-        util.printD("STR")
         word = prefix_re.sub("", trained_word)
         trained_words.append(word)
 
