@@ -1,4 +1,15 @@
 # Change Log
+## v1.8.5
+* Batch downloading now lists the files that were actually downloaded.
+*
+* Download progress is now listed as Giga/Mega/Kilo-bytes instead of just bytes. Previously only download speed was listed as such.
+* The "Download All Examples" setting should no longer cause models without Civitai pages to cause scanning to fail.
+* Unexpected metadata in safetensors files when scraping metadata from a model should no longer cause model scanning to fail.
+* Fixed a bug where models not on civitai would attempt to search for previews on civitai, causing scanning to fail.
+* Model updating should no longer fail on models that require an API key when an API key is present.
+* Undocumented change from v1.8.3: If the same version of a model already exists, the location of the model will now be shown with the duplicate model message.
+
+
 ## v1.8.4
 * Fixes to model scanning and model update checking.
 
