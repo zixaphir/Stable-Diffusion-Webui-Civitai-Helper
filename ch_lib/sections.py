@@ -187,6 +187,9 @@ def download_section():
         "filenames": {
             # dl_version_str: filename,
         },
+        "base_models": {
+            # dl_version_str: base_model,
+        },
         "previews": {
             # dl_version_str: [{url: url, nsfw: nsfw}],
         },
@@ -213,6 +216,7 @@ def download_section():
         state = {
             "model_info": {},
             "filenames": {},
+            "base_models": {},
             "previews": {},
             "files": {},
             "files_count": {},
@@ -224,13 +228,15 @@ def download_section():
 
         subfolders = sorted(data["subfolders"])
         version_strs = data["version_strs"]
+        base_models = data["base_models"]
         filenames = data["filenames"]
 
         if subfolder == "" or subfolder not in subfolders:
             subfolder = "/"
 
-        for filename, version in zip(filenames, version_strs):
+        for filename, base_model, version in zip(filenames, base_models, version_strs):
             state["filenames"][version] = filename
+            state["base_models"][version] = base_model
 
         for version_files, version in zip(data["files"], version_strs):
             filetypes = state["files"][version] = {}
@@ -276,6 +282,8 @@ def download_section():
 
         if not filename:
             filename = dl_filename_txtbox.value
+
+        base_model = state["base_models"][dl_version]
 
         file_parts = filename.split(".")
         ext = file_parts.pop()
@@ -329,6 +337,9 @@ def download_section():
             ),
             download_all_row.update(
                 visible=(state["files_count"][dl_version] > 1)
+            ),
+            dl_base_model_txtbox.update(
+                value=base_model
             )
         ] + output_add
 
@@ -397,6 +408,14 @@ def download_section():
                     min_width=320,
                     value=""
                 )
+                dl_base_model_txtbox = gr.Textbox(
+                    label="Base Model",
+                    interactive=False,
+                    lines=1,
+                    max_lines=1,
+                    min_width=320,
+                    value=""
+                )
                 dl_version_drop = gr.Dropdown(
                     choices=[],
                     label="Model Version",
@@ -425,6 +444,7 @@ def download_section():
                     min_width=320,
                     elem_id="ch_nsfw_preview_dl_drop"
                 )
+
 
             with gr.Column(
                 visible=False,
@@ -570,7 +590,7 @@ def download_section():
 
     ver_outputs = [
         dl_state, dl_filename_txtbox, dl_extension_txtbox,
-        dl_preview_img, dl_preview_url, download_all_row,
+        dl_preview_img, dl_preview_url, download_all_row, dl_base_model_txtbox,
     ] + ch_output_add
 
     dl_version_drop.change(

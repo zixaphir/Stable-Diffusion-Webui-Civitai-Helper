@@ -423,6 +423,7 @@ def get_model_info_by_id(model_id:str) -> dict:
     filenames = []
     files = []
     version_strs = []
+    base_models = []
     previews = {}
     for version in model_versions:
         # version name can not be used as id
@@ -442,6 +443,7 @@ def get_model_info_by_id(model_id:str) -> dict:
         files.append(version["files"])
         filenames.append(filename)
         version_strs.append(version_str)
+        base_models.append(version.get("baseModel", None))
         previews[version_str] = version["images"]
 
     # get folder by model type
@@ -455,6 +457,7 @@ def get_model_info_by_id(model_id:str) -> dict:
         {model_name=}
         {model_type=}
         {version_strs=}
+        {base_models=}
         {subfolders=}
         {previews=}
     """)
@@ -468,6 +471,7 @@ def get_model_info_by_id(model_id:str) -> dict:
         "filenames": filenames,
         "subfolders": subfolders,
         "version_strs": version_strs,
+        "base_models": base_models,
         "previews": previews
     }
 
