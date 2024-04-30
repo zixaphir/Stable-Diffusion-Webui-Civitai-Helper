@@ -614,6 +614,9 @@ def download_multiple_section():
         # Download every version of a model.
         "all_versions": {
             "param": "AllVersions"
+        },
+        "subdirectory": {
+            "param": "Subfolder"
         }
     }
 
@@ -647,12 +650,21 @@ def download_multiple_section():
 
         options = {}
 
-        for key, val in download_options.items():
+        for key, option in download_options.items():
             options[key] = False
             for param in params:
-                if param.strip().lower() == val["param"].lower():
+                val = None
+                param = param.strip()
+                if "=" in param:
+                    param, val = param.split("=")
+
+                param = param.lower()
+                if param == option["param"].lower():
+                    if val:
+                        options[key] = val
+                        continue
+
                     options[key] = True
-                    continue
 
         return options
 
@@ -692,7 +704,7 @@ def download_multiple_section():
                 "model_name": model_info["name"],
                 "model_info": model_info,
                 "model_type": civitai.MODEL_TYPES[model_info["type"]],
-                "subfolder": "/",
+                "subfolder": f"/{options['subdirectory'] or ''}",
                 "version_str": None,
                 "filename": None,
                 "file_ext": None,
@@ -778,6 +790,7 @@ def download_multiple_section():
             Currently supported parameters:
             * `AllFiles`: Downloads all model files, including unsupported files, from a model.
             * `AllVersions`: Downloads every version of a model.
+            * `Subfolder`: Downloads the model files to a specified subdirectory of the model type folder. A lora with `Subfolder=style` will download to `models/Lora/style`. This option will fail if the subfolder does not already exist.
             e.g., `https://civitai.com/models/XXXXXX::AllFiles::AllModels` would download every file from every version of a model with ID `XXXXXX`.
             Parameters are not case-senstive.
         """)

@@ -786,7 +786,14 @@ def dl_model_by_input(
     # get model folder for downloading
     folder = os.path.join(model_root_folder, subfolder)
     if not os.path.isdir(folder):
-        output = f"Model folder is not a dir: {folder}"
+        subfolders = []
+        for file in os.listdir(model_root_folder):
+            if os.path.isdir(os.path.join(model_root_folder, subfolder)):
+                subfolders.push(file)
+        if len(subfolders) == 0:
+            subfolders = ["No subfolders exist."]
+        subfolders = "\n\t".join(subfolders)
+        output = f"Model folder is not a dir: {subfolder}. Available subfolders: \n\t{subfolders}"
         util.printD(output)
         yield output
         return
