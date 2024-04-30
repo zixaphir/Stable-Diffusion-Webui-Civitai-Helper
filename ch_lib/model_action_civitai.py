@@ -452,16 +452,16 @@ def get_model_info_by_id(model_id:str) -> dict:
     # get subfolders
     subfolders = ["/"] + util.get_subfolders(folder)
 
-    msg = util.indented_msg(f"""
-        Got following info for downloading:
-        {model_name=}
-        {model_type=}
-        {version_strs=}
-        {base_models=}
-        {subfolders=}
-        {previews=}
-    """)
-    util.printD(msg)
+    # msg = util.indented_msg(f"""
+    #     Got following info for downloading:
+    #     {model_name=}
+    #     {model_type=}
+    #     {version_strs=}
+    #     {base_models=}
+    #     {subfolders=}
+    #     {previews=}
+    # """)
+    # util.printD(msg)
 
     return {
         "model_info": model_info,
