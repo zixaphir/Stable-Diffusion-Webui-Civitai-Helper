@@ -60,7 +60,7 @@ def make_ui():
             search["tag"] = tag
             search["age"] = age
             search["sort"] = sort
-            search["base_models"] = base_models
+            search["baseModels"] = base_models
             search["types"] = types
 
             params = make_params(search)
