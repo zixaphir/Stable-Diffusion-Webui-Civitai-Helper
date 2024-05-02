@@ -156,7 +156,7 @@ def make_ui():
             value="Newest",
             choices=[
                 "Highest Rated",
-                "Most Downloaded,"
+                "Most Downloaded",
                 "Newest"
             ]
         )
