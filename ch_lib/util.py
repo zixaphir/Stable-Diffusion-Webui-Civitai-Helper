@@ -54,6 +54,7 @@ _MINUTE = 60
 _HOUR = _MINUTE * 60
 _DAY = _HOUR * 24
 
+script_dir = None
 
 # print for debugging
 def printD(msg:any) -> str:

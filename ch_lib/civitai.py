@@ -11,7 +11,8 @@ from . import downloader
 SUFFIX = ".civitai"
 
 URLS = {
-    "modelPage":"https://civitai.com/models/",
+    "query": "https://civitai.com/api/v1/models?",
+    "modelPage": "https://civitai.com/models/",
     "modelId": "https://civitai.com/api/v1/models/",
     "modelVersionId": "https://civitai.com/api/v1/model-versions/",
     "hash": "https://civitai.com/api/v1/model-versions/by-hash/"

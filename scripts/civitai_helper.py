@@ -15,6 +15,7 @@ from ch_lib import js_action_civitai
 from ch_lib import civitai
 from ch_lib import util
 from ch_lib import sections
+from browser import browser
 
 # init
 # root path
@@ -22,6 +23,8 @@ ROOT_PATH = os.getcwd()
 
 # extension path
 EXTENSION_PATH = scripts.basedir()
+
+util.script_dir = EXTENSION_PATH
 
 # default hidden values for civitai helper buttons
 BUTTONS = {
@@ -172,8 +175,13 @@ def on_ui_tabs():
             outputs=py_msg_txtbox
         )
 
+    civitai_helper_browser = browser.civitai_search()
+
     # the third parameter is the element id on html, with a "tab_" as prefix
-    return ((civitai_helper, "Civitai Helper", "civitai_helper"),)
+    return (
+        (civitai_helper, "Civitai Helper", "civitai_helper"),
+        (civitai_helper_browser, "Civitai Helper Browser", "civitai_helper_browser")
+    )
 
 
 def on_ui_settings():
