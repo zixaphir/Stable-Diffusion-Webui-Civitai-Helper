@@ -3,6 +3,7 @@ browser.py - Civitai Browser for Civitai Helper
 """
 
 import os
+from urllib.parse import quote
 from string import Template
 import gradio as gr
 from ch_lib import util
@@ -24,15 +25,8 @@ def civitai_search():
 
 def make_ui():
     ch_search_state = gr.State({
-        "query": "",
-        "tag": "",
-        "age": "",
-        "sort": "",
-        "base_models": "",
-        "types": "",
-        "cursor": "",
-        "prev_cursor": "",
-        "next_cursor": ""
+        "current_page": 0,
+        "pages": []
     })
 
     def perform_search(
@@ -50,61 +44,49 @@ def make_ui():
 
         target = evt.target
 
-        if target in [ch_prev_btn, ch_next_btn]:
-            search["query"] = state["query"]
-            search["tag"] = state["tag"]
-            search["age"] = state["age"]
-            search["sort"] = state["sort"]
-            search["baseModels"] = state["base_models"]
-            search["types"] = state["types"]
+        url = ""
 
+        if target in [ch_prev_btn, ch_next_btn]:
             if target == ch_prev_btn:
-                search["cursor"] = state["prev_cursor"]
+                state["current_page"] = state["current_page"] - 1
 
             if target == ch_next_btn:
-                search["cursor"] = state["next_cursor"]
+                state["current_page"] = state["current_page"] + 1
 
+            url = state["pages"][state["current_page"]]
 
-        if target == ch_search_btn:
-            state["query"] = query
-            state["tag"] = tag
-            state["age"] = age
-            state["sort"] = sort
-            state["base_models"] = base_models
-            state["types"] = types
-            state["cursor"] = ""
+        if not url:
+            search["query"] = query
+            search["tag"] = tag
+            search["age"] = age
+            search["sort"] = sort
+            search["base_models"] = base_models
+            search["types"] = types
 
-        search = {
-            "query": state["query"],
-            "tag": state["tag"],
-            "age": state["age"],
-            "sort": state["sort"],
-            "baseModels": state["base_models"],
-            "types": state["types"]
-        }
+            params = make_params(search)
 
-        params = make_params(search)
+            url = f"{civitai.URLS['query']}{params}"
 
-        url = f"{civitai.URLS['query']}{params}"
+        if len(state["pages"]) == 0:
+            state["pages"].append(url)
+
+        util.printD(f"Loading data from API request: {url}")
 
         json = civitai.civitai_get(url)
 
         if not json:
-            return "Civitai did not provide a useable response."
+            return [
+                {},
+                "Civitai did not provide a useable response."
+            ]
 
         content = parse_civitai_response(json)
 
         meta = content.get("meta", {})
-        prev_cursor = meta.get("prevCursor", None)
-        next_cursor = meta.get("nextCursor", None)
+        next_page = meta.get("next_page", None)
 
-        state["prev_cursor"] = prev_cursor
-        state["next_cursor"] = next_cursor
-
-        ch_prev_btn.update(visible=prev_cursor)
-        ch_next_btn.update(visible=next_cursor)
-
-        ch_pagination_row.update(visible=not (prev_cursor or next_cursor))
+        if not next_page in state:
+            state["pages"].append(next_page)
 
         cards = make_cards(content["models"])
 
@@ -112,7 +94,9 @@ def make_ui():
 
         return [
             state,
-            container.safe_substitute({"cards": "".join(cards)})
+            container.safe_substitute({"cards": "".join(cards)}),
+            ch_prev_btn.update(interactive=state["current_page"] > 0),
+            ch_next_btn.update(interactive=next_page is not None)
         ]
 
     with gr.Row():
@@ -220,22 +204,17 @@ def make_ui():
             lines=1
         )
 
-    with gr.Row(visible=False) as ch_pagination_row:
-        with gr.Column():
-            ch_prev_btn = gr.Button(
-                label="Previous Page",
-                value="Previous Page",
-                lines=1,
-                visible=False
-            )
-
-        with gr.Column():
-            ch_next_btn = gr.Button(
-                label="Next Page",
-                value="Next Page",
-                lines=1,
-                visible=False
-            )
+    with gr.Row():
+        ch_prev_btn = gr.Button(
+            value="Previous Page",
+            lines=1,
+            interactive=False
+        )
+        ch_next_btn = gr.Button(
+            value="Next Page",
+            lines=1,
+            interactive=False
+        )
 
     with gr.Box():
         ch_search_results_html = gr.HTML(
@@ -243,54 +222,38 @@ def make_ui():
             label="Search Results"
         )
 
+    inputs = [
+        ch_search_state,
+        ch_query_txt,
+        ch_tag_txt,
+        ch_age_drop,
+        ch_sort_drop,
+        ch_base_model_drop,
+        ch_type_drop
+    ]
+
+    outputs = [
+        ch_search_state,
+        ch_search_results_html,
+        ch_prev_btn,
+        ch_next_btn
+    ]
+
     ch_search_btn.click(
         perform_search,
-        inputs=[
-            ch_search_state,
-            ch_query_txt,
-            ch_tag_txt,
-            ch_age_drop,
-            ch_sort_drop,
-            ch_base_model_drop,
-            ch_type_drop
-        ],
-        outputs=[
-            ch_search_state,
-            ch_search_results_html
-        ]
+        inputs=inputs,
+        outputs=outputs
     )
 
     ch_prev_btn.click(
         perform_search,
-        inputs=[
-            ch_search_state,
-            ch_query_txt,
-            ch_tag_txt,
-            ch_age_drop,
-            ch_sort_drop,
-            ch_base_model_drop,
-            ch_type_drop
-        ],
-        outputs=[
-            ch_search_state,
-            ch_search_results_html
-        ]
+        inputs=inputs,
+        outputs=outputs
     )
     ch_next_btn.click(
         perform_search,
-        inputs=[
-            ch_search_state,
-            ch_query_txt,
-            ch_tag_txt,
-            ch_age_drop,
-            ch_sort_drop,
-            ch_base_model_drop,
-            ch_type_drop
-        ],
-        outputs=[
-            ch_search_state,
-            ch_search_results_html
-        ]
+        inputs=inputs,
+        outputs=outputs
     )
 
 def array_frags(name, vals, frags):
@@ -387,14 +350,12 @@ def parse_civitai_response(content):
     results = {
         "models": [],
         "meta": {
-            "prev_cursor": None,
-            "next_cursor": None
+            "next_page": None
         }
     }
 
     if content.get("metadata", False):
-        results["meta"]["prevCursor"] = content["metadata"].get("prevCursor", None)
-        results["meta"]["nextCursor"] = content["metadata"].get("nextCursor", None)
+        results["meta"]["next_page"] = content["metadata"].get("nextPage", None)
 
     for model in content["items"]:
         try:
