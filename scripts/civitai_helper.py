@@ -92,7 +92,7 @@ def on_ui_tabs():
 
         with gr.Box(elem_classes="ch_box"):
             gr.Markdown("### Download Model")
-            with gr.Tab("Single"):
+            with gr.Tab("Single", elem_id="ch_dl_single_tab"):
                 sections.download_section()
             with gr.Tab("Batch Download"):
                 sections.download_multiple_section()

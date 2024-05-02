@@ -381,12 +381,14 @@ def download_section():
                         lines=1,
                         max_lines=1,
                         value="",
-                        placeholder="Model URL or Model ID"
+                        placeholder="Model URL or Model ID",
+                        elem_id="ch_dl_url"
                     )
                 with gr.Column(elem_classes="justify-bottom"):
                     dl_model_info_btn = gr.Button(
                         value="Get Model Info by Civitai Url",
-                        variant="primary"
+                        variant="primary",
+                        elem_id="ch_dl_get_info"
                     )
 
             gr.Markdown(value="**2. Pick Subfolder and Model Version**")

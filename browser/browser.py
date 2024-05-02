@@ -333,6 +333,7 @@ def parse_model(model):
             break
 
     return {
+        "id": model["id"],
         "name": name,
         "preview": {
             "url": preview["url"],
@@ -395,7 +396,7 @@ def make_cards(models):
             #"versions": model["versions"],
             "description": model["description"],
             "type": model["type"],
-            "download": model["download"],
+            "model_id": model["id"],
         })
 
         cards.append(card)

@@ -327,8 +327,7 @@ def get_model_id_from_url(url:str, include_model_ver=False) -> str:
 
     if url.isnumeric():
         # is already an model_id
-        model_id = f"{url}"
-        return model_id
+        return url
 
     model_m = re.search(r"/models/(\d+)", url)
     ver_m = re.search(r"modelVersionId=(\d+)", url)

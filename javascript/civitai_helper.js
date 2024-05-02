@@ -49,16 +49,16 @@ window.display_ch_path = function(_, path) {
 
     ch_path_el.textContent = path;
     ch_path_el.style.display = "block";
-}
+};
 
 window.move_ch_path = function(e) {
     ch_path_el.style.top = `calc(${e.clientY}px - 2em)`;
     ch_path_el.style.left = `calc(${e.clientX}px + 2em)`;
-}
+};
 
 window.hide_ch_path = function(_) {
     ch_path_el.style.display = "none";
-}
+};
 
 
 // send msg to python side by filling a hidden text box
@@ -203,7 +203,7 @@ window.open_model_url = async function(e, model_type, search_term) {
     }
 
     console.log("end open_model_url");
-}
+};
 
 
 window.add_trigger_words = function(e, model_type, search_term) {
@@ -237,7 +237,7 @@ window.add_trigger_words = function(e, model_type, search_term) {
     js_add_trigger_words_btn.click();
 
     console.log("end add_trigger_words");
-}
+};
 
 
 window.use_preview_prompt = function(e, model_type, search_term) {
@@ -272,7 +272,7 @@ window.use_preview_prompt = function(e, model_type, search_term) {
     js_use_preview_prompt_btn.click();
 
     console.log("end use_preview_prompt");
-}
+};
 
 
 window.remove_dup_card = async function(e, model_type, search_term) {
@@ -299,7 +299,7 @@ window.remove_dup_card = async function(e, model_type, search_term) {
             row.parentElement.removeChild(row);
         }
     }
-}
+};
 
 
 window.remove_card = async function(e, model_type, search_term) {
@@ -327,10 +327,10 @@ window.remove_card = async function(e, model_type, search_term) {
         action: "remove_card",
         model_type: model_type,
         search_term: search_term,
-    }
+    };
 
     // fill to msg box
-    send_ch_py_msg(msg)
+    send_ch_py_msg(msg);
 
     //click hidden button
     js_remove_card_btn.click();
@@ -362,8 +362,7 @@ window.remove_card = async function(e, model_type, search_term) {
     console.log("end remove_card");
 
     return status;
-
-}
+};
 
 
 window.rename_card = async function(e, model_type, search_term, model_name) {
@@ -391,10 +390,10 @@ window.rename_card = async function(e, model_type, search_term, model_name) {
         model_type: model_type,
         search_term: search_term,
         new_name: new_name,
-    }
+    };
 
     // fill to msg box
-    send_ch_py_msg(msg)
+    send_ch_py_msg(msg);
 
     //click hidden button
     js_rename_card_btn.click();
@@ -423,8 +422,7 @@ window.rename_card = async function(e, model_type, search_term, model_name) {
     }
 
     console.log("end rename_card");
-
-}
+};
 
 
 window.replace_preview = function(e, page, type, name) {
@@ -443,7 +441,7 @@ window.replace_preview = function(e, page, type, name) {
         replace_preview_button.click();
         cancel_button.click();
     });
-}
+};
 
 
 // download model's new version into SD at python side
@@ -481,7 +479,58 @@ window.ch_dl_model_new_version = function(e, model_path, version_id, download_ur
     js_dl_model_new_version_btn.click();
 
     console.log("end dl_model_new_version");
-}
+};
+
+
+// download model from browser
+window.ch_downloader = function(e, model_id) {
+    // This isn't the best way to handle this.
+    // Shifting the user's window to another tab
+    // and then scrolling to an interface is
+    // awful design, but hopefully this will
+    // just be temporary until I write a new
+    // interface.
+
+    console.log("start ch_downloader");
+
+    // stop parent event
+    stopEvent(e);
+
+    let tab;
+    let tabs;
+
+    tabs = document.querySelectorAll("#tabs button");
+    for (tab of tabs) {
+        let text = tab.textContent.trim();
+        if (text == "Civitai Helper") { // localization nightmare
+            break;
+        }
+        tab = null;
+    }
+
+    if (!tab) {
+        // TODO: Communicate error to the user.
+        return;
+    }
+
+    tab.click();
+
+    let single_dl_tab = document.getElementById("ch_dl_single_tab");
+    let ch_url = document.querySelector("#ch_dl_url input");
+    let ch_get_info_btn = document.getElementById("ch_dl_get_info");
+
+    console.log(model_id);
+
+    single_dl_tab.click();
+    ch_url.value = model_id;
+    // gradio will not update input value without an input event
+    ch_url.dispatchEvent(new Event("input", { bubbles: true }));
+    ch_get_info_btn.click();
+
+    ch_get_info_btn.scrollIntoView();
+
+    console.log("end ch_downloader");
+};
 
 
 function refresh_cards_list(model_type) {
