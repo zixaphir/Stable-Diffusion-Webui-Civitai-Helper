@@ -37,6 +37,7 @@ def make_ui():
         sort,
         base_models,
         types,
+        allow_nsfw,
         evt: gr.EventData
     ):
 
@@ -62,6 +63,7 @@ def make_ui():
             search["sort"] = sort
             search["baseModels"] = base_models
             search["types"] = types
+            search["nsfw"] = "true" if allow_nsfw else "false"
 
             params = make_params(search)
 
@@ -102,7 +104,7 @@ def make_ui():
     with gr.Row():
         gr.Markdown("# Browse and Search Civitai")
 
-    with gr.Row():
+    with gr.Row(equal_height=True):
         ch_query_txt = gr.Textbox(
             label="Query",
             lines=1,
@@ -145,7 +147,7 @@ def make_ui():
             ]
         )
 
-    with gr.Row():
+    with gr.Row(equal_height=True):
         ch_base_model_drop = gr.Dropdown(
             label="Base Model",
             lines=1,
@@ -198,13 +200,19 @@ def make_ui():
             ]
         )
 
+        ch_nsfw_ckb = gr.Checkbox(
+            label="Allow NSFW",
+            value=util.get_opts("ch_nsfw_threshold") != "PG",
+            lines=1
+        )
+
         ch_search_btn = gr.Button(
             variant="primary",
             value="Search",
             lines=1
         )
 
-    with gr.Row():
+    with gr.Row(equal_height=True):
         ch_prev_btn = gr.Button(
             value="Previous Page",
             lines=1,
@@ -230,7 +238,8 @@ def make_ui():
         ch_age_drop,
         ch_sort_drop,
         ch_base_model_drop,
-        ch_type_drop
+        ch_type_drop,
+        ch_nsfw_ckb
     ]
 
     outputs = [
