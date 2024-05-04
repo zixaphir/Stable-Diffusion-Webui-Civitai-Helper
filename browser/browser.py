@@ -58,7 +58,7 @@ def make_ui():
         if not url:
             search["query"] = query
             search["tag"] = tag
-            search["age"] = age
+            search["period"] = age
             search["sort"] = sort
             search["baseModels"] = base_models
             search["types"] = types
