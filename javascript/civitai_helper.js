@@ -511,7 +511,7 @@ window.ch_downloader = function(e, model_id) {
     let ch_url = document.querySelector("#ch_dl_url input");
     let ch_get_info_btn = document.getElementById("ch_dl_get_info");
     let ch_download_btn = document.getElementById("ch_download_model_button");
-    let old_active = document.querySelector("ch_active_card");
+    let old_active = document.querySelector(".ch_active_card");
     let new_active = document.getElementById(`ch_${model_id}_card`);
 
     single_dl_tab.click();
