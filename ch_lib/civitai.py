@@ -24,7 +24,7 @@ MODEL_TYPES = {
     "Hypernetwork": "hyper",
     "LORA": "lora",
     "LoCon": "lycoris",
-    "DoRA": "lycoris"
+    "DoRA": "lora"
 }
 
 FILE_TYPES = [
