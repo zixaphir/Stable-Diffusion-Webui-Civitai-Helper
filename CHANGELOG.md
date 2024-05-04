@@ -1,4 +1,12 @@
 # Change Log
+## v1.8.6
+* Added a Civitai Browser & Search.
+  * Currently downloading a model hooks into the existing Downloader UI. I'd like to change this eventually but every additional UI element added through Gradio introduces performance degredation. (Currently the browser results themselves are written in raw HTML, CSS, and Javascript similar to webui's built in extra network viewer instead of relying on Gradio)
+  * Please report issues: I've only tested on Firefox and Forge.
+* Small changes to Downloader UI:
+  * Now shows base model of models, so models trained/based on SD1.5, SDXL, Pony, etc can be determined from the UI
+  * Batch Downloader now supports the `Subfolder` option.
+
 ## v1.8.5
 * Batch downloading now lists the files that were actually downloaded.
 *
