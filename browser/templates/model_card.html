@@ -1,6 +1,6 @@
-<div class="model_card">
+<div class="model_card" id="ch_${model_id}_card">
     <div class="preview">
-        <a href="${url}" target="_blank">
+        <a href="" onclick="ch_downloader(event, ${model_id})">
             <div class="preview_container">
                 ${preview}
             </div>
@@ -9,7 +9,7 @@
             ${name}
         </div>
         <div class="ux">
-            <a href="" onclick="ch_downloader(event, ${model_id})">💾</a>
+            <a href="${url}" target="_blank" onclick="(function(e){e.stopPropagation()})(event)">🌐</a>
         </div>
         <div class="model_meta">
             <span>

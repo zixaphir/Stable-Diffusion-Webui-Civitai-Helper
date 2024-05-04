@@ -210,6 +210,7 @@ blockquote ol {
         overflow: hidden;
         width: 340px;
         height: 0px;
+        box-sizing: border-box;
         pointer-events: none;
         position: absolute;
         background-color: #000;
@@ -217,17 +218,17 @@ blockquote ol {
         z-index:10;
         left: 0px;
     }
+    & div:hover > .description {
+        height: 480px;
+        overflow-y: scroll;
+    }
     & .description .text {
         padding: 10px;
         width: 320px;
-        height: 480px;
         overflow: hidden;
     }
     & .error {
         margin: 3em;
-    }
-    & div:hover > .description {
-        height: 480px;
     }
     & .preview {
         width:320px;
@@ -259,12 +260,12 @@ blockquote ol {
         max-height: 3em;
         overflow: hidden;
         z-index: 2;
+        pointer-events: none;
     }
     & .ux {
         position: absolute;
         top: 0;
-        left: 0;
-        width: 100%;
+        right: 0;
         box-sizing: border-box;
         text-shadow: 2px 2px 6px #000;
         z-index: 11;
@@ -272,7 +273,6 @@ blockquote ol {
     }
     & .model_meta {
         position: absolute;
-        z-index: 1;
         top: 0;
         right: 0;
         width: 100%;
@@ -284,6 +284,7 @@ blockquote ol {
         z-index: 8;
         padding: 5px;
         vertical-align: top;
+        pointer-events: none;
     }
     & .model_base {
         font-family: monospace;
@@ -337,5 +338,12 @@ blockquote ol {
     & label.checkbox input[type=checkbox] {
         display: none;
     }
+    & .ch_active_card {
+        outline: 2px gold solid;
+    }
+}
+#ch_model_search_results {
+    max-height: 85vh; /* maybe try to figure out a way to fill the whole screen unless it's under a certain resolution? */
+    overflow: scroll;
 }
 /* End of Civitai Helper Browser */

@@ -555,7 +555,8 @@ def download_section():
             dl_civitai_model_by_id_btn = gr.Button(
                 value="3. Download Model",
                 elem_classes="ch_vmargin",
-                variant="primary"
+                variant="primary",
+                elem_id="ch_download_model_button"
             )
 
     with gr.Row():

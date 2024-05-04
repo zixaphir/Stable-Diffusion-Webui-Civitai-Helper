@@ -496,30 +496,23 @@ window.ch_downloader = function(e, model_id) {
     // stop parent event
     stopEvent(e);
 
-    let tab;
     let tabs;
 
     tabs = document.querySelectorAll("#tabs button");
-    for (tab of tabs) {
+    for (let tab of tabs) {
         let text = tab.textContent.trim();
         if (text == "Civitai Helper") { // localization nightmare
+            tab.click();
             break;
         }
-        tab = null;
     }
-
-    if (!tab) {
-        // TODO: Communicate error to the user.
-        return;
-    }
-
-    tab.click();
 
     let single_dl_tab = document.getElementById("ch_dl_single_tab");
     let ch_url = document.querySelector("#ch_dl_url input");
     let ch_get_info_btn = document.getElementById("ch_dl_get_info");
-
-    console.log(model_id);
+    let ch_download_btn = document.getElementById("ch_download_model_button");
+    let old_active = document.querySelector("ch_active_card");
+    let new_active = document.getElementById(`ch_${model_id}_card`);
 
     single_dl_tab.click();
     ch_url.value = model_id;
@@ -527,7 +520,13 @@ window.ch_downloader = function(e, model_id) {
     ch_url.dispatchEvent(new Event("input", { bubbles: true }));
     ch_get_info_btn.click();
 
-    ch_get_info_btn.scrollIntoView();
+    ch_download_btn.scrollIntoView();
+
+    if (old_active) {
+        old_active.classList.remove("ch_active_card");
+    }
+
+    new_active.classList.add("ch_active_card");
 
     console.log("end ch_downloader");
 };

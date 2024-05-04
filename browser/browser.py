@@ -199,7 +199,7 @@ def make_ui():
         )
 
         ch_search_btn = gr.Button(
-            label="Search",
+            variant="primary",
             value="Search",
             lines=1
         )
@@ -219,7 +219,8 @@ def make_ui():
     with gr.Box():
         ch_search_results_html = gr.HTML(
             value="",
-            label="Search Results"
+            label="Search Results",
+            elem_id="ch_model_search_results"
         )
 
     inputs = [
