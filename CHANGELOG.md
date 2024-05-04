@@ -1,4 +1,8 @@
 # Change Log
+## 1.8.7
+* DoRA models can now be downloaded via the Downloader.
+* Fixed a bug that caused the Model Age filter to fail in the CH Browser.
+
 ## v1.8.6
 * Added a Civitai Browser & Search.
   * Currently downloading a model hooks into the existing Downloader UI. I'd like to change this eventually but every additional UI element added through Gradio introduces performance degredation. (Currently the browser results themselves are written in raw HTML, CSS, and Javascript similar to webui's built in extra network viewer instead of relying on Gradio)
