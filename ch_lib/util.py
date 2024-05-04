@@ -27,7 +27,7 @@ except ModuleNotFoundError:
 SHORT_NAME = "sd_civitai_helper"
 
 # current version of the exension
-VERSION = "1.8.6"
+VERSION = "1.8.7"
 
 # Civitai INFO files below this version will regenerated
 COMPAT_VERSION_CIVITAI = "1.7.2"
