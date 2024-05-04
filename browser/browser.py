@@ -3,7 +3,6 @@ browser.py - Civitai Browser for Civitai Helper
 """
 
 import os
-from urllib.parse import quote
 from string import Template
 import gradio as gr
 from ch_lib import util
