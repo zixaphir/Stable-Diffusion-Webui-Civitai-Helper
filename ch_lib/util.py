@@ -8,12 +8,10 @@ import re
 import hashlib
 import textwrap
 import time
-import subprocess
 import gradio as gr
 from modules import shared
 from modules.shared import opts
 from modules import hashes
-import launch
 from packaging.version import parse as parse_version
 
 try:
