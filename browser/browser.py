@@ -297,8 +297,8 @@ def parse_model(model):
     model_type = model["type"]
     base_models = []
     preview = {
-        type: None,
-        url: None
+        "type": None,
+        "url": None
     }
     versions = {
         # ID: base_model,
