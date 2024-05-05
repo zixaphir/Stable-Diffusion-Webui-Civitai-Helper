@@ -44,6 +44,8 @@ Alternatively, download this project as a zip file, and unzip it to `Your SD web
 
 Everytime you install or update this extension, you need to shutdown SD Webui and Relaunch it. Just "Reload UI" won't work for this extension.
 
+Some functionality from Civitai, like downloading models, requires having an account and adding your API key. See this ![Wiki Article](https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Civitai-API-Key) for more information.
+
 Done.
 
 ## Branches
