@@ -38,7 +38,7 @@ NSFW_LEVELS = {
     "R": 4,
     "X": 8,
     "XXX": 16
-    # Probably not actually visible through the API without being logged in?
+    # Probably not actually visible through the API without being logged in on model owner account?
     # "Blocked": 32,
 }
 

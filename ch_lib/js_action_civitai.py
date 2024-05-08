@@ -165,7 +165,7 @@ def use_preview_image_prompt(msg):
     return [preview_prompt, preview_neg_prompt, preview_prompt, preview_neg_prompt]
 
 
-def dl_model_new_version(msg, nsfw_preview_threshold):
+def dl_model_new_version(msg):
     """
     download model's new verson by model path, version id and download url
     output is a md log
@@ -181,6 +181,7 @@ def dl_model_new_version(msg, nsfw_preview_threshold):
     output = ""
 
     max_size_preview = util.get_opts("ch_max_size_preview")
+    nsfw_preview_threshold = util.get_opts("ch_nsfw_threshold")
 
     result = msg_handler.parse_js_msg(msg)
     if not result:

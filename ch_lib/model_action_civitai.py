@@ -104,7 +104,7 @@ def scan_single_model(filepath, model_type, refetch_old, delay):
     yield True
 
 
-def scan_model(scan_model_types, nsfw_preview_threshold, refetch_old, progress=gr.Progress()):
+def scan_model(scan_model_types, refetch_old, progress=gr.Progress()):
     """ Scan model to generate SHA256, then use this SHA256 to get model info from civitai
         return output msg
     """
@@ -113,6 +113,8 @@ def scan_model(scan_model_types, nsfw_preview_threshold, refetch_old, progress=g
 
     util.printD("Start scan_model")
     output = ""
+
+    nsfw_preview_threshold = util.get_opts("ch_nsfw_threshold")
 
     max_size_preview = util.get_opts("ch_max_size_preview")
 
@@ -260,7 +262,7 @@ def dummy_model_info(path, sha256_hash, model_type):
 
 
 def get_model_info_by_input(
-    model_type, model_name, model_url_or_id, nsfw_preview_threshold
+    model_type, model_name, model_url_or_id
 ):
     """
     Get model info by model type, name and url
@@ -269,6 +271,7 @@ def get_model_info_by_input(
     output = ""
 
     max_size_preview = util.get_opts("ch_max_size_preview")
+    nsfw_preview_threshold = util.get_opts("ch_nsfw_threshold")
 
     # parse model id
     model_id = civitai.get_model_id_from_url(model_url_or_id)
@@ -724,7 +727,6 @@ def dl_model_by_input(
     filename:str,
     file_ext:str,
     dl_all:bool,
-    nsfw_preview_threshold:int,
     duplicate:str,
     preview:str,
     *args
@@ -735,6 +737,7 @@ def dl_model_by_input(
 
     model_info = ch_state["model_info"]
     max_size_preview = util.get_opts("ch_max_size_preview")
+    nsfw_preview_threshold = util.get_opts("ch_nsfw_threshold")
 
     if not (model_info and model_type and subfolder_str and version_str):
         output = util.indented_msg(f"""
@@ -744,8 +747,6 @@ def dl_model_by_input(
             {version_str=}*
             {filename=}
             {file_ext=}
-            {max_size_preview=}
-            {nsfw_preview_threshold=}
             {duplicate=}
         """)
 
@@ -793,7 +794,7 @@ def dl_model_by_input(
         subfolders = []
         for file in os.listdir(model_root_folder):
             if os.path.isdir(os.path.join(model_root_folder, subfolder)):
-                subfolders.push(file)
+                subfolders.append(file)
         if len(subfolders) == 0:
             subfolders = ["No subfolders exist."]
         subfolders = "\n\t".join(subfolders)

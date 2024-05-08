@@ -114,15 +114,6 @@ def make_ui():
             lines=1,
             value=""
         )
-        #ch_nsfw_drop = gr.Dropdown(
-        #    label="Allow NSFW",
-        #    lines=1,
-        #    value="false",
-        #    choices=[
-        #        "true",
-        #        "false"
-        #    ]
-        #)
         ch_age_drop = gr.Dropdown(
             label="Model Age",
             lines=1,
@@ -200,7 +191,7 @@ def make_ui():
         )
 
         ch_nsfw_ckb = gr.Checkbox(
-            label="Allow NSFW",
+            label="Allow NSFW Models",
             value=util.get_opts("ch_nsfw_threshold") != "PG",
             lines=1
         )
@@ -324,14 +315,18 @@ def parse_model(model):
 
         versions[version["id"]] = base_model
 
+    nsfw_preview_threshold = util.get_opts("ch_nsfw_threshold")
+
     for file in previews:
-        # if not nsfw and (file.nsfwLevel > 2:
-        #    continue
         if file["type"] != "image":
+            continue
+
+        if civitai.NSFW_LEVELS[nsfw_preview_threshold] < file["nsfwLevel"]:
             continue
 
         preview["url"] = file["url"]
         preview["type"] = file["type"]
+
         break
 
     if files:
@@ -407,6 +402,8 @@ def make_cards(models):
             "type": model["type"],
             "model_id": model["id"],
         })
+
+        util.printD(card)
 
         cards.append(card)
 

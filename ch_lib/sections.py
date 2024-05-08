@@ -23,12 +23,6 @@ def scan_models_section():
                 label="Model Types",
                 value=model_types
             )
-            nsfw_preview_scan_drop = gr.Dropdown(
-                label="Block NSFW Level Above",
-                choices=list(civitai.NSFW_LEVELS.keys()),
-                value=util.get_opts("ch_nsfw_threshold"),
-                elem_id="ch_nsfw_preview_scan_drop"
-            )
     with gr.Row():
         with gr.Column():
             refetch_old_ckb = gr.Checkbox(
@@ -64,7 +58,7 @@ def scan_models_section():
         model_action_civitai.scan_model,
         inputs=[
             scan_model_types_drop,
-            nsfw_preview_scan_drop, refetch_old_ckb
+            refetch_old_ckb
         ],
         outputs=scan_model_log_md
     )
@@ -110,13 +104,6 @@ def get_model_info_by_url_section():
                     value="",
                     multiselect=False
                 )
-            with gr.Column(scale=1):
-                nsfw_preview_url_drop = gr.Dropdown(
-                    label="Block NSFW Level Above",
-                    choices=list(civitai.NSFW_LEVELS.keys()),
-                    value=util.get_opts("ch_nsfw_threshold"),
-                    elem_id="ch_nsfw_preview_url_drop"
-                )
         with gr.Row():
             with gr.Column(scale=2, elem_classes="justify-bottom"):
                 model_url_or_id_txtbox = gr.Textbox(
@@ -152,23 +139,24 @@ def get_model_info_by_url_section():
         model_action_civitai.get_model_info_by_input,
         inputs=[
             model_type_drop, model_name_drop,
-            model_url_or_id_txtbox, nsfw_preview_url_drop
+            model_url_or_id_txtbox
         ],
         outputs=get_model_by_id_log_md
     )
 
-def filter_previews(previews, nsfw_preview_url_drop):
+def filter_previews(previews):
     images = []
+    nsfw_preview_threshold = util.get_opts("ch_nsfw_threshold")
     for preview in previews:
         try:
             nsfw_level = preview["nsfwLevel"]
         except KeyError:
             util.printD("NSFW status of preview image could not be determined. :(")
-            if nsfw_preview_url_drop != civitai.NSFW_LEVELS["XXX"]:
+            if nsfw_preview_threshold != civitai.NSFW_LEVELS["XXX"]:
                 continue
             nsfw_level = 0
 
-        if civitai.NSFW_LEVELS[nsfw_preview_url_drop] < nsfw_level:
+        if civitai.NSFW_LEVELS[nsfw_preview_threshold] < nsfw_level:
             continue
         if preview["type"] == "image":
             # Civitai added videos as previews, and webui does not like it
@@ -277,7 +265,7 @@ def download_section():
             )
         ]
 
-    def update_dl_inputs(state, dl_version, nsfw_threshold, dl_preview_index):
+    def update_dl_inputs(state, dl_version, dl_preview_index):
         filename = state["filenames"][dl_version]
 
         if not filename:
@@ -289,7 +277,7 @@ def download_section():
         ext = file_parts.pop()
         base = ".".join(file_parts)
 
-        previews = filter_previews(state["previews"][dl_version], nsfw_threshold)
+        previews = filter_previews(state["previews"][dl_version])
         state["filtered_previews"] = previews
 
         preview = None
@@ -439,14 +427,6 @@ def download_section():
                     min_width=320,
                     multiselect=False
                 )
-                nsfw_preview_dl_drop = gr.Dropdown(
-                    label="Block NSFW Level Above",
-                    choices=list(civitai.NSFW_LEVELS.keys()),
-                    value=util.get_opts("ch_nsfw_threshold"),
-                    min_width=320,
-                    elem_id="ch_nsfw_preview_dl_drop"
-                )
-
 
             with gr.Column(
                 visible=False,
@@ -581,7 +561,7 @@ def download_section():
             dl_state, dl_model_type_txtbox,
             dl_subfolder_drop, dl_version_drop,
             dl_filename_txtbox, dl_extension_txtbox,
-            dl_all_ckb, nsfw_preview_dl_drop,
+            dl_all_ckb,
             dl_duplicate_drop, dl_preview_url
         ] + ch_dl_model_types
 
@@ -598,18 +578,13 @@ def download_section():
 
     dl_version_drop.change(
         update_dl_inputs,
-        inputs=[dl_state, dl_version_drop, nsfw_preview_dl_drop, dl_preview_index],
+        inputs=[dl_state, dl_version_drop, dl_preview_index],
         outputs=ver_outputs
     )
     dl_all_ckb.change(
         update_dl_files_visibility,
         inputs=dl_all_ckb,
         outputs=ch_dl_model_types_visibility
-    )
-    nsfw_preview_dl_drop.change(
-        update_dl_inputs,
-        inputs=[dl_state, dl_version_drop, nsfw_preview_dl_drop, dl_preview_index],
-        outputs=ver_outputs
     )
     # Gradio has so many issues with Gradio.Gallery...
     dl_preview_img.select(
@@ -696,7 +671,7 @@ def download_multiple_section():
         entries = entries_txt.split("\n")
         dls = []
 
-        nsfw_threshold = util.get_opts("ch_nsfw_threshold")
+        nsfw_preview_threshold = util.get_opts("ch_nsfw_threshold")
 
         for entry in entries:
             url = None
@@ -732,7 +707,7 @@ def download_multiple_section():
                 "filename": None,
                 "file_ext": None,
                 "dl_all": options["all_files"],
-                "nsfw_preview_threshold": nsfw_threshold,
+                "nsfw_preview_threshold": nsfw_preview_threshold,
                 "duplicate": "skip",
                 "preview": None,
                 "filetypes": None
@@ -896,12 +871,6 @@ def check_new_versions_section(js_msg_txtbox):
                         "ti", "hyper", "ckp", "lora", "lycoris"
                     ]
                 )
-                nsfw_preview_update_drop = gr.Dropdown(
-                    label="Block NSFW Level Above",
-                    choices=list(civitai.NSFW_LEVELS.keys()),
-                    value=util.get_opts("ch_nsfw_threshold"),
-                    elem_id="ch_nsfw_preview_dl_drop"
-                )
         with gr.Row():
             with gr.Column(scale=2):
                 check_models_new_version_btn = gr.Button(
@@ -932,8 +901,7 @@ def check_new_versions_section(js_msg_txtbox):
     js_dl_model_new_version_btn.click(
         js_action_civitai.dl_model_new_version,
         inputs=[
-            js_msg_txtbox,
-            nsfw_preview_update_drop
+            js_msg_txtbox
         ],
         outputs=dl_new_version_log_md
     )
