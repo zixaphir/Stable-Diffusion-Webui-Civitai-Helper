@@ -208,7 +208,7 @@ blockquote ol {
     & .description {
         transition: height ease-in-out .3s;
         overflow: hidden;
-        width: 340px;
+        width: 320px;
         height: 0px;
         box-sizing: border-box;
         pointer-events: none;
@@ -235,6 +235,7 @@ blockquote ol {
         height:480px;
         overflow: hidden;
         float: left;
+        position: relative;
     }
     & .preview_container {
         width:320px;
