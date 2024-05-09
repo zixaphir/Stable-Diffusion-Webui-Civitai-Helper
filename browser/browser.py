@@ -180,6 +180,7 @@ def make_ui():
                 "AestheticGradient",
                 "LORA",
                 "LoCon",
+                "DoRA",
                 "Controlnet",
                 "Poses",
                 "Workflows",
