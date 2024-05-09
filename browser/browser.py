@@ -404,8 +404,6 @@ def make_cards(models):
             "model_id": model["id"],
         })
 
-        util.printD(card)
-
         cards.append(card)
 
     return cards
