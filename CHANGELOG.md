@@ -1,5 +1,10 @@
 # Change Log
-## 1.8.7
+## v1.8.8
+* DORA support in the Civitai Helper Browser
+* Fixed an issue where lack of previews would break searching for models
+* All NSFW options have been moved into Settings.
+
+## v1.8.7
 * DoRA models can now be downloaded via the Downloader.
 * Fixed a bug that caused the Model Age filter to fail in the CH Browser.
 
