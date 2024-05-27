@@ -30,6 +30,11 @@ def scan_models_section():
                 value=False,
                 elem_id="ch_refetch_old_ckb"
             )
+            organize_models = gr.Checkbox(
+                label="Move models into category folders",
+                value=False,
+                elem_id="organize_models"
+            )
             gr.HTML("""
                 * [<a href=https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Metadata-Format-Changes>wiki</a>] Do not use this option if you have made changes with the metadata editor without backing up your data!!<br><br>
                 """)
@@ -58,7 +63,8 @@ def scan_models_section():
         model_action_civitai.scan_model,
         inputs=[
             scan_model_types_drop,
-            refetch_old_ckb
+            refetch_old_ckb,
+            organize_models
         ],
         outputs=scan_model_log_md
     )

@@ -27,6 +27,24 @@ MODEL_TYPES = {
     "DoRA": "lora"
 }
 
+MODEL_CATEGORIES = {
+    "character",
+    "style",
+    "celebrity",
+    "concept",
+    "clothing",
+    "base model",
+    "poses",
+    "background",
+    "tool",
+    "buildings",
+    "vehicle",
+    "objects",
+    "animal",
+    "action",
+    "assets"
+}
+
 FILE_TYPES = [
     "Model", "Training Data", "Config", "VAE"
 ]
@@ -47,6 +65,8 @@ def civitai_get(civitai_url:str):
     Gets JSON from Civitai.
     return: dict:json or None
     """
+
+    util.printD(f"Requesting Civitai: {civitai_url}")
 
     success, response = downloader.request_get(
         civitai_url
@@ -122,10 +142,17 @@ def get_model_info_by_hash(model_hash:str):
         util.printD("hash is empty")
         return None
 
-    content = civitai_get(f'{URLS["hash"]}{model_hash}')
+    try:
+        content = civitai_get(f'{URLS["hash"]}{model_hash}')
+    except Exception as e:
+        util.printD(f"Failed to get model info by hash: {model_hash}")
+        util.printD(f"Error: {str(e)}")
+        return None
 
     if not content:
         return None
+
+    #util.printD(content)
 
     content = append_parent_model_metadata(content)
 
@@ -725,3 +752,65 @@ def check_models_new_version_by_model_types(model_types:list, delay:float=0.2) -
                 new_version_ids.append(version_id)
 
     return new_versions
+
+
+def move_model_to_subfolder(filepath, model_info):
+    modelid = model_info["modelId"]
+
+    util.printD(f"Model ID is {modelid}")
+
+    if modelid == "":
+        return None
+
+    content = civitai_get(f'{URLS["modelId"]}{modelid}')
+
+    util.printD(content)
+
+    tags = content["tags"]
+
+    util.printD(tags)
+
+    # iterate through tags until we find one that matches MODEL_CATEGORIES
+
+    for tag in tags:
+        if tag in MODEL_CATEGORIES:
+            model_category = tag
+
+            # create subfolder if it doesn't exist
+            util.printD("Current filepath is " + filepath)
+
+            # check to make sure the model is not already in the correct subfolder
+            if model_category in filepath:
+                util.printD("Model is already in the correct subfolder")
+                return filepath
+
+            # get the file path without the filename
+            folderpath = os.path.dirname(filepath)
+
+            util.printD("Current folderpath is " + folderpath)
+
+            # create the new folder path
+            new_folderpath = os.path.join(folderpath, model_category)
+
+            util.printD("New folderpath is " + new_folderpath)
+
+            # create the new folder if it doesn't exist
+            if not os.path.exists(new_folderpath):
+                os.makedirs(new_folderpath)
+
+            # move the file to the new folder
+            new_filepath = os.path.join(new_folderpath, os.path.basename(filepath))
+
+            util.printD("New filepath is " + new_filepath)
+
+            os.rename(filepath, new_filepath)
+
+            return new_filepath
+
+
+            break
+
+
+    util.printD("WARNING: Unable to find tag for folder")
+
+    return filepath
