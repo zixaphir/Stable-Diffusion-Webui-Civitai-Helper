@@ -1,4 +1,7 @@
 # Change Log
+## v1.8.9
+* Fixed an issue where the batch downloader would fail to download preview images.
+
 ## v1.8.8
 * DORA support in the Civitai Helper Browser
 * Fixed an issue where lack of previews would break searching for models
