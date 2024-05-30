@@ -759,7 +759,6 @@ def download_multiple_section():
                     dl["filename"],
                     dl["file_ext"],
                     dl["dl_all"],
-                    dl["nsfw_preview_threshold"],
                     dl["duplicate"],
                     dl["preview"],
                     *dl["filetypes"]
