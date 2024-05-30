@@ -25,15 +25,15 @@ def scan_models_section():
             )
     with gr.Row():
         with gr.Column():
-            refetch_old_ckb = gr.Checkbox(
-                label="Replace Old Metadata Formats*",
-                value=False,
-                elem_id="ch_refetch_old_ckb"
-            )
             organize_models = gr.Checkbox(
                 label="Move models into category folders",
                 value=False,
                 elem_id="organize_models"
+            )
+            refetch_old_ckb = gr.Checkbox(
+                label="Replace Old Metadata Formats*",
+                value=False,
+                elem_id="ch_refetch_old_ckb"
             )
             gr.HTML("""
                 * [<a href=https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Metadata-Format-Changes>wiki</a>] Do not use this option if you have made changes with the metadata editor without backing up your data!!<br><br>

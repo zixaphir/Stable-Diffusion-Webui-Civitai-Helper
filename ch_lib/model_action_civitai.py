@@ -94,11 +94,9 @@ def scan_single_model(filepath, model_type, refetch_old, organize_models, delay)
             model_info = dummy_model_info(filepath, sha256_hash, model_type)
             yield True
 
-        # if model is lora and not already in a subfolder, move into subfolder based on its type (character, clothing, etc)
-        if organize_models and model_type == "lora":
-            filepath = civitai.move_model_to_subfolder(filepath, model_info)
-
-        if organize_models and model_type == "lycoris":
+        # if model is lora and not already in a subfolder, move into subfolder based on its type (character,
+        # clothing, etc.)
+        if organize_models and model_type in ["lora", "lycoris"]:
             filepath = civitai.move_model_to_subfolder(filepath, model_info)
 
         model.process_model_info(filepath, model_info, model_type, refetch_old=refetch_old)
