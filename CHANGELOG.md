@@ -1,4 +1,8 @@
 # Change Log
+## v1.8.10
+* Removed broken "Update image generation information (Experimental)" feature.
+* Add additional checks for NSFW images in features that previously were missing them.
+
 ## v1.8.9
 * Fixed an issue where the batch downloader would fail to download preview images.
 
