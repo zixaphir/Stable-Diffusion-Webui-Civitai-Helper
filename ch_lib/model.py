@@ -282,9 +282,20 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
     updated = False
     if util.get_opts("ch_download_examples"):
         images = model_info.get("images", [])
+
         for img in images:
-            if url := img.get("url", None):
-                if existing_dl := local_image(existing_info, img):
+            url = img.get("url", None)
+
+
+            nsfw_preview_threshold = util.get_opts("ch_nsfw_threshold")
+            rating = img.get("nsfwLevel", 32)
+            if rating > 1:
+                if civitai.NSFW_LEVELS[nsfw_preview_threshold] < rating:
+                    continue
+
+            if url:
+                existing_dl = local_image(existing_info, img)
+                if existing_dl:
                     # Ensure it's set in the new model info.
                     img["local_file"] = existing_dl
 
@@ -585,166 +596,173 @@ def get_model_path_by_search_term(model_type, search_term):
     return model_path
 
 
-pattern = re.compile(r"\s*([^:,]+):\s*([^,]+)")
+# pattern = re.compile(r"\s*([^:,]+):\s*([^,]+)")
 
-def sd_format(data):
-    """
-    Parse image exif data for image creation parameters.
-
-    return parameters:dict or None
-    """
-
-    if not data:
-        return None
-
-    prompt = ""
-    negative = ""
-    setting = ""
-
-    steps_index = data.find("\nSteps:")
-
-    if steps_index != -1:
-        prompt = data[:steps_index].strip()
-        setting = data[steps_index:].strip()
-
-    if "Negative prompt:" in data:
-        prompt_index = data.find("\nNegative prompt:")
-
-        if steps_index != -1:
-            negative = data[
-                prompt_index + len("Negative prompt:") + 1 : steps_index
-            ].strip()
-
-        else:
-            negative = data[
-                prompt_index + len("Negative prompt:") + 1 :
-            ].strip()
-
-        prompt = data[:prompt_index].strip()
-
-    elif steps_index == -1:
-        prompt = data
-
-    setting_dict = dict(re.findall(pattern, setting))
-
-    data = {
-         "prompt": prompt,
-         "negative": negative,
-         "Steps": setting_dict.get("Steps", ""),
-         "Sampler": setting_dict.get("Sampler", ""),
-         "CFG_scale": setting_dict.get("CFG scale", ""),
-         "Seed": setting_dict.get("Seed", ""),
-         "Size": setting_dict.get("Size", ""),
-    }
-
-    return data
-
-
-def parse_image(image_file):
-    """
-    Read image exif for userComment entry.
-    return: userComment:str
-    """
-    data = None
-    with Image.open(image_file) as image:
-        if image.format == "PNG":
-            # However, unlike other image formats, EXIF data is not
-            # guaranteed to be present in info until load() has been called.
-            # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#png
-            image.load()
-            data = image.info.get("parameters")
-
-        elif image.format in ["JPEG", "WEBP"]:
-            try:
-                usercomment = piexif.ExifIFD.UserComment
-                exif = image.info.get("exif")
-                if not exif:
-                    return None
-                jpegexif = piexif.load(exif) or {}
-                data = piexif.helper.UserComment.load(
-                    jpegexif.get("Exif", {}).get(usercomment, None)
-                )
-
-            except (ValueError, TypeError):
-                util.printD("Failed to parse image exif.")
-                return None
-
-    return data
+# def sd_format(data):
+#     """
+#     Parse image exif data for image creation parameters.
+#
+#     return parameters:dict or None
+#     """
+#
+#     if not data:
+#         return None
+#
+#     prompt = ""
+#     negative = ""
+#     setting = ""
+#
+#     steps_index = data.find("\nSteps:")
+#
+#     if steps_index != -1:
+#         prompt = data[:steps_index].strip()
+#         setting = data[steps_index:].strip()
+#
+#     if "Negative prompt:" in data:
+#         prompt_index = data.find("\nNegative prompt:")
+#
+#         if steps_index != -1:
+#             negative = data[
+#                 prompt_index + len("Negative prompt:") + 1 : steps_index
+#             ].strip()
+#
+#         else:
+#             negative = data[
+#                 prompt_index + len("Negative prompt:") + 1 :
+#             ].strip()
+#
+#         prompt = data[:prompt_index].strip()
+#
+#     elif steps_index == -1:
+#         prompt = data
+#
+#     setting_dict = dict(re.findall(pattern, setting))
+#
+#     data = {
+#          "prompt": prompt,
+#          "negative": negative,
+#          "Steps": setting_dict.get("Steps", ""),
+#          "Sampler": setting_dict.get("Sampler", ""),
+#          "CFG_scale": setting_dict.get("CFG scale", ""),
+#          "Seed": setting_dict.get("Seed", ""),
+#          "Size": setting_dict.get("Size", ""),
+#     }
+#
+#     return data
 
 
-def get_remote_image_info(img_src):
-    """
-    Download a remote image and parse out its creation parameters
+# def parse_image(image_file):
+#     """
+#     Read image exif for userComment entry.
+#     return: userComment:str
+#     """
+#     data = None
+#     with Image.open(image_file) as image:
+#         if image.format == "PNG":
+#             # However, unlike other image formats, EXIF data is not
+#             # guaranteed to be present in info until load() has been called.
+#             # https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#png
+#             image.load()
+#             data = image.info.get("parameters")
+#
+#         elif image.format in ["JPEG", "WEBP"]:
+#             try:
+#                 usercomment = piexif.ExifIFD.UserComment
+#                 exif = image.info.get("exif")
+#                 if not exif:
+#                     return None
+#                 jpegexif = piexif.load(exif) or {}
+#                 data = piexif.helper.UserComment.load(
+#                     jpegexif.get("Exif", {}).get(usercomment, None)
+#                 )
+#
+#             except (ValueError, TypeError):
+#                 util.printD("Failed to parse image exif.")
+#                 return None
+#
+#     return data
 
-    return parameters:dict or None
-    """
-    # anti-DDOS protection
-    util.delay(0.2)
 
-    success, response = downloader.request_get(img_src)
+# def get_remote_image_info(img_src):
+#     """
+#     Download a remote image and parse out its creation parameters
+#
+#     return parameters:dict or None
+#     """
+#     # anti-DDOS protection
+#     util.delay(0.2)
+#
+#     success, response = downloader.request_get(img_src)
+#
+#     if not success:
+#         return None
+#
+#     image_file = response.raw
+#     try:
+#         data = parse_image(image_file)
+#
+#     except OSError: #, UnidentifiedImageError
+#         util.printD("Failed to open image.")
+#         return None
+#
+#     if not data:
+#         return None
+#
+#     sd_data = sd_format(data)
+#     return sd_data
 
-    if not success:
-        return None
 
-    image_file = response.raw
-    try:
-        data = parse_image(image_file)
-
-    except OSError: #, UnidentifiedImageError
-        util.printD("Failed to open image.")
-        return None
-
-    if not data:
-        return None
-
-    sd_data = sd_format(data)
-    return sd_data
-
-
-def update_civitai_info_image_meta(filename):
-    """
-    Read model metadata and update missing image creation parameters,
-    if available.
-    """
-    need_update = False
-    data = {}
-
-    if not os.path.isfile(filename):
-        return
-
-    with open(filename, 'r') as model_json:
-        data = json.load(model_json)
-
-    for image in data.get('images', []):
-        metadata = image.get('meta', None)
-        if not metadata and metadata != {}:
-            url = image.get("url", "")
-            if not url:
-                continue
-
-            util.printD(f"{filename} missing generation info for {url}. Processing {url}.")
-
-            image_data = get_remote_image_info(url)
-            if not image_data:
-                util.printD(f"Failed to find generation info on remote image at {url}.")
-
-                # "mark" image so additional runs will skip it.
-                image["meta"] = {}
-                need_update = True
-                continue
-
-            util.printD(
-                "The following information will be added to "
-                f"{filename} for {url}:\n{image_data}"
-            )
-            metadata = image_data
-            image["meta"] = metadata
-
-            need_update = True
-
-    if need_update:
-        with open(filename, 'w') as info_file:
-            json.dump(data, info_file, indent=4)
+# def update_civitai_info_image_meta(filename):
+#     """
+#     Read model metadata and update missing image creation parameters,
+#     if available.
+#     """
+#     need_update = False
+#     data = {}
+#
+#     if not os.path.isfile(filename):
+#         return
+#
+#     with open(filename, 'r') as model_json:
+#         data = json.load(model_json)
+#
+#     for img in data.get('images', []):
+#
+#         nsfw_preview_threshold = util.get_opts("ch_nsfw_threshold")
+#         rating = img.get("nsfwLevel", 32)
+#         if rating > 1:
+#             if civitai.NSFW_LEVELS[nsfw_preview_threshold] < rating:
+#                 continue
+#
+#         metadata = img.get('meta', None)
+#         if not metadata and metadata != {}:
+#             url = img.get("url", "")
+#             if not url:
+#                 continue
+#
+#             util.printD(f"{filename} missing generation info for {url}. Processing {url}.")
+#
+#             img_data = get_remote_image_info(url)
+#             if not img_data:
+#                 util.printD(f"Failed to find generation info on remote image at {url}.")
+#
+#                 # "mark" image so additional runs will skip it.
+#                 img["meta"] = {}
+#                 need_update = True
+#                 continue
+#
+#             util.printD(
+#                 "The following information will be added to "
+#                 f"{filename} for {url}:\n{img_data}"
+#             )
+#             metadata = img_data
+#             img["meta"] = metadata
+#
+#             need_update = True
+#
+#     if need_update:
+#         with open(filename, 'w') as info_file:
+#             json.dump(data, info_file, indent=4)
 
 
 def scan_civitai_info_image_meta():

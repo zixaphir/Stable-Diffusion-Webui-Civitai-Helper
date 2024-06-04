@@ -41,11 +41,11 @@ def scan_models_section():
                 elem_id="ch_scan_model_civitai_btn"
             )
 
-            scan_civitai_info_image_meta_btn = gr.Button(
-                value="Update image generation information (Experimental)",
-                variant="primary",
-                elem_id="ch_Scan_civitai_info_image_meta_btn"
-            )
+            # scan_civitai_info_image_meta_btn = gr.Button(
+            #     value="Update image generation information (Experimental)",
+            #     variant="primary",
+            #     elem_id="ch_Scan_civitai_info_image_meta_btn"
+            # )
 
     with gr.Row():
         scan_model_log_md = gr.Markdown(
@@ -63,10 +63,10 @@ def scan_models_section():
         outputs=scan_model_log_md
     )
 
-    scan_civitai_info_image_meta_btn.click(
-        model.scan_civitai_info_image_meta,
-        outputs=scan_model_log_md
-    )
+    # scan_civitai_info_image_meta_btn.click(
+    #     model.scan_civitai_info_image_meta,
+    #     outputs=scan_model_log_md
+    # )
 
 def get_model_info_by_url_section():
     """ Get Civitai Model Info by Model Page URL Section """
