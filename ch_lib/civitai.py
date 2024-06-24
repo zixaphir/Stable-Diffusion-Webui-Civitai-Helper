@@ -781,16 +781,20 @@ def move_model_to_subfolder(filepath, model_info):
             folderpath = os.path.dirname(filepath)
 
             # create the new folder path
-            new_folderpath = os.path.join(folderpath, model_category)
+            new_folder_path = os.path.join(folderpath, model_category)
 
             # create the new folder if it doesn't exist
-            if not os.path.isdir(new_folderpath):
-                os.makedirs(new_folderpath)
+            if not os.path.isdir(new_folder_path):
+                if not os.path.exists(new_folder_path):
+                    os.makedirs(new_folder_path)
+                else:
+                    console.log(f"`{new_folder_path}` is not a directory. Skipping. Please delete or move the file `{new_folder_path}`.")
+                    break
 
-            util.printD(f"Moving model from {filepath} to {new_folderpath}")
+            util.printD(f"Moving model from {filepath} to {new_folder_path}")
 
             # move the file to the new folder
-            new_filepath = os.path.join(new_folderpath, os.path.basename(filepath))
+            new_filepath = os.path.join(new_folder_path, os.path.basename(filepath))
             os.rename(filepath, new_filepath)
 
             return new_filepath
