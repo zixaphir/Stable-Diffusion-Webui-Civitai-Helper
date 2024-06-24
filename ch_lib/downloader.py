@@ -357,7 +357,17 @@ def dl_file(
                 return
 
         # get file size
-        total_size = int(response.headers['Content-Length'])
+        total_size = 0
+        try:
+            total_size = int(response.headers['Content-Length'])
+        except(KeyError):
+            yield (
+                False,
+                f"Could not get file size from Civitai. If Civitai is not having network issues, this can happen if you do not provide an API key in Civitai Helper's settings. Please see https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Civitai-API-Key for more information."
+            )
+            return
+
+
         util.printD(f"File size: {total_size} ({human_readable_filesize(total_size)})")
 
         yield from download_progress(url, file_path, total_size, headers, response)
