@@ -25,6 +25,11 @@ def scan_models_section():
             )
     with gr.Row():
         with gr.Column():
+            organize_models = gr.Checkbox(
+                label="Move models into category folders",
+                value=False,
+                elem_id="organize_models"
+            )
             refetch_old_ckb = gr.Checkbox(
                 label="Replace Old Metadata Formats*",
                 value=False,
@@ -58,7 +63,8 @@ def scan_models_section():
         model_action_civitai.scan_model,
         inputs=[
             scan_model_types_drop,
-            refetch_old_ckb
+            refetch_old_ckb,
+            organize_models
         ],
         outputs=scan_model_log_md
     )

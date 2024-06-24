@@ -27,6 +27,24 @@ MODEL_TYPES = {
     "DoRA": "lora"
 }
 
+MODEL_CATEGORIES = {
+    "character",
+    "style",
+    "celebrity",
+    "concept",
+    "clothing",
+    "base model",
+    "poses",
+    "background",
+    "tool",
+    "buildings",
+    "vehicle",
+    "objects",
+    "animal",
+    "action",
+    "assets"
+}
+
 FILE_TYPES = [
     "Model", "Training Data", "Config", "VAE"
 ]
@@ -42,11 +60,14 @@ NSFW_LEVELS = {
     # "Blocked": 32,
 }
 
-def civitai_get(civitai_url:str):
+
+def civitai_get(civitai_url: str):
     """
     Gets JSON from Civitai.
     return: dict:json or None
     """
+
+    util.printD(f"Requesting Civitai: {civitai_url}")
 
     success, response = downloader.request_get(
         civitai_url
@@ -107,7 +128,7 @@ def append_parent_model_metadata(content):
     return content
 
 
-def get_model_info_by_hash(model_hash:str):
+def get_model_info_by_hash(model_hash: str):
     """
     use this sha256 to get model info from civitai's api
 
@@ -122,17 +143,24 @@ def get_model_info_by_hash(model_hash:str):
         util.printD("hash is empty")
         return None
 
-    content = civitai_get(f'{URLS["hash"]}{model_hash}')
+    try:
+        content = civitai_get(f'{URLS["hash"]}{model_hash}')
+    except Exception as e:
+        util.printD(f"Failed to get model info by hash: {model_hash}")
+        util.printD(f"Error: {str(e)}")
+        return None
 
     if not content:
         return None
+
+    #util.printD(content)
 
     content = append_parent_model_metadata(content)
 
     return content
 
 
-def get_model_info_by_id(model_id:str) -> dict:
+def get_model_info_by_id(model_id: str) -> dict:
     """
     Fetches model info by its model id.
     returns: dict:model_info
@@ -149,7 +177,7 @@ def get_model_info_by_id(model_id:str) -> dict:
     return content
 
 
-def get_version_info_by_version_id(version_id:str) -> dict:
+def get_version_info_by_version_id(version_id: str) -> dict:
     """
     Gets model version info from Civitai by version id
     return: dict:model_info
@@ -168,7 +196,7 @@ def get_version_info_by_version_id(version_id:str) -> dict:
     return content
 
 
-def get_version_info_by_model_id(model_id:str) -> dict:
+def get_version_info_by_model_id(model_id: str) -> dict:
     """
     Fetches version info by model id.
     returns: dict:version_info
@@ -244,7 +272,7 @@ def load_model_info_by_search_term(model_type, search_term):
     return model.load_model_info(model_info_filepath)
 
 
-def get_model_names_by_type_and_filter(model_type:str, metadata_filter:dict) -> list:
+def get_model_names_by_type_and_filter(model_type: str, metadata_filter: dict) -> list:
     """
     get model file names by model type
     parameter: model_type - string
@@ -312,11 +340,11 @@ def is_valid_file(root, filename, no_info_only, empty_info_only):
 
 def get_model_names_by_input(model_type, empty_info_only):
     """ return: list of model filenames with empty civitai info files """
-    return get_model_names_by_type_and_filter(model_type, {"empty_info_only":empty_info_only})
+    return get_model_names_by_type_and_filter(model_type, {"empty_info_only": empty_info_only})
 
 
 # get id from url
-def get_model_id_from_url(url:str, include_model_ver=False) -> str:
+def get_model_id_from_url(url: str, include_model_ver=False) -> str:
     """ return: model_id from civitai url """
     util.printD("Run get_model_id_from_url")
     model_id = None
@@ -363,6 +391,7 @@ def preview_exists(model_path):
 
     return False
 
+
 def get_image_url(img_dict, max_size_preview):
     """
     Create the image download URL
@@ -378,6 +407,7 @@ def get_image_url(img_dict, max_size_preview):
             url = re.sub(r'/width=\d+/', '/width=' + str(width) + '/', url)
 
     return url
+
 
 def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
     """
@@ -411,7 +441,6 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
 
         yield result
 
-
     if not success:
         yield (False, None)
 
@@ -421,7 +450,7 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
 
 # get preview image by model path
 # image will be saved to file, so no return
-def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_preview_threshold, preferred_preview=None):
+def get_preview_image_by_model_path(model_path: str, max_size_preview, nsfw_preview_threshold, preferred_preview=None):
     """
     Downloads a preview image for a model if one doesn't already exist.
     Skips images that are more NSFW than the user's NSFW threshold
@@ -437,7 +466,7 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
         return
 
     base, _ = os.path.splitext(model_path)
-    preview_path =  f"{base}.preview.png" # TODO png not strictly required
+    preview_path = f"{base}.preview.png"  # TODO png not strictly required
     info_file = f"{base}{SUFFIX}{model.CIVITAI_EXT}"
 
     # need to download preview image
@@ -483,7 +512,7 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
 
     for img_dict in images:
         for result in verify_preview(
-            preview_path, img_dict, max_size_preview, nsfw_preview_threshold
+                preview_path, img_dict, max_size_preview, nsfw_preview_threshold
         ):
             if not isinstance(result, str):
                 success, _ = result
@@ -501,7 +530,7 @@ def get_preview_image_by_model_path(model_path:str, max_size_preview, nsfw_previ
 
 # search local model by version id in 1 folder, no subfolder
 # return - model_info
-def search_local_model_info_by_version_id(folder:str, model_ids:dict) -> dict:
+def search_local_model_info_by_version_id(folder: str, model_ids: dict) -> dict:
     """ Searches a folder for model_info files,
         returns the model_info from a file if its id matches the model id.
     """
@@ -554,7 +583,7 @@ def search_local_model_info_by_version_id(folder:str, model_ids:dict) -> dict:
     return None
 
 
-def get_model_id_from_model_path(model_path:str):
+def get_model_id_from_model_path(model_path: str):
     """ return model_id using model_path """
     # get model info file name
     base, _ = os.path.splitext(model_path)
@@ -574,7 +603,7 @@ def get_model_id_from_model_path(model_path:str):
     return (model_id, local_version_id)
 
 
-def check_model_new_version_by_path(model_path:str, delay:float=0.2) -> tuple:
+def check_model_new_version_by_path(model_path: str, delay: float = 0.2) -> tuple:
     """
     check new version for a model by model path
     return (
@@ -672,7 +701,7 @@ def check_single_model_new_version(root, filename, model_type, delay):
     return request
 
 
-def check_models_new_version_by_model_types(model_types:list, delay:float=0.2) -> list:
+def check_models_new_version_by_model_types(model_types: list, delay: float = 0.2) -> list:
     """
     check all models of model_types for new version
     parameter: delay - float, how many seconds to delay between each request to civitai
@@ -725,3 +754,47 @@ def check_models_new_version_by_model_types(model_types:list, delay:float=0.2) -
                 new_version_ids.append(version_id)
 
     return new_versions
+
+
+def move_model_to_subfolder(filepath, model_info):
+    model_id = model_info["modelId"]
+
+    if model_id == "":
+        return None
+
+    content = civitai_get(f'{URLS["modelId"]}{model_id}')
+
+    tags = content["tags"]
+
+    # iterate through tags until we find one that matches MODEL_CATEGORIES
+
+    for tag in tags:
+        if tag in MODEL_CATEGORIES:
+            model_category = tag
+
+            # create subfolder if it doesn't exist
+            # check to make sure the model is not already in the correct subfolder
+            if model_category in filepath:
+                return filepath
+
+            # get the file path without the filename
+            folderpath = os.path.dirname(filepath)
+
+            # create the new folder path
+            new_folderpath = os.path.join(folderpath, model_category)
+
+            # create the new folder if it doesn't exist
+            if not os.path.isdir(new_folderpath):
+                os.makedirs(new_folderpath)
+
+            util.printD(f"Moving model from {filepath} to {new_folderpath}")
+
+            # move the file to the new folder
+            new_filepath = os.path.join(new_folderpath, os.path.basename(filepath))
+            os.rename(filepath, new_filepath)
+
+            return new_filepath
+
+    util.printD("WARNING: Unable to find tag for folder")
+
+    return filepath

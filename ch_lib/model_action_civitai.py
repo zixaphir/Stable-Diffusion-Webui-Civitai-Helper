@@ -49,7 +49,7 @@ def get_metadata_skeleton():
     return metadata
 
 
-def scan_single_model(filepath, model_type, refetch_old, delay):
+def scan_single_model(filepath, model_type, refetch_old, organize_models, delay):
     """
     Gets model info for a model by feeding its sha256 hash into civitai's api
 
@@ -92,6 +92,12 @@ def scan_single_model(filepath, model_type, refetch_old, delay):
 
         if not model_info:
             model_info = dummy_model_info(filepath, sha256_hash, model_type)
+            yield True
+
+        # if model is lora and not already in a subfolder, move into subfolder based on its type (character,
+        # clothing, etc.)
+        if organize_models and model_type in ["lora", "lycoris"]:
+            filepath = civitai.move_model_to_subfolder(filepath, model_info)
 
         model.process_model_info(filepath, model_info, model_type, refetch_old=refetch_old)
 
@@ -104,7 +110,7 @@ def scan_single_model(filepath, model_type, refetch_old, delay):
     yield True
 
 
-def scan_model(scan_model_types, refetch_old, progress=gr.Progress()):
+def scan_model(scan_model_types, refetch_old, organize_models=False, progress=gr.Progress()):
     """ Scan model to generate SHA256, then use this SHA256 to get model info from civitai
         return output msg
     """
@@ -162,7 +168,7 @@ def scan_model(scan_model_types, refetch_old, progress=gr.Progress()):
 
         count[0] = count[0] + 1
 
-        for result in scan_single_model(filepath, model_type, refetch_old, delay):
+        for result in scan_single_model(filepath, model_type, refetch_old, organize_models, delay):
             if isinstance(result, str):
                 progress(tracker, desc=result, unit="models")
                 continue
