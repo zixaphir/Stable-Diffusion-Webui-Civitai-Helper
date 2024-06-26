@@ -375,7 +375,11 @@ def process_sd15_info(sd15_file, model_info, parent, model_type, refetch_old):
     base_model = model_info.get("baseModel", None)
     sd_version = 'Unknown'
     if base_model:
-        version = base_model[3]
+        version = None
+        try:
+            version = base_model[3]
+        except IndexError:
+            version = 0
 
         sd_version = {
             "1": 'SD1',
