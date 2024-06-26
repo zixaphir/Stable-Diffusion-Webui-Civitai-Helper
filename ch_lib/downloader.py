@@ -367,7 +367,6 @@ def dl_file(
             )
             return
 
-
         util.printD(f"File size: {total_size} ({human_readable_filesize(total_size)})")
 
         yield from download_progress(url, file_path, total_size, headers, response)
