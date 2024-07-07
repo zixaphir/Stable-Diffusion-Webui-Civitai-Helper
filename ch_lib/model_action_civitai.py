@@ -447,7 +447,7 @@ def get_model_info_by_id(model_id:str) -> dict:
         filenames.append(filename)
         version_strs.append(version_str)
         base_models.append(version.get("baseModel", None))
-        previews[version_str] = version["images"]
+        previews[version_str]: list = version.get("images", [])
 
     # get folder by model type
     folder = model.folders[model_type]
