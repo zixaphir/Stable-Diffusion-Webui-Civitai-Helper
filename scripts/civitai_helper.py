@@ -207,6 +207,19 @@ def on_ui_settings():
         )
     )
     shared.opts.add_option(
+        "ch_autov3",
+        shared.OptionInfo(
+            False,
+            (
+                "Use autoV3 hash when scanning for Civitai metadata. This skips the "
+                "model header, allowing the model data to be found if it changed by "
+                "another tool, such as SwarmUI"
+            ),
+            gr.Checkbox,
+            {"interactive": True},
+            section=section)
+    )
+    shared.opts.add_option(
         "ch_dl_lyco_to_lora",
         shared.OptionInfo(
             False,

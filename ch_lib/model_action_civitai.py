@@ -63,6 +63,8 @@ def scan_single_model(filepath, model_type, refetch_old, organize_models, delay)
 
     output = ""
 
+    use_auto_v3 = util.get_opts("ch_autov3")
+
     # check info file
     if model.metadata_needed(info_file, sd15_file, refetch_old):
         output = f"Creating model info for: {filename}"
@@ -71,7 +73,7 @@ def scan_single_model(filepath, model_type, refetch_old, organize_models, delay)
 
         # get model's sha256
         result = None
-        for result in util.gen_file_sha256(filepath):
+        for result in util.gen_file_sha256(filepath, use_addnet_hash=use_auto_v3):
             if isinstance(result, tuple):
                 yield result
 
@@ -86,12 +88,16 @@ def scan_single_model(filepath, model_type, refetch_old, organize_models, delay)
             time.sleep(delay)
             yield False
 
+        civitai_hash = sha256_hash
+        if use_auto_v3:
+            civitai_hash = sha256_hash[:12]
+
         yield "Requesting model information from Civitai"
         # use this sha256 to get model info from civitai
-        model_info = civitai.get_model_info_by_hash(sha256_hash)
+        model_info = civitai.get_model_info_by_hash(civitai_hash)
 
         if not model_info:
-            model_info = dummy_model_info(filepath, sha256_hash, model_type)
+            model_info = dummy_model_info(filepath, civitai_hash, model_type)
             yield True
 
         # if model is lora and not already in a subfolder, move into subfolder based on its type (character,
