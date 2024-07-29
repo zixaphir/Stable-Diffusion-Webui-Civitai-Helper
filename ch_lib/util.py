@@ -385,12 +385,8 @@ def trim_html(html:str) -> str:
     # Replace HTML-escaped characters with displayables.
     html = re.sub(r"\&(gt|lt|quot|amp)\;", sub_escaped, html)
 
-    # Because we encapsulate the description in HTML comment,
-    # We have to prevent those comments from being cancelled.
-    html.replace("-->", "→")
-
     # https://github.com/AUTOMATIC1111/stable-diffusion-webui/pull/13241
-    return f"<!--\n{html.strip()}\n-->"
+    return html.strip()
 
 
 def newer_version(ver1:str, ver2:str, allow_equal=False) -> bool:
