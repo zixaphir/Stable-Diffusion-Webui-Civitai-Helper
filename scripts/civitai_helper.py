@@ -175,13 +175,16 @@ def on_ui_tabs():
             outputs=py_msg_txtbox
         )
 
-    civitai_helper_browser = browser.civitai_search()
+    if util.get_opts("ch_civitai_browser"):
+        civitai_helper_browser = browser.civitai_search()
 
-    # the third parameter is the element id on html, with a "tab_" as prefix
-    return (
-        (civitai_helper, "Civitai Helper", "civitai_helper"),
-        (civitai_helper_browser, "Civitai Helper Browser", "civitai_helper_browser")
-    )
+        # the third parameter is the element id on html, with a "tab_" as prefix
+        return (
+            (civitai_helper, "Civitai Helper", "civitai_helper"),
+            (civitai_helper_browser, "Civitai Helper Browser", "civitai_helper_browser")
+        )
+
+    return ((civitai_helper, "Civitai Helper", "civitai_helper"),)
 
 
 def on_ui_settings():
@@ -313,6 +316,15 @@ def on_ui_settings():
         shared.OptionInfo(
             False,
             "Remove HTML from model description",
+            gr.Checkbox,
+            {"interactive": True},
+            section=section)
+    )
+    shared.opts.add_option(
+        "ch_civitai_browser",
+        shared.OptionInfo(
+            True,
+            "Add an interface for browsing Civitai and downloading models within WebUI",
             gr.Checkbox,
             {"interactive": True},
             section=section)
