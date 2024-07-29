@@ -308,6 +308,15 @@ def on_ui_settings():
             {"interactive": True, "max_lines": 1},
             section=section)
     )
+    shared.opts.add_option(
+        "ch_clean_html",
+        shared.OptionInfo(
+            False,
+            "Remove HTML from model description",
+            gr.Checkbox,
+            {"interactive": True},
+            section=section)
+    )
     shared.opts.onchange(
         "ch_proxy",
         update_proxy

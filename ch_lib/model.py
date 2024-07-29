@@ -258,15 +258,17 @@ def process_model_info(model_path, model_info, model_type="ckp", refetch_old=Fal
     except:
         util.printD("No existing model info.")
 
+    clean_html = util.get_opts("ch_clean_html")
+
     parent = model_info["model"]
 
     description = parent.get("description", "")
-    if description:
+    if description and clean_html:
         description = util.trim_html(description)
     parent["description"] = description
 
     version_description = model_info.get("description", "")
-    if version_description:
+    if version_description and clean_html:
         version_description = util.trim_html(version_description)
     model_info["description"] = version_description
 
