@@ -345,6 +345,6 @@ blockquote ol {
 }
 #ch_model_search_results {
     max-height: 85vh; /* maybe try to figure out a way to fill the whole screen unless it's under a certain resolution? */
-    overflow: scroll;
+    overflow: scroll !important;
 }
 /* End of Civitai Helper Browser */
