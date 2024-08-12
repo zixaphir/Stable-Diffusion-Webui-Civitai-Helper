@@ -79,7 +79,7 @@ def get_model_info_by_url_section():
 
     def get_model_names_by_input(model_type, empty_info_only):
         names = civitai.get_model_names_by_input(model_type, empty_info_only)
-        return model_name_drop.update(choices=names)
+        return gr.Dropdown(choices=names)
 
     no_info_model_names = civitai.get_model_names_by_input("ckp", False)
 
@@ -258,15 +258,15 @@ def download_section():
 
         return [
             state, data["model_name"], data["model_type"],
-            dl_subfolder_drop.update(
+            gr.Dropdown(
                 choices=subfolders,
                 value=subfolder
             ),
-            dl_version_drop.update(
+            gr.Dropdown(
                 choices=version_strs,
                 value=version_strs[0]
             ),
-            files_row.update(
+            gr.Column(
                 visible=True
             )
         ]
@@ -312,27 +312,27 @@ def download_section():
                 else:
                     raise ValueError(f"Invalid filedata: {filedata}")
 
-            output_add.append(elems["txtbx"].update(value=filename))
-            output_add.append(elems["row"].update(visible=visible))
+            output_add.append(gr.Textbox(value=filename))
+            output_add.append(gr.Row(visible=visible))
 
         return [
             state,
-            dl_filename_txtbox.update(
+            gr.Textbox(
                 value=base
             ),
-            dl_extension_txtbox.update(
+            gr.Textbox(
                 value=ext
             ),
-            dl_preview_img.update(
+            gr.Gallery(
                 value=previews
             ),
-            dl_preview_url.update(
+            gr.Textbox(
                 value=preview
             ),
-            download_all_row.update(
+            gr.Checkbox(
                 visible=(state["files_count"][dl_version] > 1)
             ),
-            dl_base_model_txtbox.update(
+            gr.Textbox( 
                 value=base_model
             )
         ] + output_add
@@ -351,7 +351,7 @@ def download_section():
     def update_dl_preview_url(state, dl_preview_index):
         preview_url = state["filtered_previews"][dl_preview_index]
 
-        return dl_preview_url.update(
+        return gr.Checkbox(
             value=preview_url
         )
 
@@ -359,7 +359,7 @@ def download_section():
         # For some reason, you can't pass gr.SelectData and
         # inputs at the same time. :/
 
-        return dl_preview_index.update(
+        return gr.Number(
             value=evt.index
         )
 
