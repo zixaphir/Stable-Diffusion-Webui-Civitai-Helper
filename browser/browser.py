@@ -96,8 +96,8 @@ def make_ui():
         return [
             state,
             container.safe_substitute({"cards": "".join(cards)}),
-            ch_prev_btn.update(interactive=state["current_page"] > 0),
-            ch_next_btn.update(interactive=next_page is not None)
+            gr.Button(interactive=state["current_page"] > 0),  # Enable/disable buttons
+            gr.Button(interactive=next_page is not None)
         ]
 
     with gr.Row():
@@ -106,17 +106,14 @@ def make_ui():
     with gr.Row(equal_height=True):
         ch_query_txt = gr.Textbox(
             label="Query",
-            lines=1,
             value=""
         )
         ch_tag_txt = gr.Textbox(
             label="Tag",
-            lines=1,
             value=""
         )
         ch_age_drop = gr.Dropdown(
             label="Model Age",
-            lines=1,
             value="AllTime",
             choices=[
                 "AllTime",
@@ -128,7 +125,6 @@ def make_ui():
         )
         ch_sort_drop = gr.Dropdown(
             label="Model Age",
-            lines=1,
             value="Newest",
             choices=[
                 "Highest Rated",
@@ -140,7 +136,6 @@ def make_ui():
     with gr.Row(equal_height=True):
         ch_base_model_drop = gr.Dropdown(
             label="Base Model",
-            lines=1,
             value=None,
             multiselect=True,
             choices=[
@@ -169,7 +164,6 @@ def make_ui():
         )
         ch_type_drop = gr.Dropdown(
             label="Model Type",
-            lines=1,
             value=None,
             multiselect=True,
             choices=[
@@ -194,24 +188,20 @@ def make_ui():
         ch_nsfw_ckb = gr.Checkbox(
             label="Allow NSFW Models",
             value=util.get_opts("ch_nsfw_threshold") != "PG",
-            lines=1
         )
 
         ch_search_btn = gr.Button(
             variant="primary",
             value="Search",
-            lines=1
         )
 
     with gr.Row(equal_height=True):
         ch_prev_btn = gr.Button(
             value="Previous Page",
-            lines=1,
             interactive=False
         )
         ch_next_btn = gr.Button(
             value="Next Page",
-            lines=1,
             interactive=False
         )
 
