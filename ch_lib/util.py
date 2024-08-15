@@ -52,6 +52,8 @@ _MINUTE = 60
 _HOUR = _MINUTE * 60
 _DAY = _HOUR * 24
 
+GRADIO_FALLBACK = False
+
 script_dir = None
 
 # print for debugging

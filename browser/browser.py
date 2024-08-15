@@ -93,6 +93,14 @@ def make_ui():
 
         container = quick_template_from_file("container.html")
 
+        if util.GRADIO_FALLBACK:
+            return [
+                state,
+                container.safe_substitute({"cards": "".join(cards)}),
+                ch_prev_btn.update(interactive=state["current_page"] > 0),  # Enable/disable buttons
+                ch_next_btn.update(interactive=next_page is not None)
+            ]
+
         return [
             state,
             container.safe_substitute({"cards": "".join(cards)}),

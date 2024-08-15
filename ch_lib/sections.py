@@ -79,6 +79,8 @@ def get_model_info_by_url_section():
 
     def get_model_names_by_input(model_type, empty_info_only):
         names = civitai.get_model_names_by_input(model_type, empty_info_only)
+        if util.GRADIO_FALLBACK:
+            return model_name_drop.update(choices=names)
         return gr.Dropdown(choices=names)
 
     no_info_model_names = civitai.get_model_names_by_input("ckp", False)
@@ -256,6 +258,22 @@ def download_section():
 
             state["files_count"][version] = files_count
 
+        if util.GRADIO_FALLBACK:
+            return [
+                state, data["model_name"], data["model_type"],
+                dl_subfolder_drop.update(
+                    choices=subfolders,
+                    value=subfolder
+                ),
+                dl_version_drop.update(
+                    choices=version_strs,
+                    value=version_strs[0]
+                ),
+                files_row.update(
+                    visible=True
+                )
+            ]
+
         return [
             state, data["model_name"], data["model_type"],
             gr.Dropdown(
@@ -311,9 +329,35 @@ def download_section():
                     filename = data["name"]
                 else:
                     raise ValueError(f"Invalid filedata: {filedata}")
+            if util.GRADIO_FALLBACK:
+                output_add.append(elems["txtbx"].update(value=filename))
+                output_add.append(elems["row"].update(visible=visible))
+            else:
+                output_add.append(gr.Textbox(value=filename))
+                output_add.append(gr.Row(visible=visible))
 
-            output_add.append(gr.Textbox(value=filename))
-            output_add.append(gr.Row(visible=visible))
+        if util.GRADIO_FALLBACK:
+            return [
+                state,
+                dl_filename_txtbox.update(
+                    value=base
+                ),
+                dl_extension_txtbox.update(
+                    value=ext
+                ),
+                dl_preview_img.update(
+                    value=previews
+                ),
+                dl_preview_url.update(
+                    value=preview
+                ),
+                download_all_row.update(
+                    visible=(state["files_count"][dl_version] > 1)
+                ),
+                dl_base_model_txtbox.update(
+                    value=base_model
+                )
+            ] + output_add
 
         return [
             state,
@@ -332,7 +376,7 @@ def download_section():
             gr.Checkbox(
                 visible=(state["files_count"][dl_version] > 1)
             ),
-            gr.Textbox( 
+            gr.Textbox(
                 value=base_model
             )
         ] + output_add
@@ -351,6 +395,11 @@ def download_section():
     def update_dl_preview_url(state, dl_preview_index):
         preview_url = state["filtered_previews"][dl_preview_index]
 
+        if util.GRADIO_FALLBACK:
+            return dl_preview_url.update(
+                value=preview_url
+            )
+
         return gr.Checkbox(
             value=preview_url
         )
@@ -358,6 +407,11 @@ def download_section():
     def update_dl_preview_index(evt: gr.SelectData):
         # For some reason, you can't pass gr.SelectData and
         # inputs at the same time. :/
+
+        if util.GRADIO_FALLBACK:
+            return dl_preview_index.update(
+                value=evt.index
+            )
 
         return gr.Number(
             value=evt.index
