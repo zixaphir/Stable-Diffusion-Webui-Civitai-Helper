@@ -1,4 +1,12 @@
 # Change Log
+## v1.8.11
+* Gradio 4.0 compatibility.
+* Fix an issue where extension would crash if no images could be loaded for a model in browser.
+* Support AutoV3 Hashes for scanning.
+* No longer remove HTML from model descriptions by default, since WebUI no longer displays HTML by default.
+* Browser can now be disabled.
+* New option to automatically sort Loras into subdirectories by Civitai category when scanning.
+
 ## v1.8.10
 * Removed broken "Update image generation information (Experimental)" feature.
 * Add additional checks for NSFW images in features that previously were missing them.
