@@ -126,6 +126,10 @@ blockquote ol {
 
 /* Civitai Helper Browser */
 /* Perhaps figure out a less hacky way to write this... */
+#ch_search {
+    overflow: scroll;
+    max-height: 85vh; /* maybe try to figure out a way to fill the whole screen unless it's under a certain resolution? */
+}
 #ch_search .cards_container {
     grid-template-columns: 340px;
 }
@@ -342,9 +346,5 @@ blockquote ol {
     & .ch_active_card {
         outline: 2px gold solid;
     }
-}
-#ch_model_search_results {
-    max-height: 85vh; /* maybe try to figure out a way to fill the whole screen unless it's under a certain resolution? */
-    overflow: scroll !important;
 }
 /* End of Civitai Helper Browser */
