@@ -913,7 +913,7 @@ def download_multiple_section():
                         lines=1,
                         max_lines=1,
                         value="",
-                        placeholder="Model URL or Model ID",
+                        placeholder="Model URL",
                         elem_id="ch_dl_url"
                     )
                 with gr.Column(elem_classes="justify-bottom"):
