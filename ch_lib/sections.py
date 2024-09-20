@@ -678,6 +678,68 @@ def download_multiple_section():
         }
     }
 
+    def add_to_batch(url, subfolder, allFiles, allVersions, urls):
+        url_with_params = str(url)
+        if allFiles:
+            url_with_params += "::AllFiles"
+        if allVersions:
+            url_with_params += "::AllVersions"
+        if subfolder and subfolder is not "" or "/":
+            url_with_params += f"::Subfolder={str(subfolder)}"
+        
+        appended_urls = str(urls) + ("" if str(urls).endswith("\n") or str(urls) == "" else "\n") + url_with_params
+
+        if util.GRADIO_FALLBACK:
+            return dl_subfolder_drop.update(
+                    value=appended_urls
+                )
+            
+        return gr.Textbox(
+                lines=5,
+                max_lines=100,
+                placeholder="Supports Model page URLs and Model Version page URLs.",
+                label="Models to download",
+                show_label=True,
+                value=appended_urls
+            )
+        
+
+    def get_model_info_by_url(url, subfolder):
+        model_id = civitai.get_model_id_from_url(url)
+        data = model_action_civitai.get_model_info_by_id(model_id)
+
+        if not data:
+            print("Failed to get model info by url")
+            return None
+
+        state = {
+            "model_info": {},
+        }
+
+        state["model_info"] = data["model_info"]
+
+        subfolders = sorted(data["subfolders"])
+
+        # remove leading slashes and double-slashes from subfolders
+        subfolders = [subfolder.lstrip("\\").lstrip("/") for subfolder in subfolders]
+
+        if util.GRADIO_FALLBACK:
+            return [
+                dl_subfolder_drop.update(
+                    choices=subfolders,
+                    value=subfolder
+                )
+            ]
+
+        return gr.Dropdown(
+                choices=subfolders,
+                label="Sub-folder",
+                value=subfolder,
+                min_width=320,
+                multiselect=False
+            )
+
+
     def append_model_version_info(dl, model_info, model_version):
         """
         Adds the required information to download a particular model version
@@ -841,6 +903,40 @@ def download_multiple_section():
         yield f"```\nCompleted:\n{download_results}\n```"
         return
 
+    with gr.Accordion("Add to Batch Form"):
+        with gr.Row():
+            gr.Markdown("### Add to Batch")
+        with gr.Row():
+                with gr.Column(scale=2, elem_classes="justify-bottom"):
+                    dl_model_url_or_id_txtbox = gr.Textbox(
+                        label="Civitai URL",
+                        lines=1,
+                        max_lines=1,
+                        value="",
+                        placeholder="Model URL or Model ID",
+                        elem_id="ch_dl_url"
+                    )
+                with gr.Column(elem_classes="justify-bottom"):
+                    dl_model_info_btn = gr.Button(
+                        value="Get Model Info by Civitai Url",
+                        variant="primary",
+                        elem_id="ch_dl_get_info"
+                    )
+        with gr.Row():
+            with gr.Column():
+                allFiles = gr.Checkbox(label="All Files", value=False)
+            with gr.Column():
+                allVersions = gr.Checkbox(label="All Versions", value=False)
+        with gr.Row():
+            dl_subfolder_drop = gr.Dropdown(
+                    choices=[],
+                    label="Sub-folder",
+                    value="",
+                    min_width=320,
+                    multiselect=False
+                )
+        with gr.Row():
+            add_to_batch_btn = gr.Button(value="Add to Batch", variant="primary")
     with gr.Row():
         gr.Markdown("""
             Add URLs here, one per line, to download multiple models at the same time. You can also add additional parameters by adding "::" after the URL, followed by a parameter.
@@ -867,6 +963,22 @@ def download_multiple_section():
         dl_all_log_md = gr.Markdown(
             value="Additional info will be printed to the webui console output."
         )
+
+    dl_model_info_btn.click(
+        get_model_info_by_url,
+        inputs=[
+            dl_model_url_or_id_txtbox, dl_subfolder_drop
+        ],
+        outputs=dl_subfolder_drop
+    )
+
+    add_to_batch_btn.click(
+        add_to_batch,
+        inputs=[
+            dl_model_url_or_id_txtbox, dl_subfolder_drop, allFiles, allVersions, urls
+        ],
+        outputs=urls
+    )
 
     submit.click(
         download_all_action,
