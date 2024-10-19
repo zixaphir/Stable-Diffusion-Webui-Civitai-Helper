@@ -342,6 +342,15 @@ def on_ui_settings():
             {"interactive": True},
             section=section)
     )
+    shared.opts.add_option(
+        "ch_image_metadata",
+        shared.OptionInfo(
+            True,
+            "Automatically add resource metadata to all generated images",
+            gr.Checkbox,
+            {"interactive": True},
+            section=section)
+    )
     shared.opts.onchange(
         "ch_proxy",
         update_proxy

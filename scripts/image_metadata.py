@@ -9,7 +9,8 @@ import networks
 from backend.args import dynamic_args
 
 def add_resource_metadata(params):
-    if 'parameters' not in params.pnginfo: return
+    if not util.get_opts("ch_image_metadata") or 'parameters' not in params.pnginfo:
+        return
 
     # StableDiffusionProcessing
     sd_processing = params.p
