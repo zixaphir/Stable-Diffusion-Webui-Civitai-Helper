@@ -64,11 +64,14 @@ def add_resource_metadata(params):
         embed_weights = {}
         try:
             embed_regex = re.compile(r"(?:^|[\s,])(" + '|'.join(re.escape(embed_name) for embed_name in embed_filepaths.keys()) + r")(?:$|[\s,])", re.IGNORECASE | re.MULTILINE)
-            for prompt in [sd_processing.prompt, sd_processing.negative_prompt]:
+            for prompt, is_positive in [[sd_processing.prompt, True], [sd_processing.negative_prompt, False]]:
                 # parse all special prompt rules
                 extra_networks_stripped, _ = extra_networks.parse_prompt(prompt)
-                _, cond_rules_applied, _ = prompt_parser.get_multicond_prompt_list([extra_networks_stripped])
-                prompt_edit_schedule = prompt_parser.get_learned_conditioning_prompt_schedules(cond_rules_applied, sd_processing.steps)
+                if is_positive:
+                    _, prompt_flat_list, _ = prompt_parser.get_multicond_prompt_list([extra_networks_stripped])
+                else:
+                    prompt_flat_list = [extra_networks_stripped]
+                prompt_edit_schedule = prompt_parser.get_learned_conditioning_prompt_schedules(prompt_flat_list, sd_processing.steps)
                 prompts = [text for step, text in reduce(lambda list1, list2: list1 + list2, prompt_edit_schedule)]
                 for scheduled_prompt in prompts:
                     # calculate attention weights
