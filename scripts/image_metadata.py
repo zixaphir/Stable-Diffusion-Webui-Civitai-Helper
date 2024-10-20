@@ -52,15 +52,16 @@ def add_resource_metadata(params):
     if isinstance(sd_processing, processing.StableDiffusionProcessingTxt2Img) and sd_processing.enable_hr:
         if sd_processing.hr_checkpoint_name is not None and sd_processing.hr_checkpoint_info.name_for_extra != sd_processing.sd_model_name:
             add_civitai_resource(Path(sd_processing.hr_checkpoint_info.filename).absolute())
-        prompt_list = [[sd_processing.hr_prompt, sd_processing.hr_second_pass_steps, True], [sd_processing.hr_negative_prompt, sd_processing.hr_second_pass_steps, False]] + prompt_list
-        extra_network_data = list(sd_processing.hr_extra_network_data.values()) + list(extra_network_data)
+        prompt_list += [[sd_processing.hr_prompt, sd_processing.hr_second_pass_steps, True], [sd_processing.hr_negative_prompt, sd_processing.hr_second_pass_steps, False]]
+        extra_network_data = list(extra_network_data) + list(sd_processing.hr_extra_network_data.values())
 
     # Collect lora weights, skip duplicates
     extra_network_weights = {}
     for extra_network_params in reduce(lambda list1, list2: list1 + list2, extra_network_data):
         extra_network_name = extra_network_params.positional[0]
         te_multiplier = float(extra_network_params.positional[1]) if len(extra_network_params.positional) > 1 else 1.0
-        extra_network_weights[extra_network_name] = te_multiplier
+        if extra_network_name not in extra_network_weights:
+            extra_network_weights[extra_network_name] = te_multiplier
 
     # Add lora metadata
     for extra_network_name, te_multiplier in extra_network_weights.items():
