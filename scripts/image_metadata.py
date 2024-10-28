@@ -57,11 +57,12 @@ def add_resource_metadata(params):
 
     # Collect lora weights, skip duplicates
     extra_network_weights = {}
-    for extra_network_params in reduce(lambda list1, list2: list1 + list2, extra_network_data):
-        extra_network_name = extra_network_params.positional[0]
-        te_multiplier = float(extra_network_params.positional[1]) if len(extra_network_params.positional) > 1 else 1.0
-        if extra_network_name not in extra_network_weights:
-            extra_network_weights[extra_network_name] = te_multiplier
+    if isinstance(extra_network_data, list) and len(extra_network_data) > 0 or not isinstance(extra_network_data, list) and any(extra_network_data):
+        for extra_network_params in reduce(lambda list1, list2: list1 + list2, extra_network_data):
+            extra_network_name = extra_network_params.positional[0]
+            te_multiplier = float(extra_network_params.positional[1]) if len(extra_network_params.positional) > 1 else 1.0
+            if extra_network_name not in extra_network_weights:
+                extra_network_weights[extra_network_name] = te_multiplier
 
     # Add lora metadata
     for extra_network_name, te_multiplier in extra_network_weights.items():
