@@ -12,7 +12,7 @@ import modules.processing_scripts.comments as comments
 
 re_prompt = re.compile(r"^(?!.+\sneg(?:ative)?)(.+\s)prompt(\s\S+)?$")
 re_negative_prompt = re.compile(r"^(.+\s)neg(?:ative)?\sprompt(\s\S+)?$")
-re_checkpoint = re.compile(r"\scheckpoint(?:\s\S+)?$")
+re_checkpoint = re.compile(r"^(?!Hires).+\scheckpoint(?:\s\S+)?$")
 
 def add_resource_metadata(params):
     if not util.get_opts("ch_image_metadata") or 'parameters' not in params.pnginfo:
