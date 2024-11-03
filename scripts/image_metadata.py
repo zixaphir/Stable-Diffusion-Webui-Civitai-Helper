@@ -124,7 +124,7 @@ def add_resource_metadata(params):
     if len(embed_filepaths) > 0:
         embed_weights = {}
         try:
-            embed_regex = re.compile(r"(?:^|[\s,])(" + '|'.join(re.escape(embed_name) for embed_name in embed_filepaths.keys()) + r")(?:$|[\s,])", re.IGNORECASE | re.MULTILINE)
+            embed_regex = re.compile(r"(?:^|[\s,.])(" + '|'.join(re.escape(embed_name) for embed_name in embed_filepaths.keys()) + r")(?:$|[\s,.])", re.IGNORECASE | re.MULTILINE)
             
             for prompt, steps, is_positive in prompt_list:
                 # parse all special prompt rules
