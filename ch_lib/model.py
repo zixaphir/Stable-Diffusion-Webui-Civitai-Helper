@@ -118,22 +118,22 @@ def get_custom_model_folder():
 
     if util.get_opts("ch_dl_lyco_to_lora"):
         folders["lycoris"] = folders["lora"]
-
-    try:
-        # pre-1.5.0
-        if os.path.isdir(shared.cmd_opts.lyco_dir):
-            folders["lycoris"] = shared.cmd_opts.lyco_dir
-
-    except AttributeError:
+    else:
         try:
-            # sd-webui v1.5.1 added a backcompat option for lyco.
-            if os.path.isdir(shared.cmd_opts.lyco_dir_backcompat):
-                folders["lycoris"] = shared.cmd_opts.lyco_dir_backcompat
-
+            # pre-1.5.0
+            if os.path.isdir(shared.cmd_opts.lyco_dir):
+                folders["lycoris"] = shared.cmd_opts.lyco_dir
+    
         except AttributeError:
-            # v1.5.0 has no options for the Lyco dir:
-            # it is hardcoded as 'os.path.join(paths.models_path, "LyCORIS")'
-            return
+            try:
+                # sd-webui v1.5.1 added a backcompat option for lyco.
+                if os.path.isdir(shared.cmd_opts.lyco_dir_backcompat):
+                    folders["lycoris"] = shared.cmd_opts.lyco_dir_backcompat
+    
+            except AttributeError:
+                # v1.5.0 has no options for the Lyco dir:
+                # it is hardcoded as 'os.path.join(paths.models_path, "LyCORIS")'
+                return
 
 
 def locate_model_from_partial(root, model_name):
