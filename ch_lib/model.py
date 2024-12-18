@@ -35,11 +35,8 @@ folders = {
     "ckp": os.path.join(ROOT_PATH, "models", "Stable-diffusion"),
     "lora": os.path.join(ROOT_PATH, "models", "Lora"),
     "lycoris": os.path.join(ROOT_PATH, "models", "LyCORIS"),
+    "vae": os.path.join(ROOT_PATH, "models", "VAE"),
 }
-
-# Separate because the above is used for detecting supported models
-# in other features
-vae_folder = os.path.join(ROOT_PATH, "models", "VAE")
 
 
 class VersionMismatchException(Exception):
@@ -114,7 +111,7 @@ def get_custom_model_folder():
         folders["lora"] = shared.cmd_opts.lora_dir
 
     if shared.cmd_opts.vae_dir and os.path.isdir(shared.cmd_opts.vae_dir):
-        vae_folder = shared.cmd_opts.vae_dir
+        folders["vae"] = shared.cmd_opts.vae_dir
 
     if util.get_opts("ch_dl_lyco_to_lora"):
         folders["lycoris"] = folders["lora"]

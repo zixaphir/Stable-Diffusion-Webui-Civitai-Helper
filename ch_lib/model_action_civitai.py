@@ -662,7 +662,7 @@ def download_files(filename, model_folder, ver_info, headers, filetypes, dl_all,
 
         dl_folder = model_folder
         if dl_info["type"] == "VAE":
-            dl_folder = model.vae_folder
+            dl_folder = model.folders["vae"]
 
         # webui visible progress bar
         for result in downloader.dl_file(
