@@ -86,7 +86,7 @@ If you just want to download the models into the appropriate directories yoursel
 In the same place you can scan a model, you can also scan the model info and the extension will attempt to fill in any missing information from the images themselves. This is a very hit-or-miss process, but if you are trying to get the prompt from an image  the "preview image prompt" button and it fails to work, performing this scan may retrieve the information necessary to fix it.
 
 ### Automatic Generated Image Metadata
-Automatically adds metadata to any image you generate using the data from `[model_name].civitai.info`. The metadata added closely matches images generated on Civitai's on-site generator. This will make the website automatically detect and link all resources used. With this feature added, this extension now supercedes the official Civitai extension which is no longer actively maintained.
+Automatically adds metadata to any image you generate using the data from `[model_name].civitai.info`. The metadata added closely matches images generated on Civitai's on-site generator. This will make the website automatically detect and link all resources used.
 Just make sure you scan after downloading any new models.
 
 For the on-site detector to work correctly, you will need to disable the default added resource hashes.
