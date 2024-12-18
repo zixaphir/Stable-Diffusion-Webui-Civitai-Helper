@@ -4,9 +4,12 @@ browser.py - Civitai Browser for Civitai Helper
 
 import os
 from string import Template
+import json
 import gradio as gr
 from ch_lib import util
 from ch_lib import civitai
+
+from .supported_models import SUPPORTED_MODELS
 
 def civitai_search():
     """
@@ -146,29 +149,7 @@ def make_ui():
             label="Base Model",
             value=None,
             multiselect=True,
-            choices=[
-                # TODO: Perhaps make this list external so it can be updated independent of CH version.
-                "Other",
-                "Pix Art a",
-                "Playground v2",
-                "Pony",
-                "SD 1.4",
-                "SD 1.5",
-                "SD 1.5 LCM",
-                "SD 2.0",
-                "SD 2.0 768",
-                "SD 2.1",
-                "SD 2.1 768",
-                "SD 2.1 Unclip",
-                "SDXL 0.9",
-                "SDXL 1.0",
-                "SDXL 1.0 LCM",
-                "SDXL Distilled",
-                "SDXL Lightning",
-                "SDXL Turbo",
-                "SVD",
-                "SVD XT"
-            ]
+            choices=SUPPORTED_MODELS
         )
         ch_type_drop = gr.Dropdown(
             label="Model Type",
