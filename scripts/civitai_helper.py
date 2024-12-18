@@ -345,11 +345,15 @@ def on_ui_settings():
     shared.opts.add_option(
         "ch_image_metadata",
         shared.OptionInfo(
-            True,
-            "Automatically add resource metadata to all generated images",
+            False,
+            "Automatically add resource metadata to all generated images. Please see Wiki for details.",
             gr.Checkbox,
             {"interactive": True},
-            section=section)
+            section=section
+        ).link(
+            "Wiki",
+            "https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Civitai-Resource-Metadata"
+        )
     )
     shared.opts.onchange(
         "ch_proxy",
