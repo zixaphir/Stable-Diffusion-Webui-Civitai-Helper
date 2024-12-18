@@ -178,6 +178,12 @@ blockquote ol {
         grid-template-columns: 340px 340px 340px 340px 340px 340px 340px 340px 340px 340px;
     }
 }
+#ch_scan_dup_model_log_md {
+    overflow: auto !important;
+}
+#ch_scan_dup_model_log_md img {
+    max-width: 25vw;
+}
 #ch_search {
     & .cards_container {
         display: grid;
