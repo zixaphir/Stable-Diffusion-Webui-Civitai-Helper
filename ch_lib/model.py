@@ -118,6 +118,7 @@ def get_custom_model_folder():
 
     if util.get_opts("ch_dl_lyco_to_lora"):
         folders["lycoris"] = folders["lora"]
+        return
 
     try:
         # pre-1.5.0
