@@ -4,7 +4,6 @@ browser.py - Civitai Browser for Civitai Helper
 
 import os
 from string import Template
-import json
 import gradio as gr
 from ch_lib import util
 from ch_lib import civitai
@@ -114,6 +113,9 @@ def make_ui():
     with gr.Row():
         gr.Markdown("# Browse and Search Civitai")
 
+    with gr.Row():
+        gr.Markdown("Tip: You can save your choices as defaults by selecting the options you'd like and then going to `Settings -> Other -> Defaults` and hitting `Apply`!")
+
     with gr.Row(equal_height=True):
         ch_query_txt = gr.Textbox(
             label="Query",
@@ -135,7 +137,7 @@ def make_ui():
             ]
         )
         ch_sort_drop = gr.Dropdown(
-            label="Model Age",
+            label="Sort By",
             value="Newest",
             choices=[
                 "Highest Rated",
