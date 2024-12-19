@@ -1,4 +1,19 @@
 # Change Log
+## v1.8.12
+* New feature: Add Civitai-style metadata to images
+  * Thanks ComplexRobot!
+* GGUF scanning support
+* Downloader now supports creating new subdirectories when downloading models
+* Updated base models list in Browser
+* Additional UI for batch downloading
+  * Thanks webik150!
+* Fixed several issues:
+  * Vae Downloading now works
+  * Duplicate models results UI now properly scrolls
+  * Browser now works with blank searches
+  * Incorrect Lycoris directory
+    * Thanks gayspacegems!
+
 ## v1.8.11
 * Gradio 4.0 compatibility.
 * Fix an issue where extension would crash if no images could be loaded for a model in browser.
