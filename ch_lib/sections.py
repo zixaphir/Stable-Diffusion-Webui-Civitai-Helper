@@ -684,7 +684,7 @@ def download_multiple_section():
             url_with_params += "::AllFiles"
         if allVersions:
             url_with_params += "::AllVersions"
-        if subfolder and subfolder is not "" or "/":
+        if subfolder and subfolder not in ["", "/"]:
             url_with_params += f"::Subfolder={str(subfolder)}"
         
         appended_urls = str(urls) + ("" if str(urls).endswith("\n") or str(urls) == "" else "\n") + url_with_params
