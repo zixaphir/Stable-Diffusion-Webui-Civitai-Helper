@@ -251,7 +251,7 @@ def array_frags(name, vals, frags):
 def make_params(params):
     frags = []
     for key, val in params.items():
-        if val == "":
+        if not val or val == "":
             continue
 
         if key in ["types", "baseModels"]:
