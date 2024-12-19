@@ -478,6 +478,7 @@ def download_section():
                     label="Sub-folder",
                     value="",
                     min_width=320,
+                    allow_custom_value=True,
                     multiselect=False
                 )
                 dl_duplicate_drop = gr.Dropdown(

@@ -802,6 +802,16 @@ def dl_model_by_input(
 
     # get model folder for downloading
     folder = os.path.join(model_root_folder, subfolder)
+    if not os.path.exists(folder):
+        try:
+            os.makedirs(folder)
+        except OSError:
+            output = f"Could not create directory: {subfolder}."
+            util.printD(output)
+
+            yield output
+            return
+
     if not os.path.isdir(folder):
         subfolders = []
         for file in os.listdir(model_root_folder):
@@ -810,8 +820,10 @@ def dl_model_by_input(
         if len(subfolders) == 0:
             subfolders = ["No subfolders exist."]
         subfolders = "\n\t".join(subfolders)
+
         output = f"Model folder is not a dir: {subfolder}. Available subfolders: \n\t{subfolders}"
         util.printD(output)
+
         yield output
         return
 
