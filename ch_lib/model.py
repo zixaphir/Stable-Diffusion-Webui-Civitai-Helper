@@ -19,7 +19,7 @@ from . import util
 # this is the default root path
 ROOT_PATH = paths_internal.data_path
 
-EXTS = (".bin", ".pt", ".safetensors", ".ckpt")
+EXTS = (".bin", ".pt", ".safetensors", ".ckpt", ".gguf", ".zip")
 CIVITAI_EXT = ".info"
 SDWEBUI_EXT = ".json"
 
