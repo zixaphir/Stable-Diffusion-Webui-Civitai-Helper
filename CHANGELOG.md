@@ -1,4 +1,7 @@
 # Change Log
+## v1.8.13
+* Fix compatibility with non-Forge instances
+
 ## v1.8.12
 * New feature: Add Civitai-style metadata to images
   * Thanks ComplexRobot!
