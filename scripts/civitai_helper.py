@@ -17,6 +17,11 @@ from ch_lib import util
 from ch_lib import sections
 from browser import browser
 
+try:
+    from backend.args import dynamic_args
+except ModuleNotFoundError:
+    dynamic_args = None
+
 # init
 # root path
 ROOT_PATH = os.getcwd()
@@ -342,19 +347,20 @@ def on_ui_settings():
             {"interactive": True},
             section=section)
     )
-    shared.opts.add_option(
-        "ch_image_metadata",
-        shared.OptionInfo(
-            False,
-            "Automatically add resource metadata to all generated images. Please see Wiki for details.",
-            gr.Checkbox,
-            {"interactive": True},
-            section=section
-        ).link(
-            "Wiki",
-            "https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Civitai-Resource-Metadata"
+    if dynamic_args:
+        shared.opts.add_option(
+            "ch_image_metadata",
+            shared.OptionInfo(
+                False,
+                "Automatically add resource metadata to all generated images. Please see Wiki for details.",
+                gr.Checkbox,
+                {"interactive": True},
+                section=section
+            ).link(
+                "Wiki",
+                "https://github.com/zixaphir/Stable-Diffusion-Webui-Civitai-Helper/wiki/Civitai-Resource-Metadata"
+            )
         )
-    )
     shared.opts.onchange(
         "ch_proxy",
         update_proxy

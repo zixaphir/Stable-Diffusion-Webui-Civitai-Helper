@@ -7,14 +7,21 @@ from functools import reduce
 from ch_lib import util
 from modules import script_callbacks, extra_networks, prompt_parser, processing, sd_models, infotext_utils
 import networks # extensions-builtin\sd_forge_lora\networks.py
-from backend.args import dynamic_args
-import modules.processing_scripts.comments as comments
+try:
+    from backend.args import dynamic_args
+    import modules.processing_scripts.comments as comments
+except ModuleNotFoundError:
+    dynamic_args = None
+    comments = None
 
 re_prompt = re.compile(r"^(?!.+\sneg(?:ative)?)(.+\s)prompt(\s\S+)?$")
 re_negative_prompt = re.compile(r"^(.+\s)neg(?:ative)?\sprompt(\s\S+)?$")
 re_checkpoint = re.compile(r"^(?!Hires).+\scheckpoint(?:\s\S+)?$")
 
 def add_resource_metadata(params):
+    if not (dynamic_args or comments):
+        return
+
     if not util.get_opts("ch_image_metadata") or 'parameters' not in params.pnginfo:
         return
 
