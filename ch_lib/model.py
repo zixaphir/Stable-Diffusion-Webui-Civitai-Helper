@@ -36,6 +36,10 @@ folders = {
     "lora": os.path.join(ROOT_PATH, "models", "Lora"),
     "lycoris": os.path.join(ROOT_PATH, "models", "LyCORIS"),
     "vae": os.path.join(ROOT_PATH, "models", "VAE"),
+    # ---
+    "controlnet": os.path.join(ROOT_PATH, "models", "Controlnet"),
+    "detection": os.path.join(ROOT_PATH, "models", "adetailer"),
+    # ---
 }
 
 
