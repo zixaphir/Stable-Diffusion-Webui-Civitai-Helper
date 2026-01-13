@@ -98,19 +98,19 @@ def get_custom_model_folder():
     """
     util.printD("Get Custom Model Folder")
 
-    if shared.cmd_opts.embeddings_dir and os.path.isdir(shared.cmd_opts.embeddings_dir):
+    if hasattr(shared.cmd_opts, "embeddings_dir") and shared.cmd_opts.embeddings_dir and os.path.isdir(shared.cmd_opts.embeddings_dir):
         folders["ti"] = shared.cmd_opts.embeddings_dir
 
-    if shared.cmd_opts.hypernetwork_dir and os.path.isdir(shared.cmd_opts.hypernetwork_dir):
+    if hasattr(shared.cmd_opts, "hypernetwork_dir") and shared.cmd_opts.hypernetwork_dir and os.path.isdir(shared.cmd_opts.hypernetwork_dir):
         folders["hyper"] = shared.cmd_opts.hypernetwork_dir
 
-    if shared.cmd_opts.ckpt_dir and os.path.isdir(shared.cmd_opts.ckpt_dir):
+    if hasattr(shared.cmd_opts, "ckpt_dir") and shared.cmd_opts.ckpt_dir and os.path.isdir(shared.cmd_opts.ckpt_dir):
         folders["ckp"] = shared.cmd_opts.ckpt_dir
 
-    if shared.cmd_opts.lora_dir and os.path.isdir(shared.cmd_opts.lora_dir):
+    if hasattr(shared.cmd_opts, "lora_dir") and shared.cmd_opts.lora_dir and os.path.isdir(shared.cmd_opts.lora_dir):
         folders["lora"] = shared.cmd_opts.lora_dir
 
-    if shared.cmd_opts.vae_dir and os.path.isdir(shared.cmd_opts.vae_dir):
+    if hasattr(shared.cmd_opts, "vae_dir") and shared.cmd_opts.vae_dir and os.path.isdir(shared.cmd_opts.vae_dir):
         folders["vae"] = shared.cmd_opts.vae_dir
 
     if util.get_opts("ch_dl_lyco_to_lora"):
