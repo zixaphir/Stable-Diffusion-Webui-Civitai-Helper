@@ -124,8 +124,20 @@ blockquote ol {
 
 /* end of Lobe theme */
 
+/* Helper Browser inputs — override Gradio default white background */
+#ch_browser_query textarea,
+#ch_browser_query input,
+#ch_browser_tag textarea,
+#ch_browser_tag input {
+    background-color: #2b2b2b !important;
+    color: #fff !important;
+    border-color: #555 !important;
+}
+
 /* Helper Browser */
 /* Perhaps figure out a less hacky way to write this... */
+
+
 #ch_search {
     overflow: scroll;
     max-height: 85vh; /* maybe try to figure out a way to fill the whole screen unless it's under a certain resolution? */
@@ -203,7 +215,8 @@ blockquote ol {
         z-index: 100;
     }
     & .search_container {
-        background-color: rgba(0,0,0,0.6);
+        background-color: rgba(30, 30, 30, 0.85);
+        color: #fff;
     }
     & .model_card {
         position: relative;
@@ -211,7 +224,7 @@ blockquote ol {
         display: flex;
         justify-content: center;
         align-items: center;
-        border: 2px solid black;
+        border: 2px solid #444;
         margin: 10px;
         font-size: 3em;
     }
@@ -223,7 +236,8 @@ blockquote ol {
         box-sizing: border-box;
         pointer-events: none;
         position: absolute;
-        background-color: #000;
+        background-color: #1e1e1e;
+        color: #fff;
         font-size: 12pt;
         z-index:10;
         left: 0px;
@@ -253,6 +267,7 @@ blockquote ol {
         position: relative;
     }
     & .preview_container img,
+    & .preview_container video,
     .preview_container video {
         position: absolute;
         width: 100%;
@@ -331,17 +346,16 @@ blockquote ol {
     & span.button {
         cursor: pointer;
         display: inline-block;
-        background-color: #111;
         border-radius: 3px;
-        border: #4568E6 solid 1px;
+        border: #555 solid 1px;
         padding: 1px 4px;
         margin: 1px 3px;
-        color: #000;
-        background-color: #99aaff;
-        opacity: 0.75;
+        color: #fff;
+        background-color: #333;
+        opacity: 0.85;
     }
     & input:checked + span.button {
-        background-color: #3457D5;
+        background-color: #555;
         color: #fff;
         font-weight: bold;
         opacity: 1;

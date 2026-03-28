@@ -36,6 +36,10 @@ folders = {
     "lora": os.path.join(ROOT_PATH, "models", "Lora"),
     "lycoris": os.path.join(ROOT_PATH, "models", "LyCORIS"),
     "vae": os.path.join(ROOT_PATH, "models", "VAE"),
+    # ---
+    "controlnet": os.path.join(ROOT_PATH, "models", "Controlnet"),
+    "detection": os.path.join(ROOT_PATH, "models", "adetailer"),
+    # ---
 }
 
 
@@ -98,25 +102,55 @@ def get_custom_model_folder():
     """
     util.printD("Get Custom Model Folder")
 
-    embeddings_dir = getattr(shared.cmd_opts, "embeddings_dir", None)
-    if embeddings_dir and os.path.isdir(embeddings_dir):
-        folders["ti"] = embeddings_dir
+    # Forge's --model-ref: a root directory with the same subdirectory structure
+    # as the main models directory. Check first so individual flags can override.
+    model_ref = getattr(shared.cmd_opts, "model_ref", None)
+    if model_ref and os.path.isdir(model_ref):
+        forge_subdir_map = {
+            "ckp": "Stable-diffusion",
+            "lora": "Lora",
+            "vae": "VAE",
+            "ti": "embeddings",
+            "hyper": "hypernetworks",
+            "controlnet": "ControlNet",
+        }
+        for model_type, subdir in forge_subdir_map.items():
+            path = os.path.join(model_ref, subdir)
+            if os.path.isdir(path):
+                folders[model_type] = path
 
-    hypernetwork_dir = getattr(shared.cmd_opts, "hypernetwork_dir", None)
-    if hypernetwork_dir and os.path.isdir(hypernetwork_dir):
-        folders["hyper"] = hypernetwork_dir
+    if hasattr(shared.cmd_opts, "embeddings_dir") and shared.cmd_opts.embeddings_dir and os.path.isdir(shared.cmd_opts.embeddings_dir):
+        folders["ti"] = shared.cmd_opts.embeddings_dir
 
-    ckpt_dir = getattr(shared.cmd_opts, "ckpt_dir", None)
-    if ckpt_dir and os.path.isdir(ckpt_dir):
-        folders["ckp"] = ckpt_dir
+    if hasattr(shared.cmd_opts, "hypernetwork_dir") and shared.cmd_opts.hypernetwork_dir and os.path.isdir(shared.cmd_opts.hypernetwork_dir):
+        folders["hyper"] = shared.cmd_opts.hypernetwork_dir
 
-    lora_dir = getattr(shared.cmd_opts, "lora_dir", None)
-    if lora_dir and os.path.isdir(lora_dir):
-        folders["lora"] = lora_dir
+    # Support both singular (A1111-style) and plural (Forge-style) ckpt dir arguments
+    if hasattr(shared.cmd_opts, "ckpt_dir") and shared.cmd_opts.ckpt_dir and os.path.isdir(shared.cmd_opts.ckpt_dir):
+        folders["ckp"] = shared.cmd_opts.ckpt_dir
+    elif hasattr(shared.cmd_opts, "ckpt_dirs") and shared.cmd_opts.ckpt_dirs:
+        for d in shared.cmd_opts.ckpt_dirs:
+            if d and os.path.isdir(d):
+                folders["ckp"] = d
+                break
 
-    vae_dir = getattr(shared.cmd_opts, "vae_dir", None)
-    if vae_dir and os.path.isdir(vae_dir):
-        folders["vae"] = vae_dir
+    # Support both singular (A1111-style) and plural (Forge-style) lora dir arguments
+    if hasattr(shared.cmd_opts, "lora_dir") and shared.cmd_opts.lora_dir and os.path.isdir(shared.cmd_opts.lora_dir):
+        folders["lora"] = shared.cmd_opts.lora_dir
+    elif hasattr(shared.cmd_opts, "lora_dirs") and shared.cmd_opts.lora_dirs:
+        for d in shared.cmd_opts.lora_dirs:
+            if d and os.path.isdir(d):
+                folders["lora"] = d
+                break
+
+    # Support both singular (A1111-style) and plural (Forge-style) vae dir arguments
+    if hasattr(shared.cmd_opts, "vae_dir") and shared.cmd_opts.vae_dir and os.path.isdir(shared.cmd_opts.vae_dir):
+        folders["vae"] = shared.cmd_opts.vae_dir
+    elif hasattr(shared.cmd_opts, "vae_dirs") and shared.cmd_opts.vae_dirs:
+        for d in shared.cmd_opts.vae_dirs:
+            if d and os.path.isdir(d):
+                folders["vae"] = d
+                break
 
     if util.get_opts("ch_dl_lyco_to_lora"):
         folders["lycoris"] = folders["lora"]
@@ -451,14 +485,14 @@ def load_model_info(path):
 
 def get_potential_model_preview_files(model_path, all_prevs=False):
     """
-    Find existing preview images, if any.
+    Find existing preview images or videos, if any.
 
     Extensions from `find_preview` method in webui `modules/ui_extra_networks.py`
     gif added in webui commit c602471b85d270e8c36707817d9bad92b0ff991e
 
     return: preview_files
     """
-    preview_exts = ["png", "jpg", "jpeg", "webp", "gif"]
+    preview_exts = ["png", "jpg", "jpeg", "webp", "gif", "mp4", "webm"]
     preview_files = []
 
     base, _ = os.path.splitext(model_path)
