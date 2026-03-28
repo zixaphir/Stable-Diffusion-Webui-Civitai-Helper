@@ -10,8 +10,9 @@ function setupAutocomplete(targetSelector, fetcher) {
   // Create dropdown container
   const dropdown = document.createElement("ul");
   dropdown.style.position = "absolute";
-  dropdown.style.background = "white";
-  dropdown.style.border = "1px solid #ccc";
+  dropdown.style.background = "#2b2b2b";
+  dropdown.style.color = "#fff";
+  dropdown.style.border = "1px solid #555";
   dropdown.style.listStyle = "none";
   dropdown.style.padding = "0";
   dropdown.style.margin = "0";
@@ -90,7 +91,7 @@ function setupAutocomplete(targetSelector, fetcher) {
       e.preventDefault();
       selectedIndex = (selectedIndex + 1) % items.length;
       items.forEach((li, idx) => {
-        li.style.background = idx === selectedIndex ? "#def" : "white";
+        li.style.background = idx === selectedIndex ? "#3a5080" : "#2b2b2b";
       });
       items[selectedIndex].scrollIntoView({ block: "nearest" });
 
@@ -107,7 +108,7 @@ function setupAutocomplete(targetSelector, fetcher) {
       e.preventDefault();
       selectedIndex = (selectedIndex + 1) % items.length;
       items.forEach((li, idx) => {
-        li.style.background = idx === selectedIndex ? "#def" : "white";
+        li.style.background = idx === selectedIndex ? "#3a5080" : "#2b2b2b";
       });
       items[selectedIndex].scrollIntoView({ block: "nearest" });
 
@@ -116,7 +117,7 @@ function setupAutocomplete(targetSelector, fetcher) {
       e.preventDefault();
       selectedIndex = (selectedIndex - 1 + items.length) % items.length;
       items.forEach((li, idx) => {
-        li.style.background = idx === selectedIndex ? "#def" : "white";
+        li.style.background = idx === selectedIndex ? "#3a5080" : "#2b2b2b";
       });
       items[selectedIndex].scrollIntoView({ block: "nearest" });
 
@@ -125,7 +126,7 @@ function setupAutocomplete(targetSelector, fetcher) {
       e.preventDefault();
       selectedIndex = 0;
       items.forEach((li, idx) => {
-        li.style.background = idx === selectedIndex ? "#def" : "white";
+        li.style.background = idx === selectedIndex ? "#3a5080" : "#2b2b2b";
       });
       items[selectedIndex].scrollIntoView({ block: "nearest" });
 
@@ -134,7 +135,7 @@ function setupAutocomplete(targetSelector, fetcher) {
       e.preventDefault();
       selectedIndex = items.length - 1;
       items.forEach((li, idx) => {
-        li.style.background = idx === selectedIndex ? "#def" : "white";
+        li.style.background = idx === selectedIndex ? "#3a5080" : "#2b2b2b";
       });
       items[selectedIndex].scrollIntoView({ block: "nearest" });
     }

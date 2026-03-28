@@ -302,16 +302,20 @@ def parse_model(model):
     nsfw_preview_threshold = util.get_opts("ch_nsfw_threshold")
 
     for file in previews:
-        if file["type"] != "image":
+        if file["type"] not in ("image", "video"):
             continue
 
         if civitai.NSFW_LEVELS[nsfw_preview_threshold] < file["nsfwLevel"]:
             continue
 
-        preview["url"] = file["url"]
-        preview["type"] = file["type"]
-
-        break
+        # Prefer image previews; only use video if no image found yet
+        if file["type"] == "image":
+            preview["url"] = file["url"]
+            preview["type"] = file["type"]
+            break
+        elif not preview["url"]:
+            preview["url"] = file["url"]
+            preview["type"] = file["type"]
 
     if files:
         for file in files:
@@ -367,14 +371,20 @@ def quick_template_from_file(filename):
 
 def make_cards(models):
     card_template = quick_template_from_file("model_card.html")
-    preview_template = quick_template_from_file("image_preview.html")
-    # video_preview_template = quick_template_from_file("video_preview.html")
+    image_preview_template = quick_template_from_file("image_preview.html")
+    video_preview_template = quick_template_from_file("video_preview.html")
 
     cards = []
     for model in models:
         preview = ""
         if model["preview"]["url"]:
-            preview = preview_template.safe_substitute({"preview_url": model["preview"]["url"]})
+            if model["preview"]["type"] == "video":
+                preview = video_preview_template.safe_substitute({
+                    "preview_url": model["preview"]["url"],
+                    "autoplay": "autoplay",
+                })
+            else:
+                preview = image_preview_template.safe_substitute({"preview_url": model["preview"]["url"]})
 
         card = card_template.safe_substitute({
             "name": model["name"],

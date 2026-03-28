@@ -124,6 +124,16 @@ blockquote ol {
 
 /* end of Lobe theme */
 
+/* Helper Browser inputs — override Gradio default white background */
+#ch_browser_query textarea,
+#ch_browser_query input,
+#ch_browser_tag textarea,
+#ch_browser_tag input {
+    background-color: #2b2b2b !important;
+    color: #fff !important;
+    border-color: #555 !important;
+}
+
 /* Helper Browser */
 /* Perhaps figure out a less hacky way to write this... */
 
@@ -257,6 +267,7 @@ blockquote ol {
         position: relative;
     }
     & .preview_container img,
+    & .preview_container video,
     .preview_container video {
         position: absolute;
         width: 100%;
