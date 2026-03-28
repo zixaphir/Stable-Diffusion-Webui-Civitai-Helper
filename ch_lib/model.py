@@ -125,14 +125,32 @@ def get_custom_model_folder():
     if hasattr(shared.cmd_opts, "hypernetwork_dir") and shared.cmd_opts.hypernetwork_dir and os.path.isdir(shared.cmd_opts.hypernetwork_dir):
         folders["hyper"] = shared.cmd_opts.hypernetwork_dir
 
+    # Support both singular (A1111-style) and plural (Forge-style) ckpt dir arguments
     if hasattr(shared.cmd_opts, "ckpt_dir") and shared.cmd_opts.ckpt_dir and os.path.isdir(shared.cmd_opts.ckpt_dir):
         folders["ckp"] = shared.cmd_opts.ckpt_dir
+    elif hasattr(shared.cmd_opts, "ckpt_dirs") and shared.cmd_opts.ckpt_dirs:
+        for d in shared.cmd_opts.ckpt_dirs:
+            if d and os.path.isdir(d):
+                folders["ckp"] = d
+                break
 
+    # Support both singular (A1111-style) and plural (Forge-style) lora dir arguments
     if hasattr(shared.cmd_opts, "lora_dir") and shared.cmd_opts.lora_dir and os.path.isdir(shared.cmd_opts.lora_dir):
         folders["lora"] = shared.cmd_opts.lora_dir
+    elif hasattr(shared.cmd_opts, "lora_dirs") and shared.cmd_opts.lora_dirs:
+        for d in shared.cmd_opts.lora_dirs:
+            if d and os.path.isdir(d):
+                folders["lora"] = d
+                break
 
+    # Support both singular (A1111-style) and plural (Forge-style) vae dir arguments
     if hasattr(shared.cmd_opts, "vae_dir") and shared.cmd_opts.vae_dir and os.path.isdir(shared.cmd_opts.vae_dir):
         folders["vae"] = shared.cmd_opts.vae_dir
+    elif hasattr(shared.cmd_opts, "vae_dirs") and shared.cmd_opts.vae_dirs:
+        for d in shared.cmd_opts.vae_dirs:
+            if d and os.path.isdir(d):
+                folders["vae"] = d
+                break
 
     if util.get_opts("ch_dl_lyco_to_lora"):
         folders["lycoris"] = folders["lora"]
