@@ -4,6 +4,7 @@ handle msg between js and python side
 
 import os
 import re
+import urllib.parse
 from . import util
 from . import model
 from . import downloader
@@ -411,12 +412,13 @@ def get_image_url(img_dict, max_size_preview):
 
 def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
     """
-    Downloads a preview image if it meets the user's requirements.
+    Downloads a preview image or video if it meets the user's requirements.
     """
 
     img_url = img_dict.get("url", None)
     if img_url is None:
         yield (False, None)
+        return
 
     image_rating = img_dict.get("nsfwLevel", 32)
     if image_rating > 1:
@@ -424,11 +426,40 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
         if NSFW_LEVELS[nsfw_preview_threshold] < image_rating:
             util.printD("Skip NSFW image")
             yield (False, None)
+            return
 
     preview_type = img_dict.get("type")
-    if preview_type != "image":
-        util.printD(f"Preview is not an image. Found {preview_type} instead. Skipping.")
+
+    if preview_type == "video":
+        # Download video preview (e.g. wan2.2 lora mp4 previews)
+        url_path = urllib.parse.urlparse(img_url).path
+        _, url_ext = os.path.splitext(url_path)
+        if not url_ext:
+            url_ext = ".mp4"
+
+        base, _ = os.path.splitext(path)
+        if base.endswith(".preview"):
+            base = base[:-len(".preview")]
+        video_path = f"{base}.preview{url_ext}"
+
+        success = False
+        for result in downloader.dl_file(img_url, file_path=video_path):
+            if not isinstance(result, str):
+                success, video_path = result
+                break
+            yield result
+
+        if not success:
+            yield (False, None)
+            return
+
+        yield (True, video_path)
+        return
+
+    elif preview_type != "image":
+        util.printD(f"Preview is not an image or video. Found {preview_type} instead. Skipping.")
         yield (False, None)
+        return
 
     img_url = get_image_url(img_dict, max_size_preview)
 
@@ -443,6 +474,7 @@ def verify_preview(path, img_dict, max_size_preview, nsfw_preview_threshold):
 
     if not success:
         yield (False, None)
+        return
 
     # we only need 1 preview image
     yield (True, preview_path)

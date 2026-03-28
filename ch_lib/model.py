@@ -102,6 +102,23 @@ def get_custom_model_folder():
     """
     util.printD("Get Custom Model Folder")
 
+    # Forge's --model-ref: a root directory with the same subdirectory structure
+    # as the main models directory. Check first so individual flags can override.
+    model_ref = getattr(shared.cmd_opts, "model_ref", None)
+    if model_ref and os.path.isdir(model_ref):
+        forge_subdir_map = {
+            "ckp": "Stable-diffusion",
+            "lora": "Lora",
+            "vae": "VAE",
+            "ti": "embeddings",
+            "hyper": "hypernetworks",
+            "controlnet": "ControlNet",
+        }
+        for model_type, subdir in forge_subdir_map.items():
+            path = os.path.join(model_ref, subdir)
+            if os.path.isdir(path):
+                folders[model_type] = path
+
     if hasattr(shared.cmd_opts, "embeddings_dir") and shared.cmd_opts.embeddings_dir and os.path.isdir(shared.cmd_opts.embeddings_dir):
         folders["ti"] = shared.cmd_opts.embeddings_dir
 
@@ -450,14 +467,14 @@ def load_model_info(path):
 
 def get_potential_model_preview_files(model_path, all_prevs=False):
     """
-    Find existing preview images, if any.
+    Find existing preview images or videos, if any.
 
     Extensions from `find_preview` method in webui `modules/ui_extra_networks.py`
     gif added in webui commit c602471b85d270e8c36707817d9bad92b0ff991e
 
     return: preview_files
     """
-    preview_exts = ["png", "jpg", "jpeg", "webp", "gif"]
+    preview_exts = ["png", "jpg", "jpeg", "webp", "gif", "mp4", "webm"]
     preview_files = []
 
     base, _ = os.path.splitext(model_path)
