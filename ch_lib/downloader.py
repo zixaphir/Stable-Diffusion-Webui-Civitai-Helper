@@ -6,6 +6,7 @@ from collections.abc import Generator
 import os
 import platform
 import time
+import urllib.parse
 from typing import cast, Literal
 from tqdm import tqdm
 import requests
@@ -16,8 +17,58 @@ from . import util
 DL_EXT = ".downloading"
 MAX_RETRIES = 30
 
+# Civitai-owned domains – Authorization headers are preserved across redirects
+# between any of these hosts (e.g. civitai.red → civitai.com).
+CIVITAI_DOMAINS = frozenset({"civitai.com", "civitai.red"})
+
 # disable ssl warning info
 urllib3.disable_warnings()
+
+
+def _is_civitai_host(host: str) -> bool:
+    """Return True if *host* is a Civitai-owned hostname (with or without port).
+
+    *host* may be a bare hostname, a ``host:port`` pair, or an IPv6 literal
+    such as ``[::1]`` or ``[::1]:8080``.  ``urllib.parse.urlparse`` is used
+    to extract the hostname reliably.
+
+    The subdomain check uses ``endswith("." + domain)`` which requires a
+    literal dot boundary, so a crafted domain such as
+    ``malicious-civitai.com`` will *not* match (no leading dot before
+    ``civitai.com``).
+    """
+    parsed_host = urllib.parse.urlparse(f"//{host}").hostname or ""
+    return parsed_host in CIVITAI_DOMAINS or any(
+        parsed_host.endswith("." + d) for d in CIVITAI_DOMAINS
+    )
+
+
+class _CivitaiSession(requests.Session):
+    """
+    A requests Session that keeps the ``Authorization`` header when following
+    redirects within Civitai-owned domains (civitai.com and civitai.red).
+
+    By default, ``requests`` strips ``Authorization`` whenever a redirect
+    crosses host boundaries (RFC-compliant credential-leak prevention).
+    That breaks downloads whose URL is on ``civitai.red`` but that are
+    subsequently redirected to ``civitai.com`` or a Civitai CDN.
+    """
+
+    def rebuild_auth(self, prepared_request: requests.PreparedRequest, response: requests.Response) -> None:
+        original_url = response.request.url if response.request else None
+        redirect_url = prepared_request.url
+
+        if original_url and redirect_url:
+            original_host = urllib.parse.urlparse(original_url).netloc
+            redirect_host = urllib.parse.urlparse(redirect_url).netloc
+
+            if _is_civitai_host(original_host) and _is_civitai_host(redirect_host):
+                # Both sides are Civitai – keep the Authorization header as-is.
+                return
+
+        # Fall back to the standard behaviour for all other cross-domain redirects.
+        super().rebuild_auth(prepared_request, response)
+
 
 def calculate_stepback_delay_seconds(
     retries: int
@@ -47,10 +98,15 @@ def request_get(
     headers = util.append_default_headers(headers or {})
 
     try:
-        response = requests.get(
+        # A new _CivitaiSession is created per call, matching the behaviour of
+        # the previous ``requests.get(...)`` calls (which also create a
+        # temporary one-shot session internally).  The session is not shared
+        # between threads, avoiding any accidental credential leakage.
+        session = _CivitaiSession()
+        session.verify = False
+        response = session.get(
             url,
             stream=True,
-            verify=False,
             headers=headers,
             proxies=util.PROXIES,
             timeout=util.REQUEST_TIMEOUT
